@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Krediya Perú — Tablero Operativo</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f0f2f5;--card:#fff;--ink:#1a1a2e;--muted:#64748b;
+  --blue:#2563eb;--blue-l:#eff6ff;--green:#16a34a;--green-l:#f0fdf4;
+  --red:#dc2626;--red-l:#fef2f2;--amber:#d97706;--amber-l:#fffbeb;
+  --border:#e2e8f0;--font:'Segoe UI',system-ui,sans-serif;--mono:'Consolas',monospace;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--ink);min-height:100vh;}
+
+/* TOPBAR */
+.topbar{background:var(--ink);color:#fff;padding:0 20px;height:52px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;}
+.topbar-logo{font-size:20px;}
+.topbar-title{font-size:15px;font-weight:600;flex:1;}
+.topbar-title span{color:#94a3b8;font-size:12px;font-weight:400;margin-left:6px;}
+.badge-live{background:#16a34a;color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;letter-spacing:.04em;}
+.btn{padding:7px 14px;font-size:12px;font-weight:600;border-radius:6px;cursor:pointer;border:none;font-family:var(--font);transition:opacity .15s;}
+.btn:hover{opacity:.85;}
+.btn-outline{background:transparent;border:1.5px solid #475569;color:#cbd5e1;}
+.btn-primary{background:var(--blue);color:#fff;}
+
+/* LAYOUT */
+.main{padding:16px 20px;}
+.tabs{display:flex;gap:2px;background:var(--ink);padding:0 20px;border-bottom:1px solid #334155;}
+.tab{padding:10px 18px;font-size:12px;font-weight:600;color:#94a3b8;cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;transition:all .15s;font-family:var(--font);}
+.tab.active{color:#fff;border-bottom-color:var(--blue);}
+.panel{display:none;} .panel.active{display:block;}
+
+/* INFOBAR */
+.infobar{background:var(--ink);color:#64748b;font-size:11px;padding:6px 20px;display:flex;gap:16px;font-family:var(--mono);border-top:1px solid #334155;position:fixed;bottom:0;left:0;right:0;z-index:100;}
+.infobar span{color:#94a3b8;}
+
+/* KPI GRID */
+.kpi-grid{display:grid;gap:12px;margin-bottom:16px;}
+.kpi{background:var(--card);border-radius:10px;padding:16px 18px;border:1px solid var(--border);border-top:3px solid var(--blue);}
+.kpi.green{border-top-color:var(--green);} .kpi.red{border-top-color:var(--red);} .kpi.amber{border-top-color:var(--amber);}
+.kpi-lbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}
+.kpi-val{font-size:28px;font-weight:700;color:var(--ink);line-height:1;}
+.kpi-sub{font-size:11px;color:var(--muted);margin-top:4px;}
+
+/* CARDS */
+.card{background:var(--card);border-radius:10px;border:1px solid var(--border);margin-bottom:14px;overflow:hidden;}
+.card-hdr{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.card-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;}
+.card-body{padding:16px;}
+
+/* BARS */
+.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.bar-lbl{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.bar-track{flex:1;height:8px;background:#f1f5f9;border-radius:4px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:4px;background:var(--blue);}
+.bar-val{font-size:12px;font-weight:700;color:var(--blue);min-width:24px;text-align:right;font-family:var(--mono);}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+thead th{padding:9px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;border-bottom:2px solid var(--border);background:#f8fafc;}
+tbody td{padding:9px 12px;border-bottom:1px solid var(--border);}
+tbody tr:hover{background:#f8fafc;}
+tfoot td{padding:9px 12px;font-weight:700;background:#f8fafc;border-top:2px solid var(--border);}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;}
+.badge.ok{background:var(--green-l);color:var(--green);}
+.badge.warn{background:var(--amber-l);color:var(--amber);}
+.badge.crit{background:var(--red-l);color:var(--red);}
+.badge.ini{background:#eff6ff;color:var(--blue);}
+
+/* UPLOAD ZONE */
+.upload-zone{border:2px dashed #cbd5e1;border-radius:12px;padding:40px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:16px;background:#fff;}
+.upload-zone:hover,.upload-zone.drag{background:#eff6ff;border-color:var(--blue);}
+.upload-zone h3{font-size:15px;color:var(--blue);margin-bottom:6px;}
+.upload-zone p{font-size:12px;color:var(--muted);}
+
+/* BUDGET */
+.bud-row{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:8px;}
+.bud-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.bud-name{font-size:13px;font-weight:600;}
+.bud-nums{font-size:12px;color:var(--muted);font-family:var(--mono);}
+.bud-pct{font-size:16px;font-weight:700;font-family:var(--mono);}
+.bud-track{height:8px;background:#f1f5f9;border-radius:4px;overflow:hidden;margin-bottom:6px;}
+.bud-fill{height:100%;border-radius:4px;transition:width .4s;}
+
+/* STOCK */
+.stock-inp{width:70px;text-align:center;padding:5px 6px;border:1px solid #fbbf24;border-radius:4px;background:#fffbeb;font-family:var(--mono);font-size:12px;}
+.stock-inp:focus{outline:none;border-color:var(--blue);background:#fff;box-shadow:0 0 0 2px #bfdbfe;}
+
+/* GRID COLS */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+.g5{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;}
+
+@media(max-width:768px){.g2,.g3,.g4,.g5{grid-template-columns:1fr 1fr;}}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-logo">📊</div>
+  <div class="topbar-title">Tablero Operativo — Krediya Perú <span id="hdr-fecha">v10</span></div>
+  <span class="badge-live">● EN VIVO</span>
+  <label for="csv-file" class="btn btn-outline" style="cursor:pointer;">📂 Cargar CSV</label>
+  <input type="file" id="csv-file" accept=".csv" style="opacity:0;position:absolute;width:1px;height:1px;">
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab active" onclick="showTab('resumen',this)">📊 Resumen</button>
+  <button class="tab" onclick="showTab('presupuesto',this)">🎯 Presupuesto</button>
+  <button class="tab" onclick="showTab('embajadores',this)">🤝 Embajadores</button>
+  <button class="tab" onclick="showTab('stock',this)">📦 Stock</button>
+  <button class="tab" onclick="showTab('detalle',this)">📋 Detalle</button>
+</div>
+
+<!-- MAIN -->
+<div class="main" style="padding-bottom:60px;">
+
+<!-- UPLOAD -->
+<div class="upload-zone" id="upload-zone" style="display:none;">
+  <h3>📄 Arrastra tu CSV aquí</h3>
+  <p>O usa el botón "Cargar CSV" arriba</p>
+</div>
+
+<!-- ═══ RESUMEN ═══ -->
+<div id="tab-resumen" class="panel active">
+  <div class="kpi-grid g5" id="kpis" style="margin-top:16px;"></div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-hdr"><span class="card-title">Firmados por tienda</span></div>
+      <div class="card-body" id="bars-tienda"></div>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><span class="card-title">Firmados por vendedor</span></div>
+      <div class="card-body" id="bars-vendor"></div>
+    </div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-hdr"><span class="card-title">Mix de producto</span></div>
+      <div class="card-body" style="height:200px;position:relative;"><canvas id="chart-prod"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><span class="card-title">Ventas por día</span></div>
+      <div class="card-body" style="height:200px;position:relative;"><canvas id="chart-dias"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PRESUPUESTO ═══ -->
+<div id="tab-presupuesto" class="panel">
+  <div class="kpi-grid g4" id="bud-kpis" style="margin-top:16px;"></div>
+  <div id="bud-rows"></div>
+  <div class="card" style="margin-top:14px;">
+    <div class="card-hdr"><span class="card-title">Real vs Meta mensual</span></div>
+    <div class="card-body" style="height:220px;position:relative;"><canvas id="chart-bud"></canvas></div>
+  </div>
+</div>
+
+<!-- ═══ EMBAJADORES ═══ -->
+<div id="tab-embajadores" class="panel">
+  <div style="display:flex;align-items:center;gap:12px;margin:16px 0 12px;">
+    <span style="font-size:12px;font-weight:600;color:var(--muted);">Período:</span>
+    <select id="emb-mes" onchange="renderEmb()" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;">
+      <option value="">Todos</option>
+      <option value="2026-05" selected>Mayo 2026</option>
+      <option value="2026-04">Abril 2026</option>
+      <option value="2026-03">Marzo 2026</option>
+    </select>
+  </div>
+  <div class="kpi-grid g4" id="emb-kpis"></div>
+  <div class="card">
+    <div class="card-hdr"><span class="card-title" id="emb-tbl-title">Detalle por embajador</span></div>
+    <div class="tbl-wrap">
+      <table><thead id="emb-thead"></thead><tbody id="emb-tbody"></tbody></table>
+    </div>
+  </div>
+  <div class="card" style="margin-top:14px;">
+    <div class="card-hdr"><span class="card-title">Ranking visual por producto</span></div>
+    <div class="card-body" id="emb-bars"></div>
+  </div>
+</div>
+
+<!-- ═══ STOCK ═══ -->
+<div id="tab-stock" class="panel">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin:16px 0 12px;">
+    <p style="font-size:12px;color:var(--muted);">Ingresa unidades disponibles (celdas amarillas). Se guardan en tu navegador.</p>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-outline" onclick="resetStock()" style="color:#64748b;border-color:#e2e8f0;">↺ Resetear</button>
+      <button class="btn btn-primary" id="btn-save-stock" onclick="saveStockNow()">💾 Guardar</button>
+    </div>
+  </div>
+  <div class="kpi-grid g4" id="stock-kpis"></div>
+  <div class="card">
+    <div class="card-hdr"><span class="card-title">Inventario por sede</span></div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th style="min-width:180px;">SEDE</th>
+          <th style="text-align:center;">A07 Stock</th><th style="text-align:center;">A16 Stock</th><th style="text-align:center;">Moto Stock</th>
+          <th style="text-align:center;">A07 Vendido</th><th style="text-align:center;">A16 Vendido</th><th style="text-align:center;">Moto Vendido</th>
+          <th style="text-align:center;">A07 Saldo</th><th style="text-align:center;">A16 Saldo</th><th style="text-align:center;">Moto Saldo</th>
+          <th style="text-align:center;">Estado</th>
+        </tr></thead>
+        <tbody id="stock-tbody"></tbody>
+        <tfoot id="stock-tfoot"></tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ DETALLE ═══ -->
+<div id="tab-detalle" class="panel">
+  <div style="display:flex;gap:6px;margin:16px 0 12px;flex-wrap:wrap;">
+    <button class="btn btn-primary" onclick="filtDetalle('',this)">Todos</button>
+    <button class="btn btn-outline" onclick="filtDetalle('fin',this)" style="color:var(--green);border-color:var(--green);">✅ Firmados</button>
+    <button class="btn btn-outline" onclick="filtDetalle('ini',this)" style="color:var(--blue);border-color:var(--blue);">🕐 En proceso</button>
+    <button class="btn btn-outline" onclick="filtDetalle('can',this)" style="color:var(--red);border-color:var(--red);">❌ Cancelados</button>
+  </div>
+  <div class="card">
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>Fecha</th><th>Cliente</th><th>Tienda</th><th>Vendedor</th>
+          <th>Producto</th><th style="text-align:center;">Cuotas</th><th style="text-align:center;">S/ Cuota</th><th>Estado</th>
+        </tr></thead>
+        <tbody id="det-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<!-- INFOBAR -->
+<div class="infobar">
+  <span id="ib-records">Cargando datos...</span>
+  <span>|</span>
+  <span id="ib-fecha">—</span>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════
+// DATOS
+// ════════════════════════════════════════════════════
+var DATA = [{"fv":"7 may 2026, 15:56:04","ec":"FIRMADO","nc":"LUIS ARNALDO CASTILLO GAVIDIA","tv":"SAN JUAN DE LURIGANCHO","vd":"Zoraida Ardiles Almeida","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"7 may 2026, 15:18:05","ec":"INICIADO","nc":"NELLY MALPARTIDA PARDAVE VDA DE MEZA","tv":"CERCADO DE LIMA","vd":"Call Cercado Center","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"7 may 2026, 13:04:09","ec":"FIRMADO","nc":"LORENZO VILLANUEVA FUENTES","tv":"CERCADO DE LIMA","vd":"Natalia As\u00edan Ramos","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"7 may 2026, 11:54:24","ec":"FIRMADO","nc":"OLGA ALTEMIRA MIROPE RAMIREZ RUIZ","tv":"PIURA","vd":"Leoncio Yarleque Coello","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"7 may 2026, 11:41:41","ec":"FIRMADO","nc":"DIONICIO TABUADA RIVERA","tv":"SAN JUAN DE LURIGANCHO","vd":"Zoraida Ardiles Almeida","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"7 may 2026, 10:02:35","ec":"FIRMADO","nc":"ANTENOR ORFILIO CAMPOS ESTACIO","tv":"CERCADO DE LIMA","vd":"Natalia As\u00edan Ramos","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"7 may 2026, 9:44:32","ec":"FIRMADO","nc":"ROALDO ORDONEZ FLORES","tv":"PIURA","vd":"Leoncio Yarleque Coello","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"6 may 2026, 17:37:53","ec":"FIRMADO","nc":"OSCAR ERNESTO DELGADO RODRIGUEZ","tv":"SAN JUAN DE MIRAFLORES","vd":"Stephani Ato Arredondo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"6 may 2026, 16:29:19","ec":"FIRMADO","nc":"ELIZABETH CRISTINA PARRENO MENDOZA","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"6 may 2026, 16:01:33","ec":"FIRMADO","nc":"REBECA NOEMI NARVAEZ DE GRUBER","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"MOTOROLA G06 4 RAM 256GB","cu":"10","mc":"72","es":"Aprobado"},{"fv":"6 may 2026, 15:56:17","ec":"FIRMADO","nc":"DINA MARIA DE LOS SANTOS FACHO","tv":"CHICLAYO","vd":"Medaly D\u00edaz Rodrigo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"6 may 2026, 13:30:32","ec":"FIRMADO","nc":"VICTOR RAUL CHOQUEVILCA CCUNO","tv":"AREQUIPA","vd":"Evelyn Nataly Ramos Zu\u00f1iga","pv":"SAMSUNG A16 128GB 4 RAM","cu":"8","mc":"100","es":"Aprobado"},{"fv":"6 may 2026, 13:00:22","ec":"FIRMADO","nc":"MANUEL HERMES GRADOS GUTIERREZ","tv":"TRUJILLO","vd":"Nikol Ramirez P\u00e9rez","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"6 may 2026, 12:58:07","ec":"INICIADO","nc":"HENRY MANUEL SECLEN MARQUEZ","tv":"CHICLAYO","vd":"Call Chiclayo Center","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"6 may 2026, 12:11:29","ec":"FIRMADO","nc":"PABLO ROCA PONTE","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"MOTOROLA G06 4 RAM 256GB","cu":"10","mc":"72","es":"Aprobado"},{"fv":"6 may 2026, 11:55:30","ec":"FIRMADO","nc":"JOSEFA CRUZ DE SILVA","tv":"PIURA","vd":"Leoncio Yarleque Coello","pv":"SAMSUNG A07 64GB 4 RAM","cu":"6","mc":"96","es":"Aprobado"},{"fv":"6 may 2026, 11:38:01","ec":"FIRMADO","nc":"CECILIA CRISTINA BARRIENTOS GONZALES","tv":"ICA","vd":"Ronny Olivares","pv":"SAMSUNG A16 128GB 4 RAM","cu":"6","mc":"127","es":"Aprobado"},{"fv":"6 may 2026, 11:21:30","ec":"FIRMADO","nc":"ROSA GABRIELA CAMINO BECERRA","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"MOTOROLA G06 4 RAM 256GB","cu":"10","mc":"72","es":"Aprobado"},{"fv":"6 may 2026, 10:59:05","ec":"FIRMADO","nc":"LUIS ALBERTO ECHEVARRIA VIERA","tv":"CHICLAYO","vd":"Medaly D\u00edaz Rodrigo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"6 may 2026, 10:56:50","ec":"FIRMADO","nc":"SILBANA CLARA CUMPA VELASQUEZ","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"8","mc":"100","es":"Aprobado"},{"fv":"6 may 2026, 10:30:41","ec":"INICIADO","nc":"BRAUDILIO TABARA CHUZON","tv":"CHICLAYO","vd":"Call Chiclayo Center","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"6 may 2026, 9:29:07","ec":"FIRMADO","nc":"MARIA CRISTINA ALBAN MOSCOL DE DIAZ","tv":"CERCADO DE LIMA","vd":"Natalia As\u00edan Ramos","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"6 may 2026, 8:45:37","ec":"INICIADO","nc":"GLIDER SAAVEDRA PEREDA","tv":"SAN JUAN DE LURIGANCHO","vd":"Call San Juna del Lurigancho Center","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"5 may 2026, 17:06:32","ec":"FIRMADO","nc":"GLORIA PRUDENCIA RODRIGUEZ PORRAS","tv":"CERCADO DE LIMA","vd":"Natalia As\u00edan Ramos","pv":"SAMSUNG A16 128GB 4 RAM","cu":"8","mc":"100","es":"Aprobado"},{"fv":"5 may 2026, 16:38:55","ec":"FIRMADO","nc":"ELOISA ALEJANDRINA LOBATON NAVARRO DE HOYOS","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"5 may 2026, 16:08:49","ec":"INICIADO","nc":"CARMEN EMILIA PRIETO GALLARDO","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"8","mc":"100","es":"Aprobado"},{"fv":"5 may 2026, 15:31:18","ec":"FIRMADO","nc":"FLOR FELICITA QUEVEDO HUYHUA","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"5 may 2026, 13:44:53","ec":"FIRMADO","nc":"JULIO CESAR BERNAOLA CRUZ","tv":"CERCADO DE LIMA","vd":"Natalia As\u00edan Ramos","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"5 may 2026, 11:58:45","ec":"FIRMADO","nc":"ZOILA ANTONIETA YZQUIERDO BAZAN","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"8","mc":"100","es":"Aprobado"},{"fv":"5 may 2026, 11:49:12","ec":"FIRMADO","nc":"JOSE EUSEBIO HIDALGO PANTA","tv":"PIURA","vd":"Leoncio Yarleque Coello","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"5 may 2026, 11:25:20","ec":"FIRMADO","nc":"FLORENCIA MAGDALENA LUNA DIAZ","tv":"ICA","vd":"Ronny Olivares","pv":"SAMSUNG A16 128GB 4 RAM","cu":"6","mc":"127","es":"Aprobado"},{"fv":"5 may 2026, 11:09:20","ec":"INICIADO","nc":"NELLY ESPERANZA PEREZ ROSALES","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"5 may 2026, 10:16:07","ec":"FIRMADO","nc":"ROSA LUDOVINA DAVILA BUENO","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"5 may 2026, 10:07:30","ec":"FIRMADO","nc":"NILTON BLANCO LUNA","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"5 may 2026, 9:29:59","ec":"INICIADO","nc":"BENITA MEZA LAZO","tv":"AREQUIPA","vd":"Call Arequipa Center","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"5 may 2026, 9:06:51","ec":"FIRMADO","nc":"GUSTAVO ENRIQUE MALLEA VALDERRAMA","tv":"AREQUIPA","vd":"Evelyn Nataly Ramos Zu\u00f1iga","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"4 may 2026, 16:36:30","ec":"FIRMADO","nc":"GLADYS AGRIPINA LARICO BORDA","tv":"AREQUIPA","vd":"Evelyn Nataly Ramos Zu\u00f1iga","pv":"SAMSUNG A16 128GB 4 RAM","cu":"6","mc":"127","es":"Aprobado"},{"fv":"4 may 2026, 16:22:18","ec":"FIRMADO","nc":"ROSA MARIANA MORAN MEDINA DE SEMINARIO","tv":"SAN JUAN DE MIRAFLORES","vd":"Stephani Ato Arredondo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"4 may 2026, 14:57:59","ec":"FIRMADO","nc":"HERVEE CORNEJO VILLARREYES","tv":"TRUJILLO","vd":"Nikol Ramirez P\u00e9rez","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"4 may 2026, 13:16:40","ec":"FIRMADO","nc":"MANUEL LOCON CAPITAN","tv":"CHICLAYO","vd":"Medaly D\u00edaz Rodrigo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"6","mc":"127","es":"Aprobado"},{"fv":"4 may 2026, 11:08:38","ec":"FIRMADO","nc":"DANIEL ABANTO AYAYPOMA","tv":"TRUJILLO","vd":"Nikol Ramirez P\u00e9rez","pv":"SAMSUNG A16 128GB 4 RAM","cu":"8","mc":"100","es":"Aprobado"},{"fv":"4 may 2026, 11:00:56","ec":"FIRMADO","nc":"VICTOR GARCIA LOAYZA","tv":"SAN JUAN DE LURIGANCHO","vd":"Zoraida Ardiles Almeida","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"4 may 2026, 10:55:17","ec":"FIRMADO","nc":"EUDOCIA VILLENA ALONSO","tv":"TRUJILLO","vd":"Nikol Ramirez P\u00e9rez","pv":"SAMSUNG A16 128GB 4 RAM","cu":"6","mc":"127","es":"Aprobado"},{"fv":"4 may 2026, 10:33:54","ec":"FIRMADO","nc":"SANTOS VICTOR CORTEZ AVELINO","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"4 may 2026, 10:32:03","ec":"FIRMADO","nc":"WILLIAM RICARDO MORENO INONAN","tv":"CHICLAYO","vd":"Medaly D\u00edaz Rodrigo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"4 may 2026, 10:15:35","ec":"INICIADO","nc":"ALEJANDRO ANGELES LOPEZ","tv":"SAN JUAN DE LURIGANCHO","vd":"Call San Juna del Lurigancho Center","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"4 may 2026, 10:00:25","ec":"FIRMADO","nc":"JOSE GUILLERMO PAMUCENA ROJAS","tv":"ICA","vd":"Irvin Martin Mu\u00f1ante Hernanndez","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"4 may 2026, 9:30:43","ec":"FIRMADO","nc":"HILDA PAULINA LEON REYES","tv":"TRUJILLO","vd":"Nikol Ramirez P\u00e9rez","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"30 abr 2026, 16:49:54","ec":"INICIADO","nc":"LUZ GRISELDA BELLODAS DE PACHECO","tv":"AREQUIPA","vd":"Mois\u00e9s Romero Phocco","pv":"SAMSUNG A16 128GB 4 RAM","cu":"8","mc":"100","es":"Aprobado"},{"fv":"30 abr 2026, 16:37:31","ec":"INICIADO","nc":"GLENDA AMPARO CORNEJO ROSADO","tv":"AREQUIPA","vd":"Mois\u00e9s Romero Phocco","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"30 abr 2026, 16:29:37","ec":"INICIADO","nc":"YOLANDA SANTOSA ARROYO LOPEZ","tv":"INDEPENDENCIA","vd":"Call Independencia Center","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"CANCELADA"},{"fv":"30 abr 2026, 14:47:05","ec":"ANULADO","nc":"ENRIQUE SALAZAR VILLANUEVA","tv":"MIRAFLORES","vd":"Call Miraflores Center","pv":"SAMSUNG A07 64GB 4 RAM","cu":"6","mc":"96","es":"Aprobado"},{"fv":"30 abr 2026, 14:35:22","ec":"ANULADO","nc":"ENRIQUE SALAZAR VILLANUEVA","tv":"MIRAFLORES","vd":"Call Miraflores Center","pv":"SAMSUNG A07 64GB 4 RAM","cu":"6","mc":"96","es":"Aprobado"},{"fv":"30 abr 2026, 14:32:40","ec":"ANULADO","nc":"ENRIQUE SALAZAR VILLANUEVA","tv":"MIRAFLORES","vd":"Call Miraflores Center","pv":"SAMSUNG A16 128GB 4 RAM","cu":"6","mc":"127","es":"Aprobado"},{"fv":"30 abr 2026, 14:27:02","ec":"ANULADO","nc":"ENRIQUE SALAZAR VILLANUEVA","tv":"MIRAFLORES","vd":"Call Miraflores Center","pv":"SAMSUNG A07 64GB 4 RAM","cu":"6","mc":"96","es":"Aprobado"},{"fv":"30 abr 2026, 14:06:29","ec":"FIRMADO","nc":"AMERICO HUGO MARCIAL UBALDO GONZALES","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"30 abr 2026, 12:54:32","ec":"FIRMADO","nc":"ELDA ALINA ORMENO PANTIGOSO","tv":"MIRAFLORES","vd":"Call Miraflores Center","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"30 abr 2026, 12:23:40","ec":"FIRMADO","nc":"MIGUEL CASTRO CARPIO","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"30 abr 2026, 12:05:03","ec":"FIRMADO","nc":"JOSE MIGUEL REVELO RIVERA","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"30 abr 2026, 11:51:43","ec":"FIRMADO","nc":"NICOLAS CASTELLO MENESES","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"30 abr 2026, 10:12:01","ec":"FIRMADO","nc":"SOMNIA FELICITA MENESES ACOSTA","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"30 abr 2026, 8:12:08","ec":"FIRMADO","nc":"CARLOS FELIX WATANABE MORILLAS","tv":"SAN JUAN DE LURIGANCHO","vd":"Zoraida Ardiles Almeida","pv":"SAMSUNG A16 128GB 4 RAM","cu":"8","mc":"100","es":"Aprobado"},{"fv":"29 abr 2026, 17:12:34","ec":"FIRMADO","nc":"ROSA CABRERA ODOLIA","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"8","mc":"75","es":"Aprobado"},{"fv":"29 abr 2026, 16:06:53","ec":"FIRMADO","nc":"LUCERO MAGDALENA SOUQUON GRAVELO","tv":"CHICLAYO","vd":"Medaly D\u00edaz Rodrigo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"29 abr 2026, 16:06:24","ec":"FIRMADO","nc":"SEGUNDO JUAN DOMINGUEZ ROJAS","tv":"TRUJILLO","vd":"Nikol Ramirez P\u00e9rez","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"29 abr 2026, 16:01:09","ec":"FIRMADO","nc":"ZOILA ROSA LOPEZ CHACON VDA DE FLORES","tv":"CERCADO DE LIMA","vd":"Natalia As\u00edan Ramos","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"29 abr 2026, 15:46:13","ec":"FIRMADO","nc":"EDILBERTA CARIDAD SOLON SIMON","tv":"TRUJILLO","vd":"Nikol Ramirez P\u00e9rez","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"29 abr 2026, 13:04:10","ec":"FIRMADO","nc":"OSCAR LUIS MONTES VIVAS","tv":"CERCADO DE LIMA","vd":"Natalia As\u00edan Ramos","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"29 abr 2026, 12:46:35","ec":"ANULADO","nc":"LUZ ROMAN GUTIERREZ","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"8","mc":"100","es":"Aprobado"},{"fv":"29 abr 2026, 12:38:04","ec":"FIRMADO","nc":"ROSARIO ENRIQUEZ CHAVEZ DE BRAVO","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"29 abr 2026, 11:56:24","ec":"FIRMADO","nc":"LUISA ALBINA HEVIA VIZCARDO DE GALARZA","tv":"CERCADO DE LIMA","vd":"Natalia As\u00edan Ramos","pv":"SAMSUNG A16 128GB 4 RAM","cu":"8","mc":"100","es":"Aprobado"},{"fv":"29 abr 2026, 11:46:05","ec":"FIRMADO","nc":"RAMON EDUARDO HERRERA FLORES","tv":"CHICLAYO","vd":"Medaly D\u00edaz Rodrigo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"6","mc":"127","es":"Aprobado"},{"fv":"29 abr 2026, 10:25:08","ec":"FIRMADO","nc":"DOMINGO JIMENEZ SAAVEDRA","tv":"PIURA","vd":"Leoncio Yarleque Coello","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"29 abr 2026, 10:05:22","ec":"FIRMADO","nc":"SANTOS LORENZO POLO BURGOS","tv":"TRUJILLO","vd":"Nikol Ramirez P\u00e9rez","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"29 abr 2026, 9:26:05","ec":"FIRMADO","nc":"RAMON ELIAS VEJARANO JARA","tv":"TRUJILLO","vd":"Nikol Ramirez P\u00e9rez","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"29 abr 2026, 9:06:07","ec":"FIRMADO","nc":"NESTOR RODRIGO LOPEZ VILLAGOMEZ","tv":"ICA","vd":"Irvin Martin Mu\u00f1ante Hernanndez","pv":"SAMSUNG A16 128GB 4 RAM","cu":"6","mc":"127","es":"Aprobado"},{"fv":"28 abr 2026, 16:29:36","ec":"FIRMADO","nc":"CRUZ FERNANDA PENA DURAND","tv":"CHICLAYO","vd":"Medaly D\u00edaz Rodrigo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"6","mc":"127","es":"Aprobado"},{"fv":"28 abr 2026, 15:40:09","ec":"INICIADO","nc":"MARIO HERNAN CHAVEZ FLORES","tv":"AREQUIPA","vd":"Mois\u00e9s Romero Phocco","pv":"SAMSUNG A16 128GB 4 RAM","cu":"8","mc":"100","es":"Aprobado"},{"fv":"28 abr 2026, 15:36:12","ec":"FIRMADO","nc":"MARIA LUZ QUINTEROS CARRERA","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"28 abr 2026, 15:35:15","ec":"FIRMADO","nc":"EDILBERTO ROMALDO CONTRERAS GALINDO","tv":"SAN JUAN DE MIRAFLORES","vd":"Stephani Ato Arredondo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"28 abr 2026, 15:29:42","ec":"INICIADO","nc":"GERARDA ALBERTA TORRES APAZA","tv":"AREQUIPA","vd":"Mois\u00e9s Romero Phocco","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"28 abr 2026, 15:16:00","ec":"INICIADO","nc":"ANGELICA MORANTE DE OJEDA","tv":"AREQUIPA","vd":"Mois\u00e9s Romero Phocco","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"28 abr 2026, 13:58:57","ec":"FIRMADO","nc":"MANUEL ANTONIO DAVILA BRATHWAIT","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"28 abr 2026, 13:13:16","ec":"FIRMADO","nc":"ALFIERI LEONIDAS PINO NIETO","tv":"CERCADO DE LIMA","vd":"Natalia As\u00edan Ramos","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"28 abr 2026, 13:11:26","ec":"INICIADO","nc":"PAULINA NANCY ALVAREZ ROQUE","tv":"AREQUIPA","vd":"Mois\u00e9s Romero Phocco","pv":"SAMSUNG A07 64GB 4 RAM","cu":"6","mc":"96","es":"CANCELADA"},{"fv":"28 abr 2026, 12:38:56","ec":"INICIADO","nc":"JIMY ARTURO LORENZO ESCALANTE PALACIOS","tv":"ICA","vd":"Ronny Olivares","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"28 abr 2026, 12:01:52","ec":"FIRMADO","nc":"AUTOR MONDRAGON HERRERA","tv":"CHICLAYO","vd":"Medaly D\u00edaz Rodrigo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"28 abr 2026, 11:55:33","ec":"FIRMADO","nc":"VICTORIA FRANCISCA LLAMPASI CRISOSTOMO","tv":"SAN JUAN DE MIRAFLORES","vd":"Stephani Ato Arredondo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"28 abr 2026, 11:44:52","ec":"FIRMADO","nc":"TEOFILA LLAMPASI CRISOSTOMO","tv":"SAN JUAN DE MIRAFLORES","vd":"Stephani Ato Arredondo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"28 abr 2026, 11:38:44","ec":"FIRMADO","nc":"JUSTO FELIX ARMAS PALPA","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"28 abr 2026, 11:35:43","ec":"FIRMADO","nc":"ELVA MARIA CLAUDIO ESTRADA","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"28 abr 2026, 11:34:43","ec":"INICIADO","nc":"CAMILA LELYS SALDANA ZEVALLOS","tv":"ICA","vd":"Ronny Olivares","pv":"SAMSUNG A16 128GB 4 RAM","cu":"8","mc":"100","es":"Aprobado"},{"fv":"28 abr 2026, 11:31:51","ec":"FIRMADO","nc":"FAUSTO IDROGO SILVA","tv":"CHICLAYO","vd":"Medaly D\u00edaz Rodrigo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"8","mc":"100","es":"Aprobado"},{"fv":"28 abr 2026, 11:05:34","ec":"FIRMADO","nc":"KLEBER BERMUDEZ MARTINEZ","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"28 abr 2026, 10:53:09","ec":"FIRMADO","nc":"JUANA CONSTANZA ARANA CACERES DE ECHEANDIA","tv":"CERCADO DE LIMA","vd":"Natalia As\u00edan Ramos","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"28 abr 2026, 10:40:49","ec":"INICIADO","nc":"AMPARO MATILDE MEZA DE RUIZ","tv":"ICA","vd":"Ronny Olivares","pv":"SAMSUNG A16 128GB 4 RAM","cu":"8","mc":"100","es":"Aprobado"},{"fv":"28 abr 2026, 10:26:42","ec":"FIRMADO","nc":"HUGO MARCIAL GARCIA BERMEJO","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"8","mc":"100","es":"Aprobado"},{"fv":"28 abr 2026, 10:10:16","ec":"FIRMADO","nc":"ALCIRA BERMUDEZ MARTINEZ","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"27 abr 2026, 16:29:58","ec":"FIRMADO","nc":"PAULA JULIA GONZALES GAMBOA","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"6","mc":"127","es":"Aprobado"},{"fv":"27 abr 2026, 16:14:13","ec":"FIRMADO","nc":"URPILA DORIS GONZALES GAMBOA","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"6","mc":"127","es":"Aprobado"},{"fv":"27 abr 2026, 15:36:26","ec":"FIRMADO","nc":"ZENON ALEJANDRO SOLIS RONDON","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"27 abr 2026, 15:34:15","ec":"FIRMADO","nc":"ELEODORO TABOADA VILLEGAS","tv":"TRUJILLO","vd":"Nikol Ramirez P\u00e9rez","pv":"SAMSUNG A16 128GB 4 RAM","cu":"6","mc":"127","es":"Aprobado"},{"fv":"27 abr 2026, 14:02:46","ec":"FIRMADO","nc":"FILADELFO ACARO BERRU","tv":"PIURA","vd":"Leoncio Yarleque Coello","pv":"SAMSUNG A07 64GB 4 RAM","cu":"6","mc":"96","es":"Aprobado"},{"fv":"27 abr 2026, 11:51:43","ec":"FIRMADO","nc":"NORMAN ALCIDES VILLANUEVA VARA","tv":"SAN JUAN DE LURIGANCHO","vd":"Brizeth Ch\u00e1vez Colchado","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"27 abr 2026, 11:08:42","ec":"FIRMADO","nc":"LUZ ANGELICA RADAS PALACIOS","tv":"TRUJILLO","vd":"Nikol Ramirez P\u00e9rez","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"27 abr 2026, 11:05:25","ec":"FIRMADO","nc":"JOVER GILMER CUEVA GUTIERREZ","tv":"SAN JUAN DE LURIGANCHO","vd":"Brizeth Ch\u00e1vez Colchado","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"27 abr 2026, 10:47:10","ec":"FIRMADO","nc":"CARMEN ROSA ZAVALA COCA DE JARA","tv":"SAN JUAN DE MIRAFLORES","vd":"Stephani Ato Arredondo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"27 abr 2026, 10:39:07","ec":"FIRMADO","nc":"JULIA ESPERANZA PAUCAR IBA\u00d1EZ","tv":"CHICLAYO","vd":"Medaly D\u00edaz Rodrigo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"8","mc":"100","es":"Aprobado"},{"fv":"27 abr 2026, 10:26:27","ec":"FIRMADO","nc":"GREGORIO ADRIAN ABARCA BA\u00d1EZ","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"6","mc":"96","es":"Aprobado"},{"fv":"27 abr 2026, 10:00:42","ec":"FIRMADO","nc":"OSCAR ALBERTO ARROYO URBINA","tv":"CHICLAYO","vd":"Medaly D\u00edaz Rodrigo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"6","mc":"127","es":"Aprobado"},{"fv":"27 abr 2026, 9:54:36","ec":"FIRMADO","nc":"FLORENCIO QUISPE GALA","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"27 abr 2026, 9:43:36","ec":"FIRMADO","nc":"LUCY VICTORIA CALERO MARCELO","tv":"SAN JUAN DE MIRAFLORES","vd":"Stephani Ato Arredondo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"24 abr 2026, 16:57:04","ec":"INICIADO","nc":"RAUL MACA AMASIFUEN","tv":"SAN JUAN DE LURIGANCHO","vd":"Call San Juna del Lurigancho Center","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"24 abr 2026, 16:27:14","ec":"FIRMADO","nc":"GUILLERMO ERNESTO COLCHADO ESCOBAR","tv":"CHICLAYO","vd":"Medaly D\u00edaz Rodrigo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"24 abr 2026, 16:18:25","ec":"INICIADO","nc":"MANUEL ESTEBAN HUAMACO AUCCAPUMA","tv":"SAN JUAN DE LURIGANCHO","vd":"Call San Juna del Lurigancho Center","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"24 abr 2026, 15:57:54","ec":"FIRMADO","nc":"MARTHA IRENE ANGASPILCO MONTOYA","tv":"TRUJILLO","vd":"Nikol Ramirez P\u00e9rez","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"24 abr 2026, 15:38:21","ec":"FIRMADO","nc":"MARIA LUISA RIVAS BECERRA","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"24 abr 2026, 15:15:44","ec":"FIRMADO","nc":"MARCOS HURTADO CARLOS","tv":"SAN JUAN DE LURIGANCHO","vd":"Brizeth Ch\u00e1vez Colchado","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"24 abr 2026, 14:54:25","ec":"INICIADO","nc":"JUAN FLORES MORENO","tv":"ICA","vd":"Irvin Martin Mu\u00f1ante Hernanndez","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"CANCELADA"},{"fv":"24 abr 2026, 14:51:27","ec":"FIRMADO","nc":"PEDRO ZUNIGA LLUNCOR","tv":"CHICLAYO","vd":"Medaly D\u00edaz Rodrigo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"6","mc":"127","es":"Aprobado"},{"fv":"24 abr 2026, 14:34:51","ec":"FIRMADO","nc":"MARIA AURORA SOLIS ARIZA","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"6","mc":"127","es":"Aprobado"},{"fv":"24 abr 2026, 13:22:54","ec":"FIRMADO","nc":"MARIA DELIA SOLIS ARIZA","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"24 abr 2026, 12:43:07","ec":"FIRMADO","nc":"PEDRO FRANCISCO JIMENEZ GONZALES","tv":"TRUJILLO","vd":"Nikol Ramirez P\u00e9rez","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"24 abr 2026, 12:30:43","ec":"FIRMADO","nc":"CESAR AUGUSTO TAGLE PIZARRO","tv":"CHICLAYO","vd":"Medaly D\u00edaz Rodrigo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"24 abr 2026, 11:21:32","ec":"FIRMADO","nc":"JOSE ANTONIO ZEVALLOS OLIVA","tv":"CHICLAYO","vd":"Medaly D\u00edaz Rodrigo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"24 abr 2026, 10:49:32","ec":"FIRMADO","nc":"JUAN CARLOS MARCHENA LA ROSA","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"24 abr 2026, 10:40:39","ec":"FIRMADO","nc":"MARIA ELENA SOSA SANDOVAL","tv":"CHICLAYO","vd":"Medaly D\u00edaz Rodrigo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"6","mc":"127","es":"Aprobado"},{"fv":"24 abr 2026, 10:35:14","ec":"FIRMADO","nc":"VICTOR CORNELIO HILARES","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"8","mc":"100","es":"Aprobado"},{"fv":"24 abr 2026, 10:31:35","ec":"FIRMADO","nc":"CESAR TELMO HERRERA VEGA","tv":"CHICLAYO","vd":"Medaly D\u00edaz Rodrigo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"24 abr 2026, 10:27:10","ec":"FIRMADO","nc":"ARMANDO FLAVIO CASUSOL GARCIA","tv":"TRUJILLO","vd":"Nikol Ramirez P\u00e9rez","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"24 abr 2026, 10:21:58","ec":"FIRMADO","nc":"LORENZO FORTUNATO ZACARIAS CARDOZO","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"24 abr 2026, 10:20:20","ec":"FIRMADO","nc":"WALTER HERNANI VIDARTE ROJAS","tv":"CHICLAYO","vd":"Medaly D\u00edaz Rodrigo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"24 abr 2026, 9:37:29","ec":"FIRMADO","nc":"ROSA BETSABE LA NOIRE LA CRUZ","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"24 abr 2026, 9:23:10","ec":"FIRMADO","nc":"ISAAC WENCESLAO ABANTO ARIAS","tv":"TRUJILLO","vd":"Nikol Ramirez P\u00e9rez","pv":"SAMSUNG A16 128GB 4 RAM","cu":"8","mc":"100","es":"Aprobado"},{"fv":"24 abr 2026, 8:59:37","ec":"FIRMADO","nc":"LUIS ALBERTO MARTINEZ MELENDEZ","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"24 abr 2026, 8:53:59","ec":"FIRMADO","nc":"LUIS ALBERTO RAVELO AYALA","tv":"TRUJILLO","vd":"Nikol Ramirez P\u00e9rez","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"23 abr 2026, 18:08:24","ec":"FIRMADO","nc":"ZARELA CENTURION RAMIREZ","tv":"CHICLAYO","vd":"Medaly D\u00edaz Rodrigo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"6","mc":"127","es":"Aprobado"},{"fv":"23 abr 2026, 16:35:49","ec":"FIRMADO","nc":"CONSEPCION ANGELICA VALVERDE MALO","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"23 abr 2026, 16:23:23","ec":"FIRMADO","nc":"ARMANDO CAMPOS FERNANDEZ","tv":"CERCADO DE LIMA","vd":"Natalia As\u00edan Ramos","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"23 abr 2026, 16:15:06","ec":"FIRMADO","nc":"LUZMILA GONZALES OROZCO","tv":"CHICLAYO","vd":"Medaly D\u00edaz Rodrigo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"23 abr 2026, 15:45:53","ec":"FIRMADO","nc":"JUAN MANUEL MINES SANDOVAL","tv":"TRUJILLO","vd":"Nikol Ramirez P\u00e9rez","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"23 abr 2026, 15:34:48","ec":"FIRMADO","nc":"RICARDO ZAVALA ESCUDERO","tv":"TRUJILLO","vd":"Nikol Ramirez P\u00e9rez","pv":"SAMSUNG A16 128GB 4 RAM","cu":"6","mc":"127","es":"Aprobado"},{"fv":"23 abr 2026, 15:23:13","ec":"FIRMADO","nc":"BUENAVENTURA VILLEGAS VILLEGAS","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"23 abr 2026, 15:21:41","ec":"FIRMADO","nc":"BLANCA GRACIELA GALLO CASTILLO","tv":"PIURA","vd":"Leoncio Yarleque Coello","pv":"SAMSUNG A07 64GB 4 RAM","cu":"6","mc":"96","es":"Aprobado"},{"fv":"23 abr 2026, 14:54:37","ec":"FIRMADO","nc":"MERY LUZ ELGUERA BALLENAS","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"23 abr 2026, 13:38:55","ec":"FIRMADO","nc":"JULIA ZUNIGA SILVA","tv":"CERCADO DE LIMA","vd":"Natalia As\u00edan Ramos","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"23 abr 2026, 13:29:21","ec":"FIRMADO","nc":"RAUL GUEVARA CABRERA","tv":"CERCADO DE LIMA","vd":"Natalia As\u00edan Ramos","pv":"SAMSUNG A07 64GB 4 RAM","cu":"6","mc":"96","es":"Aprobado"},{"fv":"23 abr 2026, 12:59:47","ec":"FIRMADO","nc":"VIRGINIA MAZZOTTI TOUMA","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"6","mc":"127","es":"Aprobado"},{"fv":"23 abr 2026, 12:55:22","ec":"FIRMADO","nc":"FERMIN CASTANEDA BARRERA","tv":"TRUJILLO","vd":"Nikol Ramirez P\u00e9rez","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"23 abr 2026, 12:31:53","ec":"FIRMADO","nc":"RUBELA BEBELU MONTESINOS GARCIA","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"23 abr 2026, 11:50:10","ec":"FIRMADO","nc":"JESUS ALTAMIRANO CAJOS","tv":"CERCADO DE LIMA","vd":"Natalia As\u00edan Ramos","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"23 abr 2026, 11:42:17","ec":"FIRMADO","nc":"LILIAN ESTHER HUAMAN DE LA GRUZ","tv":"SAN JUAN DE MIRAFLORES","vd":"Stephani Ato Arredondo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"23 abr 2026, 11:39:12","ec":"FIRMADO","nc":"JOSE ALBERTO SILUPU COLCHADO","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"8","mc":"100","es":"Aprobado"},{"fv":"23 abr 2026, 11:33:24","ec":"FIRMADO","nc":"LUIS ARSENIO CERNA ARAUJO","tv":"TRUJILLO","vd":"Nikol Ramirez P\u00e9rez","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"23 abr 2026, 10:49:13","ec":"FIRMADO","nc":"LILIA PEREZ VILLANUEVA DE ESPINOZA","tv":"CHICLAYO","vd":"Medaly D\u00edaz Rodrigo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"6","mc":"127","es":"Aprobado"},{"fv":"23 abr 2026, 8:47:10","ec":"FIRMADO","nc":"DILCIA MAGDALINA HIDALGO OLEMAR","tv":"PIURA","vd":"Leoncio Yarleque Coello","pv":"SAMSUNG A16 128GB 4 RAM","cu":"8","mc":"100","es":"Aprobado"},{"fv":"22 abr 2026, 17:16:41","ec":"FIRMADO","nc":"SABINO ALDAVE CANALES","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"22 abr 2026, 16:48:18","ec":"FIRMADO","nc":"ENRIQUE RODRIGUEZ CALATAYUD","tv":"SAN JUAN DE MIRAFLORES","vd":"Stephani Ato Arredondo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"22 abr 2026, 16:44:06","ec":"FIRMADO","nc":"APOLINAR PUMA HUANACO","tv":"SAN JUAN DE MIRAFLORES","vd":"Stephani Ato Arredondo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"22 abr 2026, 16:29:42","ec":"FIRMADO","nc":"MARIA LAZARTE LEGUIA","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"22 abr 2026, 16:18:57","ec":"FIRMADO","nc":"AUBERTO ORESTES ALEGRE ANGELES","tv":"ICA","vd":"Ronny Olivares","pv":"SAMSUNG A07 64GB 4 RAM","cu":"6","mc":"96","es":"Aprobado"},{"fv":"22 abr 2026, 16:14:39","ec":"FIRMADO","nc":"SUSANA VICTORIA VEGA HIDALGO","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"22 abr 2026, 15:27:14","ec":"FIRMADO","nc":"JOSE MIGUEL CASTILLO ASANZA","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"22 abr 2026, 15:21:18","ec":"FIRMADO","nc":"ELENA GRACIELA DIEGUEZ PAREDES","tv":"SAN JUAN DE MIRAFLORES","vd":"Stephani Ato Arredondo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"8","mc":"100","es":"Aprobado"},{"fv":"22 abr 2026, 14:47:13","ec":"FIRMADO","nc":"CARLOS LINDOLFO GARAY MARCHAN","tv":"SAN JUAN DE LURIGANCHO","vd":"Brizeth Ch\u00e1vez Colchado","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"22 abr 2026, 14:31:36","ec":"FIRMADO","nc":"MANUEL JESUS ESPINOZA VELIZ","tv":"CERCADO DE LIMA","vd":"Natalia As\u00edan Ramos","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"22 abr 2026, 12:35:16","ec":"INICIADO","nc":"RAQUEL HUANAY CHULAN DE OBREGON","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"8","mc":"100","es":"CANCELADA"},{"fv":"22 abr 2026, 11:48:45","ec":"INICIADO","nc":"ROSARIO ENRIQUEZ CHAVEZ DE BRAVO","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"CANCELADA"},{"fv":"22 abr 2026, 11:43:07","ec":"INICIADO","nc":"KLEBER BERMUDEZ MARTINEZ","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"CANCELADA"},{"fv":"22 abr 2026, 9:57:32","ec":"INICIADO","nc":"CESAR AUGUSTO UGAS CRISPIN","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"CANCELADA"},{"fv":"21 abr 2026, 17:00:28","ec":"INICIADO","nc":"RITA AZUCENA REYES","tv":"TRUJILLO","vd":"Nikol Ramirez P\u00e9rez","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"CANCELADA"},{"fv":"21 abr 2026, 16:31:27","ec":"FIRMADO","nc":"SONIA SANCHEZ HORNA","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"21 abr 2026, 16:04:39","ec":"FIRMADO","nc":"LORENA ALAYO TACANGA","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"21 abr 2026, 15:58:40","ec":"FIRMADO","nc":"DANIEL GUILLERMO MORENO UTRILLA","tv":"TRUJILLO","vd":"Nikol Ramirez P\u00e9rez","pv":"SAMSUNG A16 128GB 4 RAM","cu":"6","mc":"127","es":"Aprobado"},{"fv":"21 abr 2026, 15:53:41","ec":"FIRMADO","nc":"IDELMIRA JOSEFINA SALAS MACAVILCA","tv":"CERCADO DE LIMA","vd":"Natalia As\u00edan Ramos","pv":"SAMSUNG A16 128GB 4 RAM","cu":"6","mc":"127","es":"Aprobado"},{"fv":"21 abr 2026, 14:27:09","ec":"FIRMADO","nc":"REINALDA PASCUALA URIOL CHAVEZ","tv":"CHICLAYO","vd":"Medaly D\u00edaz Rodrigo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"21 abr 2026, 12:46:11","ec":"FIRMADO","nc":"PATRICIA BELEVAN VASQUEZ","tv":"TRUJILLO","vd":"Nikol Ramirez P\u00e9rez","pv":"SAMSUNG A16 128GB 4 RAM","cu":"6","mc":"127","es":"Aprobado"},{"fv":"21 abr 2026, 12:24:06","ec":"INICIADO","nc":"ANTONIA VARGAS IQUISE","tv":"SAN JUAN DE MIRAFLORES","vd":"Stephani Ato Arredondo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"CANCELADA"},{"fv":"21 abr 2026, 12:21:56","ec":"INICIADO","nc":"JUANA CONSTANZA ARANA CACERES DE ECHEANDIA","tv":"CERCADO DE LIMA","vd":"Natalia As\u00edan Ramos","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"CANCELADA"},{"fv":"21 abr 2026, 12:17:41","ec":"FIRMADO","nc":"CESAR ANTONIO ZARATE ZARATE","tv":"TRUJILLO","vd":"Nikol Ramirez P\u00e9rez","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"21 abr 2026, 10:46:28","ec":"INICIADO","nc":"LUCILA GUILLERMINA JIMENEZ GUERRA","tv":"SAN JUAN DE MIRAFLORES","vd":"Stephani Ato Arredondo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"CANCELADA"},{"fv":"21 abr 2026, 10:23:58","ec":"FIRMADO","nc":"LUCRECIA HERCILIA ORTEGA ELERA","tv":"CHICLAYO","vd":"Medaly D\u00edaz Rodrigo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"8","mc":"100","es":"Aprobado"},{"fv":"21 abr 2026, 10:06:49","ec":"INICIADO","nc":"GABRIEL EUFRACIO VELASQUEZ CALDERON","tv":"SAN JUAN DE MIRAFLORES","vd":"Stephani Ato Arredondo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"CANCELADA"},{"fv":"21 abr 2026, 9:32:18","ec":"FIRMADO","nc":"NELLY VILLANUEVA FONSECA DE OSORIO","tv":"CERCADO DE LIMA","vd":"Natalia As\u00edan Ramos","pv":"SAMSUNG A16 128GB 4 RAM","cu":"6","mc":"127","es":"Aprobado"},{"fv":"20 abr 2026, 16:50:12","ec":"FIRMADO","nc":"NARCISA NEIRA DE VILLEGAS","tv":"CHICLAYO","vd":"Medaly D\u00edaz Rodrigo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"8","mc":"100","es":"Aprobado"},{"fv":"20 abr 2026, 16:14:00","ec":"FIRMADO","nc":"MERCEDES LOPEZ CHERRES","tv":"PIURA","vd":"Leoncio Yarleque Coello","pv":"SAMSUNG A16 128GB 4 RAM","cu":"6","mc":"127","es":"Aprobado"},{"fv":"20 abr 2026, 16:06:17","ec":"FIRMADO","nc":"MAYER BRYNNER HUAMANLAZO FABIAN","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"6","mc":"96","es":"Aprobado"},{"fv":"20 abr 2026, 15:41:54","ec":"INICIADO","nc":"YMELDA YVONE RAMIREZ ALCEDO","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"CANCELADA"},{"fv":"20 abr 2026, 15:21:39","ec":"FIRMADO","nc":"EULALIA ULLOA AURORA","tv":"TRUJILLO","vd":"Nikol Ramirez P\u00e9rez","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"20 abr 2026, 15:02:39","ec":"FIRMADO","nc":"LUCIANO ASCENCION ROBLES VILLACORTA","tv":"TRUJILLO","vd":"Nikol Ramirez P\u00e9rez","pv":"SAMSUNG A16 128GB 4 RAM","cu":"6","mc":"127","es":"Aprobado"},{"fv":"20 abr 2026, 14:13:27","ec":"FIRMADO","nc":"EDUARDO SAAVEDRA LEZAMA","tv":"TRUJILLO","vd":"Nikol Ramirez P\u00e9rez","pv":"SAMSUNG A16 128GB 4 RAM","cu":"6","mc":"127","es":"Aprobado"},{"fv":"20 abr 2026, 12:56:57","ec":"FIRMADO","nc":"JOSE LUIS JUAREZ RODRIGUEZ","tv":"CHICLAYO","vd":"Medaly D\u00edaz Rodrigo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"20 abr 2026, 12:30:15","ec":"FIRMADO","nc":"BLANCA TALLERI COTRINA VDA DE DUPONT","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"8","mc":"100","es":"Aprobado"},{"fv":"20 abr 2026, 12:11:36","ec":"INICIADO","nc":"IRIS ADELA NAVARRO DE DEL CASTILLO","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"CANCELADA"},{"fv":"20 abr 2026, 11:44:55","ec":"FIRMADO","nc":"ROSA MARITZA SAN ROMAN NU\u00d1EZ DE CASTILLO","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"20 abr 2026, 11:43:49","ec":"FIRMADO","nc":"ROSA ELENA RODAS ROMERO","tv":"CHICLAYO","vd":"Medaly D\u00edaz Rodrigo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"20 abr 2026, 11:02:51","ec":"FIRMADO","nc":"HUBERT MAXIMO VELASQUEZ RAMIREZ","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"20 abr 2026, 10:59:34","ec":"FIRMADO","nc":"MARIA EUGENIA MACEDO CASTRO","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"20 abr 2026, 9:33:45","ec":"FIRMADO","nc":"FLOR DE MARIA GUEVARA POLAR","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"6","mc":"96","es":"Aprobado"},{"fv":"17 abr 2026, 16:59:03","ec":"FIRMADO","nc":"JULIO FERNANDEZ PE\u00d1A","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"17 abr 2026, 16:54:28","ec":"INICIADO","nc":"WALTER EXEQUIEL ALVARADO PORTILLO","tv":"CERCADO DE LIMA","vd":"Natalia As\u00edan Ramos","pv":"SAMSUNG A16 128GB 4 RAM","cu":"8","mc":"100","es":"CANCELADA"},{"fv":"17 abr 2026, 16:45:06","ec":"INICIADO","nc":"JOSE MIGUEL REVELO RIVERA","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"CANCELADA"},{"fv":"17 abr 2026, 16:19:53","ec":"FIRMADO","nc":"EDUARDO WALTER STIGLICH INFANTE","tv":"CERCADO DE LIMA","vd":"Natalia As\u00edan Ramos","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"17 abr 2026, 16:01:14","ec":"FIRMADO","nc":"JUAN PABLO TELLO DE LA CRUZ","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"17 abr 2026, 15:03:37","ec":"FIRMADO","nc":"HILARIO TIMOTEO TORIBIO","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"17 abr 2026, 14:40:33","ec":"INICIADO","nc":"CLARA ELENA MENDOZA HUAMANI DE HUAMANI","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"CANCELADA"},{"fv":"17 abr 2026, 14:18:36","ec":"INICIADO","nc":"MARIA JACINTA CANALES ROSARIO VDA DE MORON","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"CANCELADA"},{"fv":"17 abr 2026, 10:26:24","ec":"INICIADO","nc":"FELIPE ANCAJIMA SUYON","tv":"CHICLAYO","vd":"Medaly D\u00edaz Rodrigo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"CANCELADA"},{"fv":"17 abr 2026, 9:59:46","ec":"INICIADO","nc":"MARCOS TAPIA PINEDO","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"CANCELADA"},{"fv":"16 abr 2026, 14:21:29","ec":"FIRMADO","nc":"AMANDA EVANGELINA ORE HUARCAYA","tv":"CERCADO DE LIMA","vd":"Natalia As\u00edan Ramos","pv":"SAMSUNG A16 128GB 4 RAM","cu":"6","mc":"127","es":"Aprobado"},{"fv":"16 abr 2026, 11:46:45","ec":"FIRMADO","nc":"TEODULO EDILBERTO ROMERO TELLO","tv":"ICA","vd":"Ronny Olivares","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"16 abr 2026, 11:05:59","ec":"FIRMADO","nc":"WALTER VIRGILIO CAMAHUALI VIVAR","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"8","mc":"100","es":"Aprobado"},{"fv":"16 abr 2026, 11:00:49","ec":"INICIADO","nc":"SONIA MARINA ODICIO RIOS","tv":"SAN JUAN DE MIRAFLORES","vd":"Stephani Ato Arredondo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"CANCELADA"},{"fv":"16 abr 2026, 9:49:27","ec":"INICIADO","nc":"RAMON EDUARDO HERRERA FLORES","tv":"CHICLAYO","vd":"Medaly D\u00edaz Rodrigo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"6","mc":"127","es":"CANCELADA"},{"fv":"16 abr 2026, 9:43:23","ec":"FIRMADO","nc":"ANATOLIA CALERO CARHUARICRA","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"6","mc":"127","es":"Aprobado"},{"fv":"16 abr 2026, 9:01:45","ec":"FIRMADO","nc":"GRACIELA URSULA CHIMA INCIO","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"8","mc":"100","es":"Aprobado"},{"fv":"16 abr 2026, 8:50:09","ec":"INICIADO","nc":"OSCAR ALBERTO ARROYO URBINA","tv":"CHICLAYO","vd":"Medaly D\u00edaz Rodrigo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"6","mc":"96","es":"CANCELADA"},{"fv":"16 abr 2026, 8:49:24","ec":"FIRMADO","nc":"RICARDINA LUCIA GUTIERREZ VIVANCO DE CUETO","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"16 abr 2026, 8:30:20","ec":"FIRMADO","nc":"CAROLINA ACHA TORRES","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"15 abr 2026, 16:52:44","ec":"FIRMADO","nc":"FELIX GONZALES ORDO\u00d1EZ","tv":"ICA","vd":"Ronny Olivares","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"15 abr 2026, 16:00:09","ec":"FIRMADO","nc":"CARMEN ELENA ELEUTERIA HABRAHAMSHON ESCOBEDO VDA DE CORONEL","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"15 abr 2026, 15:58:15","ec":"FIRMADO","nc":"GODOFREDO SOTO BAZAN","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"15 abr 2026, 15:43:44","ec":"FIRMADO","nc":"RUTH YANIRA MARTINEZ BOYER","tv":"CERCADO DE LIMA","vd":"Natalia As\u00edan Ramos","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"15 abr 2026, 15:38:18","ec":"INICIADO","nc":"EDILBERTO ROMALDO CONTRERAS GALINDO","tv":"SAN JUAN DE MIRAFLORES","vd":"Stephani Ato Arredondo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"CANCELADA"},{"fv":"15 abr 2026, 15:23:14","ec":"FIRMADO","nc":"PABLO ALARCON COLAN","tv":"CERCADO DE LIMA","vd":"Natalia As\u00edan Ramos","pv":"SAMSUNG A07 64GB 4 RAM","cu":"8","mc":"75","es":"Aprobado"},{"fv":"15 abr 2026, 9:26:22","ec":"INICIADO","nc":"NELLY SOCORRO ZARATE ROJAS","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"8","mc":"100","es":"CANCELADA"},{"fv":"14 abr 2026, 12:28:07","ec":"INICIADO","nc":"FELIX GENARO CAMPOS BRAVO","tv":"SAN JUAN DE MIRAFLORES","vd":"Stephani Ato Arredondo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"CANCELADA"},{"fv":"14 abr 2026, 12:11:54","ec":"INICIADO","nc":"SONIA IRENE QUISPE SANCHEZ","tv":"SAN JUAN DE MIRAFLORES","vd":"Stephani Ato Arredondo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"CANCELADA"},{"fv":"14 abr 2026, 11:31:04","ec":"INICIADO","nc":"LUCERO MAGDALENA SOUQUON GRAVELO","tv":"CHICLAYO","vd":"Medaly D\u00edaz Rodrigo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"CANCELADA"},{"fv":"14 abr 2026, 11:02:49","ec":"INICIADO","nc":"FLORA MYRIAM SANTOS ALATA","tv":"SAN JUAN DE MIRAFLORES","vd":"Stephani Ato Arredondo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"CANCELADA"},{"fv":"13 abr 2026, 15:25:36","ec":"INICIADO","nc":"IVANIA LUZMILA PALACIOS RAMIREZ VDA DE BEDON","tv":"INDEPENDENCIA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"CANCELADA"},{"fv":"13 abr 2026, 11:39:34","ec":"INICIADO","nc":"HILDA PAULINA LEON REYES","tv":"TRUJILLO","vd":"Nikol Ramirez P\u00e9rez","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"CANCELADA"},{"fv":"13 abr 2026, 10:52:57","ec":"INICIADO","nc":"WALTER VIRGILIO CAMAHUALI VIVAR","tv":"CERCADO DE LIMA","vd":"Natalia As\u00edan Ramos","pv":"SAMSUNG A16 128GB 4 RAM","cu":"8","mc":"100","es":"CANCELADA"},{"fv":"13 abr 2026, 9:32:06","ec":"INICIADO","nc":"IGNACIO MARIO RODRIGUEZ GUZMAN","tv":"TRUJILLO","vd":"Nikol Ramirez P\u00e9rez","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"CANCELADA"},{"fv":"10 abr 2026, 16:20:07","ec":"FIRMADO","nc":"MANUEL JESUS OBLITAS CHAVEZ","tv":"CERCADO DE LIMA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"8","mc":"100","es":"Aprobado"},{"fv":"10 abr 2026, 15:58:49","ec":"FIRMADO","nc":"CARLOS ALFREDO MARREROS RUIZ","tv":"ICA","vd":"Ronny Olivares","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"10 abr 2026, 15:42:16","ec":"FIRMADO","nc":"LEONOR AURORA CHIHUAN RUIZ","tv":"ICA","vd":"Ronny Olivares","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"10 abr 2026, 15:40:42","ec":"INICIADO","nc":"ANGEL MIGUEL EDUARDO QUEA LAZO","tv":"AREQUIPA","vd":"Mois\u00e9s Romero Phocco","pv":"SAMSUNG A07 64GB 4 RAM","cu":"8","mc":"75","es":"CANCELADA"},{"fv":"10 abr 2026, 15:26:26","ec":"FIRMADO","nc":"FAUSTO LUDENA CARDENAS","tv":"ICA","vd":"Ronny Olivares","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"10 abr 2026, 15:11:07","ec":"FIRMADO","nc":"JUAN ELEODORO SOTIL ANCI","tv":"SAN JUAN DE MIRAFLORES","vd":"Stephani Ato Arredondo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"10 abr 2026, 14:57:58","ec":"FIRMADO","nc":"AMADA VIOLETA FLORES DE SANCHEZ","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"10 abr 2026, 14:31:59","ec":"INICIADO","nc":"TEODULO EDILBERTO ROMERO TELLO","tv":"ICA","vd":"Ronny Olivares","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"CANCELADA"},{"fv":"10 abr 2026, 14:24:39","ec":"FIRMADO","nc":"JULIO CESAR IRRIBARREN SALAS CORNEJO","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"8","mc":"100","es":"Aprobado"},{"fv":"10 abr 2026, 12:41:11","ec":"INICIADO","nc":"LUIS JAVIER VAZQUEZ HUANILO","tv":"TRUJILLO","vd":"Nikol Ramirez P\u00e9rez","pv":"SAMSUNG A16 128GB 4 RAM","cu":"6","mc":"127","es":"CANCELADA"},{"fv":"10 abr 2026, 9:57:45","ec":"INICIADO","nc":"WILDE AMARO PONCE CASTANEDA","tv":"TRUJILLO","vd":"Nikol Ramirez P\u00e9rez","pv":"SAMSUNG A16 128GB 4 RAM","cu":"6","mc":"127","es":"CANCELADA"},{"fv":"9 abr 2026, 10:08:03","ec":"INICIADO","nc":"FELIPA NERY CALLAS ROJAS","tv":"ICA","vd":"Ronny Olivares","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"CANCELADA"},{"fv":"9 abr 2026, 8:20:03","ec":"FIRMADO","nc":"LUIS FELIPE VIVANCO MANTILLA","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"8 abr 2026, 16:28:01","ec":"FIRMADO","nc":"CARLOS MARIO GONZALEZ GONZALEZ","tv":"ICA","vd":"Ronny Olivares","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"8 abr 2026, 16:05:54","ec":"FIRMADO","nc":"EDMUNDO JUSTO CORTEZ","tv":"ICA","vd":"Ronny Olivares","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"8 abr 2026, 15:49:08","ec":"INICIADO","nc":"ROSA MARGARITA ALCALDE SOLIS","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"CANCELADA"},{"fv":"8 abr 2026, 15:38:43","ec":"FIRMADO","nc":"AVILIO FELIPE LIVIA","tv":"INDEPENDENCIA","vd":"\u00c1ngelo Cavassa P\u00e9rez Palma","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"8 abr 2026, 15:19:51","ec":"FIRMADO","nc":"JOSE JULIO PERALES RODRIGUEZ","tv":"CERCADO DE LIMA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"8","mc":"100","es":"Aprobado"},{"fv":"8 abr 2026, 14:11:54","ec":"FIRMADO","nc":"TEOFILO JOSE CARMONA HERNANDEZ","tv":"SAN JUAN DE LURIGANCHO","vd":"Brizeth Ch\u00e1vez Colchado","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"7 abr 2026, 11:43:04","ec":"INICIADO","nc":"CARLOS ALFREDO MARREROS RUIZ","tv":"ICA","vd":"Ronny Olivares","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"CANCELADA"},{"fv":"7 abr 2026, 11:27:25","ec":"INICIADO","nc":"PURIFICACION ALACHA BANOS","tv":"ICA","vd":"Ronny Olivares","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"CANCELADA"},{"fv":"7 abr 2026, 9:20:54","ec":"FIRMADO","nc":"NIMIO CEDILLO ROMERO","tv":"SAN JUAN DE LURIGANCHO","vd":"Brizeth Ch\u00e1vez Colchado","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"6 abr 2026, 12:54:24","ec":"FIRMADO","nc":"NORA GODOY CORNEJO VDA DE","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"8","mc":"75","es":"Aprobado"},{"fv":"6 abr 2026, 11:28:30","ec":"FIRMADO","nc":"HILARIO GUERRERO VALENCIA","tv":"SAN JUAN DE LURIGANCHO","vd":"Brizeth Ch\u00e1vez Colchado","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"6 abr 2026, 9:51:48","ec":"INICIADO","nc":"ARMANDO ALLPOC HILARIO","tv":"CERCADO DE LIMA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"CANCELADA"},{"fv":"1 abr 2026, 16:23:48","ec":"FIRMADO","nc":"ABRAHAM PEDRO JOSE MADRID DURAND","tv":"CERCADO DE LIMA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"1 abr 2026, 15:36:02","ec":"FIRMADO","nc":"ROSA ADELA MENDOZA BENDEZU","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"8","mc":"100","es":"Aprobado"},{"fv":"1 abr 2026, 15:08:57","ec":"FIRMADO","nc":"RAYMUNDO ROMULO NUNEZ DAVILA","tv":"CERCADO DE LIMA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"1 abr 2026, 15:03:59","ec":"FIRMADO","nc":"WILLY G JIMENEZ UNCHUPAYCO","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"1 abr 2026, 14:47:44","ec":"FIRMADO","nc":"LENA JANETT TUTAYA DE ROSADIO","tv":"CERCADO DE LIMA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"6","mc":"96","es":"Aprobado"},{"fv":"1 abr 2026, 14:25:15","ec":"FIRMADO","nc":"CARMEN MARITZA GAMARRA TUTAYA","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"8","mc":"100","es":"Aprobado"},{"fv":"1 abr 2026, 13:02:30","ec":"INICIADO","nc":"IRMA REBECA HEREDIA MU\u00d1OZ","tv":"SAN JUAN DE LURIGANCHO","vd":"Brizeth Ch\u00e1vez Colchado","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"CANCELADA"},{"fv":"31 mar 2026, 10:37:32","ec":"INICIADO","nc":"LOURDES MARLENY VILLANUEVA TORRES","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"8","mc":"100","es":"CANCELADA"},{"fv":"31 mar 2026, 10:17:21","ec":"INICIADO","nc":"JUANA ISOLINA BYRNE PIAGGIO","tv":"CERCADO DE LIMA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"CANCELADA"},{"fv":"31 mar 2026, 9:51:34","ec":"FIRMADO","nc":"JUANA ROSA USQUIANO SALAZAR","tv":"ICA","vd":"Ronny Olivares","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"30 mar 2026, 15:09:28","ec":"INICIADO","nc":"JUAN ELEODORO SOTIL ANCI","tv":"SAN JUAN DE MIRAFLORES","vd":"Stephani Ato Arredondo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"CANCELADA"},{"fv":"30 mar 2026, 14:34:41","ec":"FIRMADO","nc":"MIRNA ZULEMA TOMAYRO TORRES","tv":"CERCADO DE LIMA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"6","mc":"127","es":"Aprobado"},{"fv":"30 mar 2026, 11:24:00","ec":"FIRMADO","nc":"FLOR LUZMILA RODRIGUEZ TORRES","tv":"SAN JUAN DE MIRAFLORES","vd":"Stephani Ato Arredondo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"6","mc":"127","es":"Aprobado"},{"fv":"30 mar 2026, 10:00:41","ec":"FIRMADO","nc":"ALCIDES MARIO MEJIA SALAS","tv":"SAN JUAN DE MIRAFLORES","vd":"Stephani Ato Arredondo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"27 mar 2026, 16:37:00","ec":"FIRMADO","nc":"VIRGILIO AUGUSTO VADILLO ZAVALA","tv":"INDEPENDENCIA","vd":"\u00c1ngelo Cavassa P\u00e9rez Palma","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"27 mar 2026, 16:22:56","ec":"FIRMADO","nc":"SABINO HUILLCA DIAZ","tv":"SAN JUAN DE MIRAFLORES","vd":"Stephani Ato Arredondo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"27 mar 2026, 16:12:15","ec":"FIRMADO","nc":"ADELFO ROGER ZEVALLOS RUPAY","tv":"SAN JUAN DE MIRAFLORES","vd":"Stephani Ato Arredondo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"27 mar 2026, 15:59:36","ec":"FIRMADO","nc":"PABLO ABILIO SANTOS CABELLO","tv":"INDEPENDENCIA","vd":"\u00c1ngelo Cavassa P\u00e9rez Palma","pv":"SAMSUNG A07 64GB 4 RAM","cu":"6","mc":"96","es":"Aprobado"},{"fv":"27 mar 2026, 15:44:19","ec":"FIRMADO","nc":"CRISTINA JUANA ROJAS CARBAJAL","tv":"INDEPENDENCIA","vd":"\u00c1ngelo Cavassa P\u00e9rez Palma","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"27 mar 2026, 15:10:51","ec":"FIRMADO","nc":"JUAN JOSE GONZALES REVOLLEDO","tv":"SAN JUAN DE MIRAFLORES","vd":"Stephani Ato Arredondo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"27 mar 2026, 15:04:33","ec":"FIRMADO","nc":"CLAUDIA FAUSTINO DIONICIO","tv":"ICA","vd":"Ronny Olivares","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"27 mar 2026, 14:44:06","ec":"FIRMADO","nc":"TALIA HILDA CAVERO HERRERA","tv":"ICA","vd":"Ronny Olivares","pv":"SAMSUNG A07 64GB 4 RAM","cu":"6","mc":"96","es":"Aprobado"},{"fv":"27 mar 2026, 14:28:34","ec":"FIRMADO","nc":"RAFAELA VICTORIA COELLO VEGA VDA DE SOLANO","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"27 mar 2026, 14:11:45","ec":"FIRMADO","nc":"CARMEN TERESA HUAMANI FLORES","tv":"ICA","vd":"Ronny Olivares","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"27 mar 2026, 13:51:39","ec":"FIRMADO","nc":"ANA BERTHA YANCAN POMA","tv":"SAN JUAN DE LURIGANCHO","vd":"Brizeth Ch\u00e1vez Colchado","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"27 mar 2026, 13:15:45","ec":"INICIADO","nc":"NORA GODOY CORNEJO VDA DE","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"8","mc":"75","es":"CANCELADA"},{"fv":"27 mar 2026, 11:53:02","ec":"FIRMADO","nc":"NANCY IDELMA SALAZAR SANCHEZ","tv":"CERCADO DE LIMA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"6","mc":"127","es":"Aprobado"},{"fv":"27 mar 2026, 10:53:47","ec":"INICIADO","nc":"MARIA PILAR DEL CASTILLO GOMEZ","tv":"SAN JUAN DE MIRAFLORES","vd":"Stephani Ato Arredondo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"CANCELADA"},{"fv":"27 mar 2026, 8:29:23","ec":"FIRMADO","nc":"FERNANDO GENARO FERNANDEZ FLORES","tv":"SAN JUAN DE MIRAFLORES","vd":"Stephani Ato Arredondo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"26 mar 2026, 17:17:19","ec":"FIRMADO","nc":"CIRO MARCELINO SANTIAGO CHAVEZ","tv":"SAN JUAN DE LURIGANCHO","vd":"Brizeth Ch\u00e1vez Colchado","pv":"SAMSUNG A16 128GB 4 RAM","cu":"8","mc":"100","es":"Aprobado"},{"fv":"26 mar 2026, 16:58:40","ec":"FIRMADO","nc":"ROSARIO ELSA EGUSQUIZA HUAMAN","tv":"SAN JUAN DE LURIGANCHO","vd":"Brizeth Ch\u00e1vez Colchado","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"26 mar 2026, 15:28:11","ec":"FIRMADO","nc":"CONCESA CARDENAS RAMOS","tv":"SAN JUAN DE MIRAFLORES","vd":"Stephani Ato Arredondo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"6","mc":"96","es":"Aprobado"},{"fv":"26 mar 2026, 15:16:34","ec":"FIRMADO","nc":"MARIA ROSALIA TORRES SIFUENTES","tv":"SAN JUAN DE MIRAFLORES","vd":"Stephani Ato Arredondo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"6","mc":"127","es":"Aprobado"},{"fv":"26 mar 2026, 14:31:08","ec":"FIRMADO","nc":"CESAR AUGUSTO CASTRO DIAZ","tv":"SAN JUAN DE LURIGANCHO","vd":"Brizeth Ch\u00e1vez Colchado","pv":"SAMSUNG A16 128GB 4 RAM","cu":"8","mc":"100","es":"Aprobado"},{"fv":"26 mar 2026, 13:49:26","ec":"FIRMADO","nc":"ELENA ROSARIO HUAYTA QUISPE DE GARCIA","tv":"SAN JUAN DE MIRAFLORES","vd":"Stephani Ato Arredondo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"26 mar 2026, 13:36:44","ec":"FIRMADO","nc":"IRMA GLORIA GAVILAN MOSQUERA","tv":"SAN JUAN DE MIRAFLORES","vd":"Stephani Ato Arredondo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"26 mar 2026, 12:52:02","ec":"FIRMADO","nc":"PEPE MATEO CABELLO","tv":"SAN JUAN DE MIRAFLORES","vd":"Stephani Ato Arredondo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"26 mar 2026, 12:06:45","ec":"FIRMADO","nc":"EDGAR GAMBOA YARANGA","tv":"SAN JUAN DE LURIGANCHO","vd":"Brizeth Ch\u00e1vez Colchado","pv":"SAMSUNG A16 128GB 4 RAM","cu":"6","mc":"127","es":"Aprobado"},{"fv":"26 mar 2026, 11:40:56","ec":"FIRMADO","nc":"FEDERICO MORALES NAVARRO","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"26 mar 2026, 9:48:56","ec":"INICIADO","nc":"CIRILO SEGUNDO OBREGON OBREGON","tv":"INDEPENDENCIA","vd":"\u00c1ngelo Cavassa P\u00e9rez Palma","pv":"SAMSUNG A16 128GB 4 RAM","cu":"6","mc":"127","es":"CANCELADA"},{"fv":"25 mar 2026, 16:44:07","ec":"FIRMADO","nc":"ALBERTO JUAN PALACIOS DUYMOVICH","tv":"SAN JUAN DE LURIGANCHO","vd":"Brizeth Ch\u00e1vez Colchado","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"25 mar 2026, 15:27:02","ec":"FIRMADO","nc":"ANA MARIA LOPEZ OLIVARES","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"25 mar 2026, 15:12:12","ec":"FIRMADO","nc":"LUCINDA MALLQUI SOBRADO","tv":"ICA","vd":"Ronny Olivares","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"24 mar 2026, 17:16:28","ec":"FIRMADO","nc":"RAMON VALDERRAMA SANABRIA","tv":"INDEPENDENCIA","vd":"\u00c1ngelo Cavassa P\u00e9rez Palma","pv":"SAMSUNG A16 128GB 4 RAM","cu":"6","mc":"127","es":"Aprobado"},{"fv":"24 mar 2026, 16:18:47","ec":"FIRMADO","nc":"RODOLFO INGA TORRE","tv":"ICA","vd":"Ronny Olivares","pv":"SAMSUNG A16 128GB 4 RAM","cu":"8","mc":"100","es":"Aprobado"},{"fv":"24 mar 2026, 16:09:25","ec":"FIRMADO","nc":"JUSTA CARIDAD TRUJILLO VASQUEZ","tv":"INDEPENDENCIA","vd":"\u00c1ngelo Cavassa P\u00e9rez Palma","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"24 mar 2026, 16:05:17","ec":"FIRMADO","nc":"FRANCISCO JUAN PE\u00d1A GUTIERREZ","tv":"ICA","vd":"Ronny Olivares","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"24 mar 2026, 15:56:41","ec":"FIRMADO","nc":"CLAUDIO LUIS ESPINOZA MILLA","tv":"ICA","vd":"Ronny Olivares","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"24 mar 2026, 15:53:27","ec":"FIRMADO","nc":"WILLIAMS ZAPATA AMAYA","tv":"INDEPENDENCIA","vd":"\u00c1ngelo Cavassa P\u00e9rez Palma","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"24 mar 2026, 15:20:39","ec":"FIRMADO","nc":"JOSE ALEJANDRO ELIAS MANRIQUE","tv":"ICA","vd":"Ronny Olivares","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"24 mar 2026, 14:57:48","ec":"FIRMADO","nc":"MARIA YRENE BUSTAMANTE PEREZ VDA DE VALQUEZ","tv":"ICA","vd":"Ronny Olivares","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"24 mar 2026, 14:33:20","ec":"FIRMADO","nc":"ALBERTO EDUVINO TORRES CAHUANA","tv":"ICA","vd":"Ronny Olivares","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"24 mar 2026, 12:08:47","ec":"FIRMADO","nc":"WALTER CASTAGNE CASTRO","tv":"INDEPENDENCIA","vd":"\u00c1ngelo Cavassa P\u00e9rez Palma","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"24 mar 2026, 10:10:44","ec":"FIRMADO","nc":"FELIX VIVANCO ARONE","tv":"CERCADO DE LIMA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"23 mar 2026, 16:17:41","ec":"FIRMADO","nc":"HERLINDA ESTELA GUEVARA LOPEZ","tv":"CERCADO DE LIMA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"23 mar 2026, 15:52:17","ec":"FIRMADO","nc":"MARIA ELENA ORDINOLA ACOSTA","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"23 mar 2026, 15:27:10","ec":"FIRMADO","nc":"ROSA GUILLEN SARMIENTO DE ROJAS","tv":"ICA","vd":"Ronny Olivares","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"62","es":"Aprobado"},{"fv":"23 mar 2026, 12:06:39","ec":"FIRMADO","nc":"APOLONIA MARGARITA ZAPATA MENESES VDA DE","tv":"CERCADO DE LIMA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"Aprobado"},{"fv":"23 mar 2026, 11:26:37","ec":"INICIADO","nc":"JAIME FELIX LOPEZ PADILLA","tv":"INDEPENDENCIA","vd":"\u00c1ngelo Cavassa P\u00e9rez Palma","pv":"SAMSUNG A16 128GB 4 RAM","cu":"8","mc":"100","es":"CANCELADA"},{"fv":"23 mar 2026, 10:29:37","ec":"INICIADO","nc":"MARIANO ALARCON LIMA","tv":"INDEPENDENCIA","vd":"\u00c1ngelo Cavassa P\u00e9rez Palma","pv":"SAMSUNG A07 64GB 4 RAM","cu":"8","mc":"75","es":"CANCELADA"},{"fv":"23 mar 2026, 10:08:41","ec":"FIRMADO","nc":"JUAN CARLOS ENRIQUE PALOMINO MEJIA","tv":"CERCADO DE LIMA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"23 mar 2026, 9:41:24","ec":"INICIADO","nc":"MAURO CAMPOS ARZAPALO","tv":"ICA","vd":"Ronny Olivares","pv":"SAMSUNG A16 128GB 4 RAM","cu":"6","mc":"127","es":"CANCELADA"},{"fv":"23 mar 2026, 9:25:54","ec":"FIRMADO","nc":"EDGARDO ABRAHAM GUEVARA GAMEZ","tv":"CERCADO DE LIMA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"6","mc":"127","es":"Aprobado"},{"fv":"20 mar 2026, 16:50:41","ec":"FIRMADO","nc":"GONZALO JOSE DEL CARMEN DIAZ LLACAS","tv":"CERCADO DE LIMA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"Aprobado"},{"fv":"20 mar 2026, 10:27:38","ec":"INICIADO","nc":"JOSE ANTONIO GODOY VEGA","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"CANCELADA"},{"fv":"18 mar 2026, 12:07:17","ec":"INICIADO","nc":"MARIA ROSALIA TORRES SIFUENTES","tv":"SAN JUAN DE MIRAFLORES","vd":"Stephani Ato Arredondo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"8","mc":"100","es":"CANCELADA"},{"fv":"18 mar 2026, 11:09:21","ec":"INICIADO","nc":"ZENOBIA ANA CAMPOS PIZARRO","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"6","mc":"127","es":"CANCELADA"},{"fv":"18 mar 2026, 9:45:22","ec":"INICIADO","nc":"IDA TINEO QUISPE","tv":"INDEPENDENCIA","vd":"\u00c1ngelo Cavassa P\u00e9rez Palma","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"CANCELADA"},{"fv":"17 mar 2026, 11:36:30","ec":"INICIADO","nc":"JUAN ARIZA SOTO","tv":"INDEPENDENCIA","vd":"\u00c1ngelo Cavassa P\u00e9rez Palma","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"CANCELADA"},{"fv":"17 mar 2026, 9:13:00","ec":"INICIADO","nc":"EDGARDO ABRAHAM GUEVARA GAMEZ","tv":"CERCADO DE LIMA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"8","mc":"100","es":"CANCELADA"},{"fv":"16 mar 2026, 16:19:32","ec":"INICIADO","nc":"CONCESA CARDENAS RAMOS","tv":"SAN JUAN DE MIRAFLORES","vd":"Stephani Ato Arredondo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"CANCELADA"},{"fv":"16 mar 2026, 15:37:46","ec":"INICIADO","nc":"JULIAN LUIS CARDENAS","tv":"ICA","vd":"Ronny Olivares","pv":"SAMSUNG A16 128GB 4 RAM","cu":"6","mc":"127","es":"CANCELADA"},{"fv":"16 mar 2026, 15:06:49","ec":"INICIADO","nc":"HUGO SANTOS RIOS PORTILLO","tv":"ICA","vd":"Ronny Olivares","pv":"SAMSUNG A16 128GB 4 RAM","cu":"6","mc":"127","es":"CANCELADA"},{"fv":"16 mar 2026, 11:07:04","ec":"INICIADO","nc":"CRESENCIO HERMOGENES VIDAL CAMPOMANES","tv":"SAN JUAN DE MIRAFLORES","vd":"Stephani Ato Arredondo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"CANCELADA"},{"fv":"13 mar 2026, 14:54:24","ec":"INICIADO","nc":"MANUELA EDITA HIDALGO DE VERCELLI","tv":"CERCADO DE LIMA","vd":"Jina Arrieta Crisostomo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"84","es":"CANCELADA"},{"fv":"13 mar 2026, 14:48:17","ec":"INICIADO","nc":"MOISES FERNANDEZ ZUTA","tv":"ICA","vd":"Ronny Olivares","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"CANCELADA"},{"fv":"13 mar 2026, 14:27:35","ec":"INICIADO","nc":"MARIA SOFIA RODRIGUEZ RENGIFO","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"6","mc":"96","es":"CANCELADA"},{"fv":"13 mar 2026, 12:29:29","ec":"INICIADO","nc":"JORGE AMADO SAVI\u00d1ON G\u00d3MEZ","tv":"AREQUIPA","vd":"Mayra Marquez","pv":"SAMSUNG A16 128GB 4 RAM","cu":"6","mc":"","es":"CANCELADA"},{"fv":"13 mar 2026, 12:02:24","ec":"INICIADO","nc":"MARIA LUZ IVONE GARTNER TALLEDO DE AGUILAR","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"163","es":"CANCELADA"},{"fv":"13 mar 2026, 11:06:11","ec":"INICIADO","nc":"MARIA CARLOTA CHACALTANA PE\u00d1A","tv":"CERCADO DE LIMA","vd":"Natalia As\u00edan Ramos","pv":"SAMSUNG A16 128GB 4 RAM","cu":"10","mc":"86","es":"CANCELADA"},{"fv":"13 mar 2026, 10:37:10","ec":"INICIADO","nc":"PORFIRIO PINTO ARCE","tv":"MIRAFLORES","vd":"Eduardo Muro Chambergo","pv":"SAMSUNG A07 64GB 4 RAM","cu":"6","mc":"94","es":"CANCELADA"},{"fv":"13 mar 2026, 10:17:13","ec":"INICIADO","nc":"FAUSTO LUDENA CARDENAS","tv":"INDEPENDENCIA","vd":"\u00c1ngelo Cavassa P\u00e9rez Palma","pv":"SAMSUNG A07 64GB 4 RAM","cu":"8","mc":"74","es":"CANCELADA"},{"fv":"12 mar 2026, 11:52:13","ec":"INICIADO","nc":"ROSARIO ELSA EGUSQUIZA HUAMAN","tv":"ICA","vd":"Ronny Olivares","pv":"SAMSUNG A07 64GB 4 RAM","cu":"10","mc":"64","es":"CANCELADA"}];
+
+var PRESUPUESTO = {"INDEPENDENCIA": 55, "MIRAFLORES": 55, "CERCADO DE LIMA": 45, "TRUJILLO": 55, "CHICLAYO": 50, "SAN JUAN DE MIRAFLORES": 40, "ICA": 25, "SAN JUAN DE LURIGANCHO": 35, "PIURA": 25, "AREQUIPA": 25};
+var SEDES = ["INDEPENDENCIA", "MIRAFLORES", "CERCADO DE LIMA", "TRUJILLO", "CHICLAYO", "SAN JUAN DE MIRAFLORES", "ICA", "SAN JUAN DE LURIGANCHO", "PIURA", "AREQUIPA"];
+var BDAYS = ["2026-05-04", "2026-05-05", "2026-05-06", "2026-05-07", "2026-05-08", "2026-05-11", "2026-05-12", "2026-05-13", "2026-05-14", "2026-05-15", "2026-05-18", "2026-05-19", "2026-05-20", "2026-05-21", "2026-05-22", "2026-05-25", "2026-05-26", "2026-05-27", "2026-05-28", "2026-05-29"];
+var EMBS = ["Eduardo Muro Chambergo", "Jina Arrieta Crisostomo", "Natalia Asían Ramos", "Zoraida Ardiles Almeida", "Stephani Ato Arredondo", "Nikol Ramirez Pérez", "Medaly Díaz Rodrigo", "Leoncio Yarleque Coello", "Irvin Martin Muñante Hernanndez", "Evelyn Nataly Ramos Zuñiga", "Ronny Olivares", "Brizeth Chávez Colchado", "Ángelo Cavassa Pérez Palma", "Moisés Romero Phocco"];
+
+var CHARTS = {};
+var DET_FILTRO = '';
+
+// ════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════
+window.addEventListener('load', function() {
+  // Fecha dinámica
+  var d = new Date();
+  var meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  var hoy = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  var dh = BDAYS.filter(function(b){return b<=hoy;}).length;
+  document.getElementById('hdr-fecha').textContent = 'v10 · '+d.getDate()+' '+meses[d.getMonth()]+' '+d.getFullYear();
+  document.getElementById('ib-fecha').textContent = 'Hoy: Día hábil #'+dh+'/'+BDAYS.length+' de mayo · '+DATA.length+' registros precargados';
+  document.getElementById('ib-records').textContent = '📊 Datos al '+d.getDate()+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear()+' — arrastra CSV nuevo para actualizar';
+
+  // CSV input listener
+  document.getElementById('csv-file').addEventListener('change', function(e) {
+    var f = e.target.files[0];
+    if (!f) return;
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      var rows = parseCSV(ev.target.result);
+      if (rows && rows.length > 0) {
+        DATA = rows;
+        document.getElementById('ib-records').textContent = '📊 '+DATA.length+' registros · '+f.name;
+        renderAll();
+      }
+    };
+    reader.readAsText(f, 'UTF-8');
+  });
+
+  // Drag and drop
+  var uz = document.getElementById('upload-zone');
+  document.body.addEventListener('dragover', function(e){e.preventDefault();});
+  document.body.addEventListener('drop', function(e){
+    e.preventDefault();
+    var f = e.dataTransfer.files[0];
+    if (!f || !f.name.endsWith('.csv')) return;
+    var reader = new FileReader();
+    reader.onload = function(ev){
+      var rows = parseCSV(ev.target.result);
+      if (rows && rows.length > 0){
+        DATA = rows;
+        document.getElementById('ib-records').textContent = '📊 '+DATA.length+' registros · '+f.name;
+        renderAll();
+      }
+    };
+    reader.readAsText(f, 'UTF-8');
+  });
+
+  renderAll();
+});
+
+// ════════════════════════════════════════════════════
+// PARSE CSV
+// ════════════════════════════════════════════════════
+function parseCSV(txt) {
+  var lines = txt.trim().split('\n');
+  var hdrs = lines[0].replace(/^\uFEFF/,'').split(',').map(function(h){return h.trim().replace(/^"|"$/g,'');});
+  // Map headers to short keys
+  var MAP = {
+    'Fecha Venta':'fv','Estado Contrato':'ec','Nombre Completo Cliente':'nc',
+    'Tienda Venta':'tv','Vendedor':'vd','Producto Vendido':'pv',
+    'Número de cuotas':'cu','Monto Cuota':'mc','Estado de la Solicitud':'es'
+  };
+  return lines.slice(1).map(function(line){
+    var cols=[],cur='',inQ=false;
+    for(var i=0;i<line.length;i++){
+      var c=line[i];
+      if(c==='"'){inQ=!inQ;}else if(c===','&&!inQ){cols.push(cur.trim());cur='';}else{cur+=c;}
+    }
+    cols.push(cur.trim());
+    var row={};
+    hdrs.forEach(function(h,i){
+      var k=MAP[h]||h;
+      row[k]=(cols[i]||'').replace(/^"|"$/g,'').trim();
+    });
+    return row;
+  }).filter(function(r){return r.fv||r.tv||r.vd;});
+}
+
+// ════════════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════════════
+var MMAP = {ene:0,feb:1,mar:2,abr:3,may:4,jun:5,jul:6,ago:7,sep:8,oct:9,nov:10,dic:11};
+function parseFecha(s) {
+  if(!s) return null;
+  var m = String(s).match(/(\d+)\s+(\w+)\s+(\d{4})/);
+  if(!m) return null;
+  var mes = MMAP[m[2].toLowerCase().slice(0,3)];
+  if(mes===undefined) return null;
+  return new Date(parseInt(m[3]),mes,parseInt(m[1]));
+}
+function toISO(d) {return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function toMes(d) {return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
+function isFin(r) {return r.es==='Aprobado'&&r.ec==='FIRMADO';}
+function isIni(r) {return r.ec==='INICIADO'&&r.es!=='CANCELADA';}
+function isCan(r) {return r.es==='CANCELADA';}
+function getProd(p) {var u=(p||'').toUpperCase();if(u.indexOf('A07')>-1)return'A07';if(u.indexOf('A16')>-1)return'A16';if(u.indexOf('MOTOR')>-1||u.indexOf('MOTO')>-1)return'MOTO';return'OTRO';}
+function mkChart(id,type,data,opts) {if(CHARTS[id])CHARTS[id].destroy();var ctx=document.getElementById(id);if(!ctx)return;CHARTS[id]=new Chart(ctx,{type:type,data:data,options:Object.assign({responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}},opts||{})});}
+function drawBars(elId, entries, color) {
+  color = color||'var(--blue)';
+  var max = entries[0]?entries[0][1]:1;
+  document.getElementById(elId).innerHTML = entries.map(function(e){
+    var w = max>0?Math.round(e[1]/max*100):0;
+    return '<div class="bar-row"><span class="bar-lbl" style="min-width:160px;" title="'+e[0]+'">'+e[0].split(' ').slice(0,3).join(' ')+'</span>'+
+      '<div class="bar-track"><div class="bar-fill" style="width:'+w+'%;background:'+color+'"></div></div>'+
+      '<span class="bar-val">'+e[1]+'</span></div>';
+  }).join('') || '<p style="color:var(--muted);font-size:12px;text-align:center;padding:12px;">Sin datos</p>';
+}
+function showTab(id,btn) {
+  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+  if(id==='presupuesto') renderPresupuesto();
+  if(id==='embajadores') renderEmb();
+  if(id==='stock') renderStock();
+  if(id==='detalle') renderDetalle();
+}
+
+// ════════════════════════════════════════════════════
+// RENDER ALL
+// ════════════════════════════════════════════════════
+function renderAll() {
+  var fin = DATA.filter(isFin);
+  var ini = DATA.filter(isIni);
+  var can = DATA.filter(isCan);
+
+  // KPIs
+  var conv = DATA.length?Math.round(fin.length/DATA.length*100):0;
+  var plazos={};
+  fin.forEach(function(r){if(r.cu)plazos[r.cu]=(plazos[r.cu]||0)+1;});
+  var top = Object.entries(plazos).sort(function(a,b){return b[1]-a[1];})[0];
+  document.getElementById('kpis').innerHTML = [
+    {l:'Ventas firmadas',v:fin.length,s:'FIRMADO + Aprobado',c:'green'},
+    {l:'En proceso',v:ini.length,s:'INICIADO activo',c:''},
+    {l:'Canceladas',v:can.length,s:'Tasa '+Math.round(can.length/Math.max(DATA.length,1)*100)+'%',c:'red'},
+    {l:'Conversión',v:conv+'%',s:DATA.length+' solicitudes totales',c:''},
+    {l:'Plazo popular',v:top?top[0]+' cuotas':'-',s:top?top[1]+' contratos':'',c:'amber'},
+  ].map(function(k){
+    return '<div class="kpi '+k.c+'"><div class="kpi-lbl">'+k.l+'</div><div class="kpi-val">'+k.v+'</div><div class="kpi-sub">'+k.s+'</div></div>';
+  }).join('');
+
+  // Barras tienda
+  var bt={};fin.forEach(function(r){bt[r.tv]=(bt[r.tv]||0)+1;});
+  drawBars('bars-tienda',Object.entries(bt).sort(function(a,b){return b[1]-a[1];}));
+
+  // Barras vendedor (sin CALL)
+  var bv={};fin.forEach(function(r){if(r.vd&&r.vd.toUpperCase().indexOf('CALL')===-1)bv[r.vd]=(bv[r.vd]||0)+1;});
+  drawBars('bars-vendor',Object.entries(bv).sort(function(a,b){return b[1]-a[1];}));
+
+  // Chart productos
+  var pp={};fin.forEach(function(r){var p=getProd(r.pv);pp[p]=(pp[p]||0)+1;});
+  mkChart('chart-prod','doughnut',{
+    labels:Object.keys(pp),
+    datasets:[{data:Object.values(pp),backgroundColor:['#2563eb','#16a34a','#d97706','#dc2626'],borderWidth:2,borderColor:'#fff'}]
+  },{plugins:{legend:{display:true,position:'bottom',labels:{font:{size:11},padding:8}}}});
+
+  // Chart días
+  var pd={};fin.forEach(function(r){var d=parseFecha(r.fv);if(d){var k=toISO(d);pd[k]=(pd[k]||0)+1;}});
+  var de=Object.entries(pd).sort(function(a,b){return a[0].localeCompare(b[0]);});
+  mkChart('chart-dias','bar',{
+    labels:de.map(function(e){return e[0].slice(5);}),
+    datasets:[{data:de.map(function(e){return e[1];}),backgroundColor:'#2563eb',borderRadius:3}]
+  },{scales:{x:{ticks:{font:{size:9},maxRotation:45}},y:{beginAtZero:true}}});
+
+  renderDetalle();
+}
+
+// ════════════════════════════════════════════════════
+// PRESUPUESTO
+// ════════════════════════════════════════════════════
+function renderPresupuesto() {
+  var fin = DATA.filter(function(r){return isFin(r)&&toMes(parseFecha(r.fv)||new Date(0))==='2026-05';});
+  var real={};fin.forEach(function(r){real[r.tv]=(real[r.tv]||0)+1;});
+
+  var hoy = new Date();
+  var hoyISO = toISO(hoy);
+  var dh = Math.max(1,BDAYS.filter(function(b){return b<=hoyISO;}).length);
+  var dhTot = BDAYS.length;
+
+  var rows = Object.entries(PRESUPUESTO).map(function(e){
+    var sede=e[0],meta=e[1];
+    var r=real[sede]||0;
+    var pct=Math.round(r/meta*100);
+    var metaAcum=Math.round(meta/dhTot*dh);
+    var gap=meta-r;
+    return {sede,meta,real:r,pct,metaAcum,gap,dh};
+  });
+
+  var totMeta=rows.reduce(function(s,r){return s+r.meta;},0);
+  var totReal=rows.reduce(function(s,r){return s+r.real;},0);
+  var totPct=Math.round(totReal/totMeta*100);
+  var totAcum=Math.round(totMeta/dhTot*dh);
+  var s80=rows.filter(function(r){return r.pct>=80;}).length;
+  var s100=rows.filter(function(r){return r.pct>=100;}).length;
+
+  document.getElementById('bud-kpis').innerHTML=[
+    {l:'Firmados mayo',v:totReal,s:'Meta: '+totMeta+' uds',c:''},
+    {l:'Cumplimiento',v:totPct+'%',s:'Meta acumulada hoy: '+totAcum,c:totPct>=80?'green':'red'},
+    {l:'Sedes ≥80%',v:s80+'/'+rows.length,s:'Umbral mín comisión',c:'amber'},
+    {l:'Día hábil',v:'#'+dh+'/'+dhTot,s:'Meta diaria: '+Math.round(totMeta/dhTot)+' uds',c:''},
+  ].map(function(k){return '<div class="kpi '+k.c+'"><div class="kpi-lbl">'+k.l+'</div><div class="kpi-val">'+k.v+'</div><div class="kpi-sub">'+k.s+'</div></div>';}).join('');
+
+  rows.sort(function(a,b){return b.pct-a.pct;});
+  document.getElementById('bud-rows').innerHTML=rows.map(function(r){
+    var col=r.pct>=100?'#16a34a':r.pct>=80?'#d97706':'#dc2626';
+    var bc=r.pct>=100?'ok':r.pct>=80?'warn':'crit';
+    var w=Math.min(r.pct,100);
+    var acumPct=r.metaAcum>0?Math.round(r.real/r.metaAcum*100):0;
+    return '<div class="bud-row">'+
+      '<div class="bud-top">'+
+        '<span class="bud-name">'+r.sede+'</span>'+
+        '<span class="bud-nums">'+r.real+' / '+r.meta+' &nbsp; <span class="bud-pct" style="color:'+col+'">'+r.pct+'%</span></span>'+
+      '</div>'+
+      '<div class="bud-track"><div class="bud-fill" style="width:'+w+'%;background:'+col+'"></div></div>'+
+      '<div style="display:flex;gap:8px;margin-top:4px;">'+
+        '<span class="badge '+bc+'">'+(r.pct>=100?'✅ Meta cumplida':r.pct>=80?'⚠️ En umbral':'🚨 Bajo mínimo')+'</span>'+
+        '<span class="badge ini">Meta acum día '+r.dh+': '+r.metaAcum+' · vs real: '+acumPct+'%</span>'+
+        (r.gap>0?'<span class="badge warn">Faltan '+r.gap+'</span>':'<span class="badge ok">+'+Math.abs(r.gap)+' sobre meta</span>')+
+      '</div>'+
+    '</div>';
+  }).join('');
+
+  mkChart('chart-bud','bar',{
+    labels:rows.map(function(r){return r.sede.split(' ').map(function(w){return w[0];}).join('');}).slice(0,10),
+    datasets:[
+      {label:'Real',data:rows.map(function(r){return r.real;}),backgroundColor:'#2563eb',borderRadius:4},
+      {label:'Meta acum',data:rows.map(function(r){return r.metaAcum;}),backgroundColor:'rgba(217,119,6,0.3)',borderColor:'#d97706',borderWidth:2,type:'line',tension:0.2,pointRadius:4},
+      {label:'Meta mes',data:rows.map(function(r){return r.meta;}),backgroundColor:'rgba(220,38,38,0.1)',borderColor:'#dc2626',borderWidth:1.5,borderDash:[4,3],type:'line',tension:0,pointRadius:3},
+    ]
+  },{scales:{x:{ticks:{font:{size:10}}},y:{beginAtZero:true}},plugins:{legend:{display:true,position:'top',labels:{font:{size:11},padding:10}}}});
+}
+
+// ════════════════════════════════════════════════════
+// EMBAJADORES
+// ════════════════════════════════════════════════════
+function renderEmb() {
+  var mes = document.getElementById('emb-mes').value;
+  var fin = DATA.filter(function(r){
+    if(!isFin(r)) return false;
+    if(mes){var d=parseFecha(r.fv);if(!d||toMes(d)!==mes)return false;}
+    return true;
+  });
+
+  var dt={};
+  EMBS.forEach(function(e){dt[e]={A07:0,A16:0,MOTO:0,t:0};});
+  dt['Call/Otros']={A07:0,A16:0,MOTO:0,t:0};
+  fin.forEach(function(r){
+    var k=EMBS.indexOf(r.vd)>-1?r.vd:'Call/Otros';
+    var p=getProd(r.pv);
+    if(p!=='OTRO')dt[k][p]++;
+    dt[k].t++;
+  });
+
+  var srt=Object.entries(dt).filter(function(e){return e[1].t>0;}).sort(function(a,b){return b[1].t-a[1].t;});
+  var act=srt.filter(function(e){return e[0]!=='Call/Otros';}).length;
+  var top=srt[0]||['—',{t:0}];
+  var tA07=srt.reduce(function(s,e){return s+e[1].A07;},0);
+  var tA16=srt.reduce(function(s,e){return s+e[1].A16;},0);
+
+  document.getElementById('emb-kpis').innerHTML=[
+    {l:'Ventas período',v:fin.length,s:'firmadas',c:'green'},
+    {l:'Embajadores activos',v:act,s:'con al menos 1 venta',c:''},
+    {l:'Top embajador',v:top[0].split(' ')[0],s:top[1].t+' ventas',c:'amber'},
+    {l:'A07 / A16',v:tA07+' / '+tA16,s:'unidades por modelo',c:''},
+  ].map(function(k){return '<div class="kpi '+k.c+'"><div class="kpi-lbl">'+k.l+'</div><div class="kpi-val">'+k.v+'</div><div class="kpi-sub">'+k.s+'</div></div>';}).join('');
+
+  var rc=['🥇','🥈','🥉'];
+  document.getElementById('emb-thead').innerHTML='<tr><th>#</th><th>Embajador</th><th style="text-align:center;">A07</th><th style="text-align:center;">A16</th><th style="text-align:center;">Moto</th><th style="text-align:center;">Total</th><th>Mix</th></tr>';
+  document.getElementById('emb-tbody').innerHTML=srt.map(function(e,i){
+    var d=e[1];
+    var w7=d.t?Math.round(d.A07/d.t*100):0,w6=d.t?Math.round(d.A16/d.t*100):0,wM=d.t?Math.round(d.MOTO/d.t*100):0;
+    return '<tr><td>'+(rc[i]||i+1)+'</td><td style="font-weight:500;">'+e[0]+'</td>'+
+      '<td style="text-align:center;font-family:var(--mono);">'+d.A07+'</td>'+
+      '<td style="text-align:center;font-family:var(--mono);">'+d.A16+'</td>'+
+      '<td style="text-align:center;font-family:var(--mono);">'+d.MOTO+'</td>'+
+      '<td style="text-align:center;font-weight:700;color:var(--blue);font-family:var(--mono);">'+d.t+'</td>'+
+      '<td><div style="display:flex;height:8px;border-radius:4px;overflow:hidden;width:80px;">'+
+        '<div style="width:'+w7+'%;background:#2563eb;"></div>'+
+        '<div style="width:'+w6+'%;background:#16a34a;"></div>'+
+        '<div style="width:'+wM+'%;background:#d97706;"></div>'+
+      '</div></td></tr>';
+  }).join('');
+
+  document.getElementById('emb-bars').innerHTML=
+    '<div style="display:flex;gap:14px;font-size:11px;margin-bottom:12px;color:var(--muted);">'+
+    '<span>■ <span style="color:#2563eb;">A07</span></span> <span>■ <span style="color:#16a34a;">A16</span></span> <span>■ <span style="color:#d97706;">Moto</span></span></div>'+
+    srt.map(function(e){
+      var d=e[1];
+      var w7=d.t?Math.round(d.A07/d.t*100):0,w6=d.t?Math.round(d.A16/d.t*100):0,wM=d.t?Math.round(d.MOTO/d.t*100):0;
+      return '<div class="bar-row"><span class="bar-lbl" style="min-width:160px;">'+e[0].split(' ').slice(0,2).join(' ')+'</span>'+
+        '<div style="flex:1;height:12px;background:#f1f5f9;border-radius:6px;overflow:hidden;display:flex;">'+
+          '<div style="width:'+w7+'%;background:#2563eb;"></div>'+
+          '<div style="width:'+w6+'%;background:#16a34a;"></div>'+
+          '<div style="width:'+wM+'%;background:#d97706;"></div>'+
+        '</div>'+
+        '<span class="bar-val">'+d.t+'</span></div>';
+    }).join('');
+  document.getElementById('emb-tbl-title').textContent='Detalle'+(mes?' — '+mes:'— todos los meses');
+}
+
+// ════════════════════════════════════════════════════
+// STOCK
+// ════════════════════════════════════════════════════
+var SK='krd_stock_v4';
+function getStk(){try{return JSON.parse(localStorage.getItem(SK))||{};}catch(e){return{};}}
+function saveStk(st){try{localStorage.setItem(SK,JSON.stringify(st));}catch(e){}}
+function getVend(){
+  var v={};SEDES.forEach(function(s){v[s]={A07:0,A16:0,MOTO:0};});
+  DATA.filter(isFin).forEach(function(r){var p=getProd(r.pv);if(v[r.tv]&&p!=='OTRO')v[r.tv][p]++;});
+  return v;
+}
+function renderStock(){
+  var st=getStk(),vd=getVend();
+  var tS={A07:0,A16:0,MOTO:0},tV={A07:0,A16:0,MOTO:0},tL={A07:0,A16:0,MOTO:0};
+  var nO=0,nW=0,nC=0;
+  document.getElementById('stock-tbody').innerHTML=SEDES.map(function(sd){
+    var s=st[sd]||{A07:0,A16:0,MOTO:0},v=vd[sd]||{A07:0,A16:0,MOTO:0};
+    var l7=Math.max(0,(s.A07||0)-(v.A07||0)),l6=Math.max(0,(s.A16||0)-(v.A16||0)),lM=Math.max(0,(s.MOTO||0)-(v.MOTO||0));
+    var lT=l7+l6+lM,sT=(s.A07||0)+(s.A16||0)+(s.MOTO||0);
+    tS.A07+=(s.A07||0);tS.A16+=(s.A16||0);tS.MOTO+=(s.MOTO||0);
+    tV.A07+=(v.A07||0);tV.A16+=(v.A16||0);tV.MOTO+=(v.MOTO||0);
+    tL.A07+=l7;tL.A16+=l6;tL.MOTO+=lM;
+    var bg,bc;
+    if(sT===0){bg='Sin datos';bc='ini';nW++;}
+    else if(lT===0){bg='🔴 Sin stock';bc='crit';nC++;}
+    else if(lT<5){bg='🟡 Bajo';bc='warn';nW++;}
+    else{bg='🟢 OK';bc='ok';nO++;}
+    return '<tr>'+
+      '<td style="font-weight:500;">'+sd+'</td>'+
+      '<td style="text-align:center;"><input class="stock-inp" type="number" min="0" value="'+(s.A07||0)+'" oninput="onSI(this,''+sd+'','A07')"></td>'+
+      '<td style="text-align:center;"><input class="stock-inp" type="number" min="0" value="'+(s.A16||0)+'" oninput="onSI(this,''+sd+'','A16')"></td>'+
+      '<td style="text-align:center;"><input class="stock-inp" type="number" min="0" value="'+(s.MOTO||0)+'" oninput="onSI(this,''+sd+'','MOTO')"></td>'+
+      '<td style="text-align:center;font-family:var(--mono);">'+(v.A07||0)+'</td>'+
+      '<td style="text-align:center;font-family:var(--mono);">'+(v.A16||0)+'</td>'+
+      '<td style="text-align:center;font-family:var(--mono);">'+(v.MOTO||0)+'</td>'+
+      '<td style="text-align:center;font-weight:700;'+(l7===0&&sT>0?'color:var(--red)':l7<3&&sT>0?'color:var(--amber)':'color:var(--green)')+';">'+l7+'</td>'+
+      '<td style="text-align:center;font-weight:700;'+(l6===0&&sT>0?'color:var(--red)':l6<3&&sT>0?'color:var(--amber)':'color:var(--green)')+';">'+l6+'</td>'+
+      '<td style="text-align:center;font-weight:700;'+(lM===0&&(s.MOTO||0)>0?'color:var(--red)':lM<3&&(s.MOTO||0)>0?'color:var(--amber)':'')+';">'+lM+'</td>'+
+      '<td style="text-align:center;"><span class="badge '+bc+'">'+bg+'</span></td>'+
+    '</tr>';
+  }).join('');
+  document.getElementById('stock-tfoot').innerHTML='<tr>'+
+    '<td>TOTAL</td><td style="text-align:center;font-family:var(--mono);">'+tS.A07+'</td><td style="text-align:center;font-family:var(--mono);">'+tS.A16+'</td><td style="text-align:center;font-family:var(--mono);">'+tS.MOTO+'</td>'+
+    '<td style="text-align:center;font-family:var(--mono);">'+tV.A07+'</td><td style="text-align:center;font-family:var(--mono);">'+tV.A16+'</td><td style="text-align:center;font-family:var(--mono);">'+tV.MOTO+'</td>'+
+    '<td style="text-align:center;color:var(--blue);font-family:var(--mono);">'+tL.A07+'</td><td style="text-align:center;color:var(--blue);font-family:var(--mono);">'+tL.A16+'</td><td style="text-align:center;color:var(--blue);font-family:var(--mono);">'+tL.MOTO+'</td><td></td></tr>';
+  var tSU=tS.A07+tS.A16+tS.MOTO,tLU=tL.A07+tL.A16+tL.MOTO;
+  document.getElementById('stock-kpis').innerHTML=[
+    {l:'Stock ingresado',v:tSU,s:'uds totales',c:''},
+    {l:'Saldo disponible',v:tLU,s:'sin comprometer',c:'green'},
+    {l:'Sedes OK',v:nO,s:nW+' alerta · '+nC+' sin stock',c:nO>5?'green':'amber'},
+    {l:'Vendidos CSV',v:tV.A07+tV.A16+tV.MOTO,s:'A07:'+tV.A07+' A16:'+tV.A16,c:''},
+  ].map(function(k){return '<div class="kpi '+k.c+'"><div class="kpi-lbl">'+k.l+'</div><div class="kpi-val">'+k.v+'</div><div class="kpi-sub">'+k.s+'</div></div>';}).join('');
+}
+function onSI(inp,sd,pr){var st=getStk();if(!st[sd])st[sd]={A07:0,A16:0,MOTO:0};st[sd][pr]=parseInt(inp.value)||0;saveStk(st);}
+function saveStockNow(){var b=document.getElementById('btn-save-stock');b.textContent='✅ Guardado';b.style.background='var(--green)';setTimeout(function(){b.textContent='💾 Guardar';b.style.background='';},1800);}
+function resetStock(){if(!confirm('¿Resetear stock a cero?'))return;localStorage.removeItem(SK);renderStock();}
+
+// ════════════════════════════════════════════════════
+// DETALLE
+// ════════════════════════════════════════════════════
+function filtDetalle(f,btn){
+  DET_FILTRO=f;
+  document.querySelectorAll('#tab-detalle .btn').forEach(function(b){b.style.fontWeight='';b.style.opacity='0.7';});
+  btn.style.fontWeight='700';btn.style.opacity='1';
+  renderDetalle();
+}
+function renderDetalle(){
+  var rows=DET_FILTRO==='fin'?DATA.filter(isFin):DET_FILTRO==='ini'?DATA.filter(isIni):DET_FILTRO==='can'?DATA.filter(isCan):DATA;
+  document.getElementById('det-tbody').innerHTML=rows.slice().sort(function(a,b){return(b.fv||'').localeCompare(a.fv||'');}).slice(0,300).map(function(r){
+    var fin=isFin(r),ini=isIni(r),can=isCan(r);
+    var lbl=fin?'✅ Firmado':can?'❌ Cancelado':ini?'🕐 Proceso':'—';
+    var bc=fin?'ok':can?'crit':ini?'ini':'warn';
+    return '<tr>'+
+      '<td style="font-family:var(--mono);white-space:nowrap;">'+(r.fv||'').split(',')[0]+'</td>'+
+      '<td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+r.nc+'">'+r.nc+'</td>'+
+      '<td>'+r.tv+'</td>'+
+      '<td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+r.vd+'</td>'+
+      '<td>'+(r.pv||'').replace('SAMSUNG ','').replace('4 RAM','').trim()+'</td>'+
+      '<td style="text-align:center;font-family:var(--mono);">'+r.cu+'</td>'+
+      '<td style="text-align:center;font-family:var(--mono);">'+r.mc+'</td>'+
+      '<td><span class="badge '+bc+'">'+lbl+'</span></td>'+
+    '</tr>';
+  }).join('');
+}
+</script>
+</body>
+</html>
