@@ -257,18 +257,6 @@ body{background:var(--bg);font-family:var(--font);color:var(--dark);font-size:13
 /* ── SELECTS ── */
 select.filter-sel{font-family:var(--font);font-size:12px;border:1px solid var(--border2);background:var(--white);color:var(--dark);padding:4px 8px;border-radius:4px;cursor:pointer;outline:none;}
 select.filter-sel:hover{border-color:var(--blue);}
-
-.stock-inp{width:65px;text-align:center;padding:4px 6px;border:1px solid #fdd663;border-radius:3px;background:#fff9e6;font-size:12px;font-family:var(--mono);}
-.stock-inp:focus{outline:none;border-color:var(--blue);background:#fff;}
-.sok{color:#188038;font-weight:600;}
-.swarn{color:#f29900;font-weight:600;}
-.scrit{color:#d93025;font-weight:700;}
-.sbadge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;}
-.sbadge.ok{background:#e6f4ea;color:#188038;}
-.sbadge.warn{background:#fef7e0;color:#f29900;}
-.sbadge.crit{background:#fce8e6;color:#d93025;}
-.ernk{display:inline-flex;width:20px;height:20px;border-radius:50%;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;margin-right:4px;}
-.ernk.g{background:#f29900;}.ernk.s{background:#80868b;}.ernk.b{background:#a0522d;}.ernk.n{background:#dadce0;color:#5f6368;}
 </style>
 </head>
 <body>
@@ -299,8 +287,6 @@ select.filter-sel:hover{border-color:var(--blue);}
   <div class="tab" onclick="showTab('tiendas',this)">🏪 Por Tienda</div>
   <div class="tab" onclick="showTab('tendencia',this)">📈 Tendencia</div>
   <div class="tab" onclick="showTab('detalle',this)">📋 Detalle</div>
-  <div class="tab" onclick="showTab('embajadores',this)">🤝 Embajadores</div>
-  <div class="tab" onclick="showTab('stock',this)">📦 Stock</div>
 </div>
 
 <div class="content">
@@ -492,64 +478,6 @@ select.filter-sel:hover{border-color:var(--blue);}
   </div>
 </div>
 
-
-<div id="tab-embajadores" class="panel">
-  <div class="sec-hdr">
-    <div class="sec-title">Ventas por Embajador</div>
-    <div class="sec-actions">
-      <select id="emb-mes-sel" onchange="renderEmbajadores()" style="padding:5px 10px;border:1px solid var(--border2);border-radius:4px;font-size:12px;">
-        <option value="">Todos</option>
-        <option value="2026-05" selected>Mayo 2026</option>
-        <option value="2026-04">Abril 2026</option>
-        <option value="2026-03">Marzo 2026</option>
-      </select>
-    </div>
-  </div>
-  <div class="kpi-grid" id="emb-kpis" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px;"></div>
-  <div class="sheet">
-    <div class="sheet-hdr"><span class="sheet-hdr-title" id="emb-title">Por embajador</span></div>
-    <div style="overflow-x:auto"><table class="tbl"><thead id="emb-thead"></thead><tbody id="emb-tbody"></tbody></table></div>
-  </div>
-  <div class="sheet" style="margin-top:12px">
-    <div class="sheet-hdr"><span class="sheet-hdr-title">Ranking visual</span></div>
-    <div style="padding:14px 18px" id="emb-bars"></div>
-  </div>
-</div>
-
-<div id="tab-stock" class="panel">
-  <div class="sec-hdr">
-    <div class="sec-title">Stock por sede</div>
-    <div class="sec-actions">
-      <span id="stock-status" style="font-size:11px;color:var(--grey2);margin-right:8px;"></span>
-      <button class="btn btn-outline" onclick="resetStock()" style="font-size:11px;">&#8635; Reset</button>
-      <button class="btn btn-primary" onclick="cargarStock()" id="btn-reload-stock" style="font-size:11px;">&#128260; Actualizar Sheets</button>
-    </div>
-  </div>
-  <p style="font-size:12px;color:var(--grey2);margin-bottom:12px;">Stock cargado desde Google Sheets automaticamente. Celdas amarillas son editables.</p>
-  <div class="kpi-grid" id="stock-kpis" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px;"></div>
-  <div class="sheet">
-    <div class="sheet-hdr"><span class="sheet-hdr-title">Inventario por sede</span></div>
-    <div style="overflow-x:auto">
-      <table class="tbl">
-        <thead><tr>
-          <th style="min-width:180px">SEDE</th>
-          <th style="text-align:center">A07 Stock</th>
-          <th style="text-align:center">A16 Stock</th>
-          <th style="text-align:center">Moto Stock</th>
-          <th style="text-align:center">A07 Vendido</th>
-          <th style="text-align:center">A16 Vendido</th>
-          <th style="text-align:center">Moto Vendido</th>
-          <th style="text-align:center">A07 Saldo</th>
-          <th style="text-align:center">A16 Saldo</th>
-          <th style="text-align:center">Moto Saldo</th>
-          <th style="text-align:center">Estado</th>
-        </tr></thead>
-        <tbody id="stock-tbody"></tbody>
-        <tfoot id="stock-tfoot"></tfoot>
-      </table>
-    </div>
-  </div>
-</div>
 </div><!-- /content -->
 
 <!-- INFO BAR -->
@@ -1094,8 +1022,6 @@ function showTab(id,btn){
   document.getElementById('tab-'+id).classList.add('active');
   btn.classList.add('active');
   if(id==='metas') renderMetas();
-  if(id==='embajadores') renderEmbajadores();
-  if(id==='stock') renderStock();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1113,189 +1039,6 @@ window.addEventListener('DOMContentLoaded',function(){
   document.getElementById('ib-records').textContent='📂 Carga el CSV de Krediya Perú para comenzar';
   document.getElementById('ib-update').textContent='Hoy: 6 mayo 2026 · Día hábil #3 de mayo';
 });
-var EMBS_LIST=["Eduardo Muro Chambergo", "Jina Arrieta Crisostomo", "Natalia Asian Ramos", "Zoraida Ardiles Almeida", "Stephani Ato Arredondo", "Nikol Ramirez Perez", "Medaly Diaz Rodrigo", "Leoncio Yarleque Coello", "Irvin Martin Munante Hernanndez", "Evelyn Nataly Ramos Zuniga", "Ronny Olivares", "Brizeth Chavez Colchado", "Angelo Cavassa Perez Palma", "Moises Romero Phocco"];
-var SEDES_LIST=["INDEPENDENCIA", "MIRAFLORES", "CERCADO DE LIMA", "TRUJILLO", "CHICLAYO", "SAN JUAN DE MIRAFLORES", "ICA", "SAN JUAN DE LURIGANCHO", "PIURA", "AREQUIPA"];
-var SKEY='krd_sk_v6';
-var SURL='https://docs.google.com/spreadsheets/d/e/2PACX-1vSOH1zrHykRFFAmqtnw2J_QMdDRXciuse5kdXGLJ_tSEFnGHR8hYMRYC7Wdp5xckGRUOgktsa2TDjLa/pub?output=csv';
-
-function gProd(p){var u=(p||'').toUpperCase();if(u.indexOf('A07')>-1)return'A07';if(u.indexOf('A16')>-1)return'A16';if(u.indexOf('MOTOR')>-1||u.indexOf('MOTO')>-1)return'MOTO';return'OTRO';}
-
-function renderEmbajadores(){
-  var mes=document.getElementById('emb-mes-sel')?document.getElementById('emb-mes-sel').value:'';
-  if(!ALL||!ALL.length){
-    document.getElementById('emb-kpis').innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--grey2);">Carga el CSV primero</div>';
-    return;
-  }
-  var fin=ALL.filter(function(r){
-    if(r['Estado de la Solicitud']!=='Aprobado'||r['Estado Contrato']!=='FIRMADO')return false;
-    if(mes){var d=parseFecha(r['Fecha Venta']);if(!d||toMesKey(d)!==mes)return false;}
-    return true;
-  });
-  var dt={};
-  EMBS_LIST.forEach(function(e){dt[e]={A07:0,A16:0,MOTO:0,t:0};});
-  dt['Call/Otros']={A07:0,A16:0,MOTO:0,t:0};
-  fin.forEach(function(r){
-    var v=(r['Vendedor']||'').trim();
-    var k=EMBS_LIST.indexOf(v)>-1?v:'Call/Otros';
-    var p=gProd(r['Producto Vendido']);
-    if(p!=='OTRO')dt[k][p]++;
-    dt[k].t++;
-  });
-  var srt=Object.entries(dt).filter(function(e){return e[1].t>0;}).sort(function(a,b){return b[1].t-a[1].t;});
-  var act=srt.filter(function(e){return e[0]!=='Call/Otros';}).length;
-  var top=srt[0]||['--',{t:0}];
-  var tA=srt.reduce(function(s,e){return s+e[1].A07;},0);
-  var t6=srt.reduce(function(s,e){return s+e[1].A16;},0);
-  document.getElementById('emb-kpis').innerHTML=
-    '<div class="kpi-card blue"><div class="kpi-label">Ventas</div><div class="kpi-val">'+fin.length+'</div><div class="kpi-sub">firmadas</div></div>'+
-    '<div class="kpi-card green"><div class="kpi-label">Activos</div><div class="kpi-val">'+act+'</div><div class="kpi-sub">embajadores</div></div>'+
-    '<div class="kpi-card amber"><div class="kpi-label">Top</div><div class="kpi-val">'+top[0].split(' ')[0]+'</div><div class="kpi-sub">'+top[1].t+' ventas</div></div>'+
-    '<div class="kpi-card blue"><div class="kpi-label">A07/A16</div><div class="kpi-val">'+tA+'/'+t6+'</div><div class="kpi-sub">unidades</div></div>';
-  var rc=['g','s','b'];
-  document.getElementById('emb-thead').innerHTML='<tr><th>#</th><th style="text-align:left;min-width:160px;">EMBAJADOR</th><th style="text-align:center;">A07</th><th style="text-align:center;">A16</th><th style="text-align:center;">Moto</th><th style="text-align:center;">TOTAL</th><th>Mix</th></tr>';
-  document.getElementById('emb-tbody').innerHTML=srt.map(function(e,i){
-    var d=e[1],w7=d.t?Math.round(d.A07/d.t*100):0,w6=d.t?Math.round(d.A16/d.t*100):0,wM=d.t?Math.round(d.MOTO/d.t*100):0;
-    return'<tr onmouseover="this.style.background='var(--sh)'" onmouseout="this.style.background=''">'+
-      '<td><span class="ernk '+(rc[i]||'n')+'">'+(i+1)+'</span></td>'+
-      '<td style="font-weight:500;">'+e[0]+'</td>'+
-      '<td style="text-align:center;font-family:var(--mono);">'+d.A07+'</td>'+
-      '<td style="text-align:center;font-family:var(--mono);">'+d.A16+'</td>'+
-      '<td style="text-align:center;font-family:var(--mono);">'+d.MOTO+'</td>'+
-      '<td style="text-align:center;font-weight:700;color:var(--blue);font-family:var(--mono);">'+d.t+'</td>'+
-      '<td><div style="display:flex;height:8px;border-radius:4px;overflow:hidden;width:80px;">'+
-        '<div style="width:'+w7+'%;background:#1a73e8;"></div>'+
-        '<div style="width:'+w6+'%;background:#34a853;"></div>'+
-        '<div style="width:'+wM+'%;background:#fa7b17;"></div>'+
-      '</div></td></tr>';
-  }).join('');
-  document.getElementById('emb-bars').innerHTML=
-    '<div style="display:flex;gap:12px;font-size:11px;color:var(--grey2);margin-bottom:10px;">'+
-    '<span><span style="display:inline-block;width:10px;height:10px;background:#1a73e8;border-radius:2px;margin-right:3px;"></span>A07</span>'+
-    '<span><span style="display:inline-block;width:10px;height:10px;background:#34a853;border-radius:2px;margin-right:3px;"></span>A16</span>'+
-    '<span><span style="display:inline-block;width:10px;height:10px;background:#fa7b17;border-radius:2px;margin-right:3px;"></span>Moto</span></div>'+
-    srt.map(function(e){
-      var d=e[1],w7=d.t?Math.round(d.A07/d.t*100):0,w6=d.t?Math.round(d.A16/d.t*100):0,wM=d.t?Math.round(d.MOTO/d.t*100):0;
-      return'<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">'+
-        '<span style="min-width:150px;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+e[0].split(' ').slice(0,2).join(' ')+'</span>'+
-        '<div style="flex:1;height:11px;background:#f1f3f4;border-radius:6px;overflow:hidden;display:flex;">'+
-          '<div style="width:'+w7+'%;background:#1a73e8;"></div>'+
-          '<div style="width:'+w6+'%;background:#34a853;"></div>'+
-          '<div style="width:'+wM+'%;background:#fa7b17;"></div>'+
-        '</div>'+
-        '<span style="font-size:12px;font-weight:700;color:var(--blue);min-width:24px;text-align:right;font-family:var(--mono);">'+d.t+'</span>'+
-      '</div>';
-    }).join('');
-  document.getElementById('emb-title').textContent='Por embajador'+(mes?' - '+mes:' - todos');
-}
-
-function gStk(){try{return JSON.parse(localStorage.getItem(SKEY))||{};}catch(e){return{};}}
-function sStk(s){try{localStorage.setItem(SKEY,JSON.stringify(s));}catch(e){}}
-
-function gVend(){
-  var v={};SEDES_LIST.forEach(function(s){v[s]={A07:0,A16:0,MOTO:0};});
-  if(!ALL||!ALL.length)return v;
-  ALL.filter(function(r){return r['Estado de la Solicitud']==='Aprobado'&&r['Estado Contrato']==='FIRMADO';})
-    .forEach(function(r){var p=gProd(r['Producto Vendido']),s=r['Tienda Venta']||'';if(v[s]&&p!=='OTRO')v[s][p]++;});
-  return v;
-}
-
-function renderStock(){
-  var st=gStk(),vd=gVend();
-  var tS={A07:0,A16:0,MOTO:0},tV={A07:0,A16:0,MOTO:0},tL={A07:0,A16:0,MOTO:0};
-  var nO=0,nW=0,nC=0;
-  document.getElementById('stock-tbody').innerHTML=SEDES_LIST.map(function(sd){
-    var s=st[sd]||{A07:0,A16:0,MOTO:0},v=vd[sd]||{A07:0,A16:0,MOTO:0};
-    var l7=Math.max(0,(s.A07||0)-(v.A07||0)),l6=Math.max(0,(s.A16||0)-(v.A16||0)),lM=Math.max(0,(s.MOTO||0)-(v.MOTO||0));
-    var lT=l7+l6+lM,sT=(s.A07||0)+(s.A16||0)+(s.MOTO||0);
-    tS.A07+=(s.A07||0);tS.A16+=(s.A16||0);tS.MOTO+=(s.MOTO||0);
-    tV.A07+=(v.A07||0);tV.A16+=(v.A16||0);tV.MOTO+=(v.MOTO||0);
-    tL.A07+=l7;tL.A16+=l6;tL.MOTO+=lM;
-    var bg,bc;
-    if(sT===0){bg='Sin datos';bc='warn';nW++;}
-    else if(lT===0){bg='Sin stock';bc='crit';nC++;}
-    else if(lT<5){bg='Bajo';bc='warn';nW++;}
-    else{bg='OK';bc='ok';nO++;}
-    return'<tr onmouseover="this.style.background='var(--sh)'" onmouseout="this.style.background=''">'+
-      '<td style="font-weight:500;font-size:12px;">'+sd+'</td>'+
-      '<td style="text-align:center;"><input class="stock-inp" type="number" min="0" value="'+(s.A07||0)+'" oninput="onSI(this,''+sd+'','A07')"></td>'+
-      '<td style="text-align:center;"><input class="stock-inp" type="number" min="0" value="'+(s.A16||0)+'" oninput="onSI(this,''+sd+'','A16')"></td>'+
-      '<td style="text-align:center;"><input class="stock-inp" type="number" min="0" value="'+(s.MOTO||0)+'" oninput="onSI(this,''+sd+'','MOTO')"></td>'+
-      '<td style="text-align:center;font-family:var(--mono);font-size:12px;">'+(v.A07||0)+'</td>'+
-      '<td style="text-align:center;font-family:var(--mono);font-size:12px;">'+(v.A16||0)+'</td>'+
-      '<td style="text-align:center;font-family:var(--mono);font-size:12px;">'+(v.MOTO||0)+'</td>'+
-      '<td style="text-align:center;font-weight:700;'+(l7===0&&sT>0?'color:#d93025':l7<3&&sT>0?'color:#f29900':'color:#188038')+';">'+l7+'</td>'+
-      '<td style="text-align:center;font-weight:700;'+(l6===0&&sT>0?'color:#d93025':l6<3&&sT>0?'color:#f29900':'color:#188038')+';">'+l6+'</td>'+
-      '<td style="text-align:center;font-weight:700;'+(lM===0&&(s.MOTO||0)>0?'color:#d93025':lM<3&&(s.MOTO||0)>0?'color:#f29900':'')+';">'+lM+'</td>'+
-      '<td style="text-align:center;"><span class="sbadge '+bc+'">'+bg+'</span></td>'+
-    '</tr>';
-  }).join('');
-  document.getElementById('stock-tfoot').innerHTML='<tr style="background:var(--sh);font-weight:700;"><td>TOTAL</td>'+
-    '<td style="text-align:center;font-family:var(--mono);">'+tS.A07+'</td><td style="text-align:center;font-family:var(--mono);">'+tS.A16+'</td><td style="text-align:center;font-family:var(--mono);">'+tS.MOTO+'</td>'+
-    '<td style="text-align:center;font-family:var(--mono);">'+tV.A07+'</td><td style="text-align:center;font-family:var(--mono);">'+tV.A16+'</td><td style="text-align:center;font-family:var(--mono);">'+tV.MOTO+'</td>'+
-    '<td style="text-align:center;color:var(--blue);font-family:var(--mono);font-weight:700;">'+tL.A07+'</td>'+
-    '<td style="text-align:center;color:var(--blue);font-family:var(--mono);font-weight:700;">'+tL.A16+'</td>'+
-    '<td style="text-align:center;color:var(--blue);font-family:var(--mono);font-weight:700;">'+tL.MOTO+'</td><td></td></tr>';
-  var tSU=tS.A07+tS.A16+tS.MOTO,tLU=tL.A07+tL.A16+tL.MOTO;
-  document.getElementById('stock-kpis').innerHTML=
-    '<div class="kpi-card blue"><div class="kpi-label">Stock total</div><div class="kpi-val">'+tSU+'</div><div class="kpi-sub">unidades</div></div>'+
-    '<div class="kpi-card green"><div class="kpi-label">Saldo disponible</div><div class="kpi-val">'+tLU+'</div><div class="kpi-sub">sin comprometer</div></div>'+
-    '<div class="kpi-card '+(nO>5?'green':'amber')+'"><div class="kpi-label">Sedes OK</div><div class="kpi-val">'+nO+'</div><div class="kpi-sub">'+nW+' alerta '+nC+' sin stock</div></div>'+
-    '<div class="kpi-card amber"><div class="kpi-label">Vendidos</div><div class="kpi-val">'+(tV.A07+tV.A16+tV.MOTO)+'</div><div class="kpi-sub">A07:'+tV.A07+' A16:'+tV.A16+'</div></div>';
-}
-
-function onSI(inp,sd,pr){var st=gStk();if(!st[sd])st[sd]={A07:0,A16:0,MOTO:0};st[sd][pr]=parseInt(inp.value)||0;sStk(st);}
-function resetStock(){if(!confirm('Resetear stock a cero?'))return;localStorage.removeItem(SKEY);renderStock();}
-
-function cargarStock(){
-  var btn=document.getElementById('btn-reload-stock');
-  var st=document.getElementById('stock-status');
-  if(btn){btn.textContent='Cargando...';btn.disabled=true;}
-  if(st)st.textContent='Conectando...';
-  fetch(SURL)
-    .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.text();})
-    .then(function(csv){
-      var rows=pStockCSV(csv);
-      if(rows&&rows.length){
-        var ultimo={};
-        rows.forEach(function(r){var s=nSede(r['CASA YUYAC']);if(s)ultimo[s]=r;});
-        var stock={};
-        Object.entries(ultimo).forEach(function(e){
-          var s=e[0],r=e[1];
-          stock[s]={A07:parseInt(r['STOCK ACTUAL EN SEDE [SAMSUNG A07]'])||0,A16:parseInt(r['STOCK ACTUAL EN SEDE [SAMSUNG A16]'])||0,MOTO:parseInt(r['STOCK ACTUAL EN SEDE [MOTOROLA G06]'])||0};
-        });
-        sStk(stock);
-        renderStock();
-        if(st)st.textContent='Actualizado: '+rows.length+' registros';
-      }
-      if(btn){btn.textContent='Actualizar Sheets';btn.disabled=false;}
-    })
-    .catch(function(err){
-      if(st)st.textContent='Error: '+err.message;
-      if(btn){btn.textContent='Actualizar Sheets';btn.disabled=false;}
-    });
-}
-
-function pStockCSV(txt){
-  var lines=txt.trim().split('\n');
-  var hdrs=lines[0].split(',').map(function(h){return h.trim().replace(/^"|"$/g,'');});
-  return lines.slice(1).map(function(line){
-    var cols=[],cur='',inQ=false;
-    for(var i=0;i<line.length;i++){var ch=line[i];if(ch==='"'){inQ=!inQ;}else if(ch===','&&!inQ){cols.push(cur.trim());cur='';}else{cur+=ch;}}
-    cols.push(cur.trim());
-    var row={};hdrs.forEach(function(h,i){row[h]=(cols[i]||'').replace(/^"|"$/g,'').trim();});
-    return row;
-  }).filter(function(r){return r['CASA YUYAC'];});
-}
-
-function nSede(n){
-  if(!n)return'';
-  var u=n.toUpperCase().trim();
-  var m={'PIURA':'PIURA','AREQUIPA':'AREQUIPA','ICA':'ICA','SAN JUAN DE MIRAFLORES':'SAN JUAN DE MIRAFLORES','CHICLAYO':'CHICLAYO','INDEPENDENCIA':'INDEPENDENCIA','CERCADO DE LIMA':'CERCADO DE LIMA','TRUJILLO':'TRUJILLO','SAN JUAN DE LURIGANCHO':'SAN JUAN DE LURIGANCHO','MIRAFLORES':'MIRAFLORES'};
-  return m[u]||u;
-}
-
-window.addEventListener('load',function(){setTimeout(cargarStock,2000);});
-
 </script>
 </body>
 </html>
