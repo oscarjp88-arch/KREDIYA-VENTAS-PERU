@@ -1,0 +1,1589 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Krediya Perú — Tablero Operativo</title>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --white:#fff;--bg:#f8f9fa;--border:#e0e0e0;--border2:#dadce0;
+  --blue:#1a73e8;--blue-l:#e8f0fe;
+  --green:#188038;--green-l:#e6f4ea;
+  --red:#d93025;--red-l:#fce8e6;
+  --amber:#e37400;--amber-l:#fef7e0;
+  --grey:#5f6368;--grey2:#80868b;--dark:#202124;
+  --sh:#f1f3f4;--font:'Google Sans',sans-serif;--mono:'Roboto Mono',monospace;
+}
+body{background:var(--bg);font-family:var(--font);color:var(--dark);font-size:13px;min-height:100vh;}
+
+/* ── TOP BAR ── */
+.topbar{background:var(--white);border-bottom:1px solid var(--border);padding:0 16px;height:52px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;box-shadow:0 1px 3px rgba(0,0,0,.08);}
+.topbar-logo{width:32px;height:32px;background:#34a853;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;}
+.topbar-title{font-size:17px;font-weight:400;color:var(--dark);flex:1;}
+.topbar-title span{color:var(--grey2);font-size:12px;margin-left:6px;}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:4px;border:none;cursor:pointer;font-family:var(--font);font-size:12px;font-weight:500;transition:background .15s;}
+.btn-primary{background:var(--blue);color:#fff;}
+.btn-primary:hover{background:#1557b0;}
+.btn-outline{background:transparent;color:var(--blue);border:1px solid var(--border2);}
+.btn-outline:hover{background:var(--blue-l);}
+.badge-live{background:var(--green-l);color:var(--green);font-size:11px;font-weight:500;padding:2px 8px;border-radius:10px;border:1px solid #b7dfb8;}
+
+/* ── FORMULA BAR ── */
+.formula-bar{background:var(--white);border-bottom:1px solid var(--border);padding:3px 12px;display:flex;align-items:center;gap:8px;}
+.formula-ref{font-family:var(--mono);font-size:11px;background:var(--sh);border:1px solid var(--border2);padding:2px 8px;border-radius:2px;min-width:56px;text-align:center;color:var(--dark);}
+.formula-fx{color:var(--grey);font-style:italic;font-size:13px;}
+.formula-text{font-family:var(--mono);font-size:11px;color:var(--dark);flex:1;background:transparent;border:none;outline:none;}
+
+/* ── TABS ── */
+.tabs-bar{background:var(--white);border-bottom:1px solid var(--border);display:flex;padding:0 12px;}
+.tab{padding:10px 18px;font-size:13px;color:var(--grey);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .15s;user-select:none;}
+.tab:hover{background:var(--sh);color:var(--dark);}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue);font-weight:500;}
+
+/* ── CONTENT ── */
+.content{padding:14px 18px 60px;max-width:1400px;margin:0 auto;}
+.panel{display:none;}
+.panel.active{display:block;animation:fadeIn .18s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(3px);}to{opacity:1;transform:none;}}
+
+/* ── SECTION HEADER ── */
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;margin-top:4px;}
+.sec-title{font-size:11px;font-weight:500;color:var(--grey2);text-transform:uppercase;letter-spacing:.07em;}
+.sec-actions{display:flex;gap:6px;align-items:center;}
+
+/* ── PILLS / CHIPS ── */
+.pill{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:16px;border:1px solid var(--border2);font-size:12px;color:var(--grey);cursor:pointer;background:var(--white);transition:all .15s;}
+.pill:hover{background:var(--blue-l);border-color:var(--blue);color:var(--blue);}
+.pill.active{background:var(--blue-l);border-color:var(--blue);color:var(--blue);font-weight:500;}
+.chip{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500;}
+.chip.green{background:var(--green-l);color:var(--green);}
+.chip.red{background:var(--red-l);color:var(--red);}
+.chip.amber{background:var(--amber-l);color:var(--amber);}
+.chip.blue{background:var(--blue-l);color:var(--blue);}
+.chip.grey{background:var(--sh);color:var(--grey);}
+
+/* ── KPI GRID ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px;}
+@media(max-width:900px){.kpi-grid{grid-template-columns:repeat(3,1fr);}}
+.kpi{background:var(--white);border:1px solid var(--border);border-radius:8px;padding:13px 15px;position:relative;overflow:hidden;}
+.kpi::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;}
+.kpi.blue::before{background:var(--blue);}
+.kpi.green::before{background:var(--green);}
+.kpi.red::before{background:var(--red);}
+.kpi.amber::before{background:var(--amber);}
+.kpi.grey::before{background:var(--grey2);}
+.kpi-lbl{font-size:10px;color:var(--grey2);font-weight:500;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;}
+.kpi-val{font-size:26px;font-weight:400;line-height:1;font-family:var(--mono);}
+.kpi-val.green{color:var(--green);}
+.kpi-val.red{color:var(--red);}
+.kpi-val.amber{color:var(--amber);}
+.kpi-val.blue{color:var(--blue);}
+.kpi-sub{font-size:11px;color:var(--grey2);margin-top:4px;}
+
+/* ── SHEET WRAP ── */
+.sheet{background:var(--white);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:14px;}
+.sheet-hdr{padding:8px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;background:var(--sh);}
+.sheet-hdr-title{font-size:12px;font-weight:500;color:var(--dark);flex:1;}
+.tbl{width:100%;border-collapse:collapse;font-size:12px;}
+.tbl th{background:var(--sh);color:var(--grey);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;padding:7px 11px;text-align:left;border-bottom:2px solid var(--border);border-right:1px solid var(--border);white-space:nowrap;}
+.tbl th.r{text-align:right;}
+.tbl td{padding:7px 11px;border-bottom:1px solid var(--border);border-right:1px solid var(--border);vertical-align:middle;}
+.tbl td:last-child,.tbl th:last-child{border-right:none;}
+.tbl tr:last-child td{border-bottom:none;}
+.tbl tr:hover td{background:#fafafa;}
+.tbl .r{text-align:right;font-family:var(--mono);}
+.tbl .bld{font-weight:600;}
+.tbl .total td{font-weight:700;background:#f1f8fe;border-top:2px solid #c5d9f7;}
+
+/* ── PROGRESS ── */
+.pg-cell{display:flex;align-items:center;gap:7px;}
+.pg-track{flex:1;height:7px;background:#f1f3f4;border-radius:4px;overflow:hidden;min-width:60px;}
+.pg-fill{height:100%;border-radius:4px;transition:width .4s;}
+.pg-pct{font-family:var(--mono);font-size:11px;font-weight:600;min-width:38px;text-align:right;}
+
+/* ── SCROLL ── */
+.tbl-scroll{overflow-x:auto;max-height:480px;overflow-y:auto;}
+
+/* ── CHART CARDS ── */
+.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+@media(max-width:700px){.chart-grid{grid-template-columns:1fr;}}
+.chart-card{background:var(--white);border:1px solid var(--border);border-radius:8px;padding:14px;}
+.chart-title{font-size:12px;font-weight:500;color:var(--dark);margin-bottom:10px;}
+.chart-box{position:relative;height:200px;}
+
+/* ── MINI BARS ── */
+.mb-wrap{display:flex;align-items:center;gap:7px;margin-bottom:6px;}
+.mb-label{font-size:11px;min-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mb-track{flex:1;height:5px;background:#f1f3f4;border-radius:3px;overflow:hidden;}
+.mb-fill{height:100%;border-radius:3px;}
+.mb-val{font-family:var(--mono);font-size:11px;font-weight:500;min-width:24px;text-align:right;}
+
+/* ── UPLOAD ZONE ── */
+.upload-zone{border:1px dashed var(--border2);border-radius:8px;padding:18px;text-align:center;background:var(--white);cursor:pointer;margin-bottom:14px;transition:all .2s;}
+.upload-zone:hover{border-color:var(--blue);background:var(--blue-l);}
+.upload-zone.hidden{display:none;}
+.upload-zone p{font-size:12px;color:var(--grey2);margin-top:4px;}
+
+/* ── MES SELECTOR ── */
+.mes-tab{display:inline-flex;align-items:center;gap:4px;padding:5px 14px;border-radius:20px;border:1px solid var(--border2);font-size:12px;cursor:pointer;background:var(--white);color:var(--grey);font-weight:500;transition:all .15s;margin-right:4px;}
+.mes-tab:hover{border-color:var(--blue);color:var(--blue);}
+.mes-tab.active{background:var(--blue);color:#fff;border-color:var(--blue);}
+.mes-tab .dot{width:7px;height:7px;border-radius:50%;}
+.dot-green{background:#34a853;}
+.dot-blue{background:var(--blue);}
+
+/* ── ALERTA ── */
+.alert{padding:10px 12px;border-radius:6px;margin-bottom:8px;border-left:3px solid;}
+.alert.danger{background:var(--red-l);border-color:var(--red);}
+.alert.warning{background:var(--amber-l);border-color:var(--amber);}
+.alert.success{background:var(--green-l);border-color:var(--green);}
+.alert strong{display:block;font-size:12px;margin-bottom:2px;}
+.alert.danger strong{color:var(--red);}
+.alert.warning strong{color:var(--amber);}
+.alert.success strong{color:var(--green);}
+.alert span{font-size:11px;color:var(--grey2);}
+
+/* ── GRID 2 ── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+@media(max-width:700px){.g2{grid-template-columns:1fr;}}
+
+/* ── INFO BAR ── */
+.infobar{background:var(--white);border-top:1px solid var(--border);padding:3px 16px;font-size:11px;color:var(--grey2);display:flex;gap:16px;align-items:center;position:fixed;bottom:0;left:0;right:0;}
+.ib-sep{width:1px;height:12px;background:var(--border);}
+
+/* ── EMPTY ── */
+.empty{text-align:center;padding:32px;color:var(--grey2);}
+
+/* ── SELECTS ── */
+select.filter-sel{font-family:var(--font);font-size:12px;border:1px solid var(--border2);background:var(--white);color:var(--dark);padding:4px 8px;border-radius:4px;cursor:pointer;outline:none;}
+select.filter-sel:hover{border-color:var(--blue);}
+.sbadge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;}
+.sbadge.ok{background:#e6f4ea;color:#188038;}
+.sbadge.warn{background:#fef7e0;color:#f29900;}
+.sbadge.crit{background:#fce8e6;color:#d93025;}
+.sbadge.nd{background:#f1f3f4;color:#80868b;}
+.desp{text-align:center;font-family:var(--mono);font-size:13px;font-weight:700;}
+.desp.ok{color:#188038;}
+.desp.warn{color:#f29900;}
+.desp.crit{color:#d93025;}
+.tipo-lima{display:inline-block;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:600;background:#e8f0fe;color:#1a73e8;}
+.tipo-prov{display:inline-block;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:600;background:#fce8e6;color:#d93025;}
+
+.decision-compra{display:inline-block;padding:3px 10px;border-radius:10px;font-size:11px;font-weight:700;}
+.decision-compra.si{background:#fce8e6;color:#d93025;}
+.decision-compra.ok{background:#e6f4ea;color:#188038;}
+.decision-compra.revisar{background:#fef7e0;color:#f29900;}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-logo">📊</div>
+  <div class="topbar-title">Tablero Operativo — Krediya Perú <span>v9 · {{ HOY }}</span></div>
+  <div style="display:flex;gap:8px;align-items:center;">
+    <span class="badge-live">● EN VIVO</span>
+    <input type="file" id="csv-file" accept=".csv" style="display:none" onchange="loadCSVFile(event)">
+    <button class="btn btn-outline" onclick="document.getElementById('csv-file').click()">📂 Cargar CSV</button>
+    <button class="btn btn-primary" onclick="toggleUpload()">➕ Datos</button>
+  </div>
+</div>
+
+<!-- FORMULA BAR -->
+<div class="formula-bar">
+  <div class="formula-ref" id="fref">B3</div>
+  <span class="formula-fx">𝑓𝑥</span>
+  <input class="formula-text" id="ftext" readonly value='=COUNTIFS(Estado_Contrato,"FIRMADO",Fecha_Venta,">="&HOY_MES)' />
+</div>
+
+<!-- TABS -->
+<div class="tabs-bar">
+  <div class="tab active" onclick="showTab('resumen',this)">📊 Resumen</div>
+  <div class="tab" onclick="showTab('metas',this)">🎯 Metas vs Ventas</div>
+  <div class="tab" onclick="showTab('tiendas',this)">🏪 Por Tienda</div>
+  <div class="tab" onclick="showTab('tendencia',this)">📈 Tendencia</div>
+  <div class="tab" onclick="showTab('detalle',this)">📋 Detalle</div>
+  <div class="tab" onclick="showTab('casas',this)">🏪 Casas</div>
+  <div class="tab" onclick="showTab('stock',this)">📦 Stock</div>
+  <div class="tab" onclick="showTab('compras',this)">🛒 Compras</div>
+</div>
+
+<div class="content">
+
+<!-- UPLOAD -->
+<div class="upload-zone hidden" id="upload-zone"
+     ondragover="event.preventDefault();this.classList.add('drag')"
+     ondragleave="this.classList.remove('drag')"
+     ondrop="handleDrop(event)"
+     onclick="document.getElementById('csv-file').click()">
+  <div style="font-size:28px;">📄</div>
+  <p><strong style="color:var(--blue);">Arrastra tu CSV aquí</strong> o haz clic para seleccionarlo</p>
+  <p>Informe_de_Solicitudes_Peru — cualquier período</p>
+</div>
+
+<!-- ═══ RESUMEN ═══════════════════════════════════════ -->
+<div id="tab-resumen" class="panel active">
+  <div class="sec-hdr">
+    <div class="sec-title">Vista rápida</div>
+    <div class="sec-actions">
+      <div id="mes-btns"></div>
+      <select class="filter-sel" id="f-tienda" onchange="applyFilters()">
+        <option value="">Todas las tiendas</option>
+      </select>
+      <select class="filter-sel" id="f-vendedor" onchange="applyFilters()">
+        <option value="">Todos los vendedores</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="kpi-grid" id="kpi-main"></div>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="chart-title">Ventas firmadas por día</div>
+      <div class="chart-box"><canvas id="c-dias"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Mix de producto — firmadas</div>
+      <div class="chart-box"><canvas id="c-prod"></canvas></div>
+    </div>
+  </div>
+
+  <div class="sheet">
+    <div class="sheet-hdr">
+      <span class="sheet-hdr-title">🏪 Ranking por tienda</span>
+      <div style="display:flex;gap:4px;">
+        <button class="pill active" onclick="setVista('firmadas',this)">Firmadas</button>
+        <button class="pill" onclick="setVista('iniciadas',this)">Iniciadas</button>
+        <button class="pill" onclick="setVista('todas',this)">Todas</button>
+      </div>
+    </div>
+    <div id="ranking-wrap"></div>
+  </div>
+</div>
+
+<!-- ═══ METAS VS REAL ═══════════════════════════════ -->
+<div id="tab-metas" class="panel">
+
+  <!-- SELECTOR DE MES -->
+  <div class="sec-hdr">
+    <div class="sec-title">Presupuesto acumulado día a día</div>
+    <div class="sec-actions">
+      <button class="mes-tab" onclick="setMetasMes('2026-04',this)">
+        <span class="dot dot-green"></span> Abril 2026 (histórico)
+      </button>
+      <button class="mes-tab active" onclick="setMetasMes('2026-05',this)">
+        <span class="dot dot-blue"></span> Mayo 2026 ← HOY
+      </button>
+    </div>
+  </div>
+
+  <!-- KPIs del mes seleccionado -->
+  <div class="kpi-grid" id="kpi-metas" style="grid-template-columns:repeat(4,1fr);"></div>
+
+  <!-- BARRA DE PROGRESO DEL MES -->
+  <div class="sheet" style="margin-bottom:14px;">
+    <div class="sheet-hdr">
+      <span class="sheet-hdr-title" id="mes-prog-title">Progreso del mes</span>
+    </div>
+    <div style="padding:16px 20px;">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--grey2);margin-bottom:6px;">
+        <span id="prog-left-label">Día 0 de 0 hábiles</span>
+        <span id="prog-right-label">0 ventas / 0 meta</span>
+      </div>
+      <div style="height:12px;background:#f1f3f4;border-radius:6px;overflow:hidden;position:relative;">
+        <div id="prog-real-bar" style="height:100%;border-radius:6px;background:var(--green);transition:width .4s;position:absolute;top:0;left:0;"></div>
+        <div id="prog-meta-bar" style="height:100%;border-radius:6px;background:rgba(26,115,232,.25);border-right:2px solid var(--blue);transition:width .4s;position:absolute;top:0;left:0;pointer-events:none;"></div>
+      </div>
+      <div style="display:flex;gap:16px;margin-top:8px;font-size:11px;">
+        <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;background:var(--green);border-radius:2px;display:inline-block;"></span> Real acumulado</span>
+        <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;background:rgba(26,115,232,.35);border-radius:2px;display:inline-block;border:1px solid var(--blue);"></span> Meta acumulada al día de hoy</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABLA POR TIENDA -->
+  <div class="sheet">
+    <div class="sheet-hdr">
+      <span class="sheet-hdr-title" id="tabla-metas-title">Detalle por tienda</span>
+      <span style="font-size:11px;color:var(--grey2);" id="tabla-metas-sub"></span>
+    </div>
+    <div class="tbl-scroll">
+      <table class="tbl" id="tbl-metas">
+        <thead>
+          <tr>
+            <th>Tienda</th>
+            <th class="r">Meta Mes</th>
+            <th class="r">Meta/día</th>
+            <th class="r">Acum. hoy</th>
+            <th class="r">Ventas</th>
+            <th class="r">Gap</th>
+            <th>Cumplimiento</th>
+            <th>Proyección</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-metas"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- CHART METAS -->
+  <div class="chart-card">
+    <div class="chart-title" id="chart-metas-title">Real vs. Meta acumulada por tienda</div>
+    <div style="position:relative;height:220px;"><canvas id="c-metas"></canvas></div>
+  </div>
+
+</div>
+
+<!-- ═══ POR TIENDA ════════════════════════════════ -->
+<div id="tab-tiendas" class="panel">
+  <div class="g2">
+    <div class="sheet">
+      <div class="sheet-hdr"><span class="sheet-hdr-title">Firmadas por tienda</span></div>
+      <div style="padding:12px;" id="bars-tiendas"></div>
+    </div>
+    <div class="sheet">
+      <div class="sheet-hdr"><span class="sheet-hdr-title">Firmadas por vendedor</span></div>
+      <div style="padding:12px;" id="bars-vendedores"></div>
+    </div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title">Distribución semanal de ventas firmadas</div>
+    <div style="position:relative;height:230px;"><canvas id="c-semanal"></canvas></div>
+  </div>
+</div>
+
+<!-- ═══ TENDENCIA ═════════════════════════════════ -->
+<div id="tab-tendencia" class="panel">
+  <div class="chart-card" style="margin-bottom:12px;">
+    <div class="chart-title">Tendencia semanal de ventas firmadas</div>
+    <div style="position:relative;height:230px;"><canvas id="c-tend"></canvas></div>
+  </div>
+  <div class="g2">
+    <div class="sheet">
+      <div class="sheet-hdr"><span class="sheet-hdr-title">🚨 Alertas automáticas</span></div>
+      <div style="padding:12px;" id="alertas"></div>
+    </div>
+    <div class="sheet">
+      <div class="sheet-hdr"><span class="sheet-hdr-title">🏆 Top vendedores</span></div>
+      <div style="padding:12px;" id="top-vend"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ DETALLE ════════════════════════════════════ -->
+<div id="tab-detalle" class="panel">
+  <div class="sec-hdr">
+    <div class="sec-title">Registro de solicitudes</div>
+    <div class="sec-actions" id="det-filters">
+      <button class="pill active" onclick="setEst('todos',this)">Todos</button>
+      <button class="pill" onclick="setEst('firmado',this)">✅ Firmados</button>
+      <button class="pill" onclick="setEst('iniciado',this)">🕐 Iniciados</button>
+      <button class="pill" onclick="setEst('cancelado',this)">❌ Cancelados</button>
+      <span id="det-count" style="font-size:11px;color:var(--grey2);"></span>
+    </div>
+  </div>
+  <div class="sheet">
+    <div class="tbl-scroll">
+      <table class="tbl">
+        <thead><tr>
+          <th>#</th><th>Fecha</th><th>Cliente</th><th>Tienda</th><th>Vendedor</th>
+          <th>Producto</th><th class="r">Cuotas</th><th class="r">S/ Cuota</th><th>Estado</th>
+        </tr></thead>
+        <tbody id="tbody-det"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+<div id="tab-casas" class="panel">
+  <div class="sec-hdr">
+    <div class="sec-title">Ventas por Casa / Sede</div>
+    <div class="sec-actions">
+      <select id="casas-mes-sel" onchange="renderCasas()" style="padding:5px 10px;border:1px solid var(--border2);border-radius:4px;font-size:12px;">
+        <option value="">Todos los meses</option>
+        <option value="2026-05" selected>Mayo 2026</option>
+        <option value="2026-04">Abril 2026</option>
+        <option value="2026-03">Marzo 2026</option>
+      </select>
+    </div>
+  </div>
+  <div class="kpi-grid" id="casas-kpis" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px;"></div>
+  <div class="sheet">
+    <div class="sheet-hdr"><span class="sheet-hdr-title" id="casas-title">Ventas por casa</span></div>
+    <div style="overflow-x:auto"><table class="tbl"><thead id="casas-thead"></thead><tbody id="casas-tbody"></tbody></table></div>
+  </div>
+  <div class="sheet" style="margin-top:12px">
+    <div class="sheet-hdr"><span class="sheet-hdr-title">Ranking visual por producto</span></div>
+    <div style="padding:14px 18px" id="casas-bars"></div>
+  </div>
+</div>
+
+<div id="tab-stock" class="panel">
+  <div class="sec-hdr">
+    <div class="sec-title">Stock y Plan de Reposicion por Casa</div>
+    <div class="sec-actions">
+      <span id="stock-status" style="font-size:11px;color:var(--grey2);margin-right:8px;"></span>
+      <button class="btn btn-outline" onclick="cargarStock()" id="btn-stock" style="font-size:11px;">&#128260; Actualizar Sheets</button>
+    </div>
+  </div>
+  <p style="font-size:12px;color:var(--grey2);margin-bottom:8px;">Stock desde Google Sheets (cierre diario). Stock recomendado calculado por rotacion real: Lima = 3 dias cobertura | Provincias = 5 dias. Techo maximo de seguridad: <strong>15 uds por casa</strong>.. Lima = mismo dia | Provincias = 2 dias.</p>
+  <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;">
+    <span style="font-size:11px;font-weight:700;color:var(--grey2);">Ver ventas del periodo:</span>
+    <button class="pill active" id="sp-semact" onclick="setStockPeriod('semact',this)">Semana actual</button>
+    <button class="pill" id="sp-semant" onclick="setStockPeriod('semant',this)">Semana anterior</button>
+    <button class="pill" id="sp-mes" onclick="setStockPeriod('mes',this)">Este mes</button>
+    <button class="pill" id="sp-todo" onclick="setStockPeriod('todo',this)">Todo</button>
+  </div>
+  <div class="kpi-grid" id="stock-kpis" style="grid-template-columns:repeat(4,1fr);margin:12px 0;"></div>
+  <div class="sheet">
+    <div class="sheet-hdr"><span class="sheet-hdr-title">Inventario y plan de despacho</span></div>
+    <div style="overflow-x:auto">
+      <table class="tbl">
+        <thead><tr>
+          <th style="min-width:180px">CASA / SEDE</th>
+          <th style="text-align:center">Tipo</th>
+          <th style="text-align:center">A07 Hoy</th>
+          <th style="text-align:center">A16 Hoy</th>
+          <th style="text-align:center">Moto Hoy</th>
+          <th style="text-align:center">Total Hoy</th>
+          <th style="text-align:center">Vend. CSV</th>
+          <th style="text-align:center">Venta</th>
+          <th style="text-align:center">Despacho A07</th>
+          <th style="text-align:center">Despacho A16</th>
+          <th style="text-align:center">Despacho Moto</th>
+          <th style="text-align:center">Plan despacho</th>
+        </tr></thead>
+        <tbody id="stock-tbody"></tbody>
+        <tfoot id="stock-tfoot"></tfoot>
+      </table>
+    </div>
+  </div>
+  <div style="margin-top:10px;font-size:11px;color:var(--grey2);padding:0 2px;">
+    &#128994; Stock OK (>=8) &nbsp;|&nbsp; &#128993; Stock bajo (4-7) &nbsp;|&nbsp; &#128308; Urgente despacho (&lt;=3) &nbsp;|&nbsp; &#9888;&#65039; Sin datos de Sheets
+  </div>
+</div>
+
+<!-- PANEL COMPRAS -->
+<div id="tab-compras" class="panel">
+  <div class="sec-hdr">
+    <div class="sec-title">Compras y Proyeccion de Stock</div>
+    <div class="sec-actions">
+      <span id="compras-status" style="font-size:11px;color:var(--grey2);margin-right:8px;"></span>
+      <button class="btn btn-primary" onclick="cargarCompras()" id="btn-compras" style="font-size:11px;">&#128260; Actualizar</button>
+    </div>
+  </div>
+  <p style="font-size:12px;color:var(--grey2);margin-bottom:14px;">
+    Vision consolidada: almacen + casas + proyeccion de venta para decision de compra.
+  </p>
+
+  <!-- KPIs globales -->
+  <div class="kpi-grid" id="compras-kpis" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px;"></div>
+
+  <!-- Tabla resumen por referencia -->
+  <div class="sheet" style="margin-bottom:14px;">
+    <div class="sheet-hdr"><span class="sheet-hdr-title">Resumen total por referencia</span></div>
+    <div style="overflow-x:auto;">
+      <table class="tbl">
+        <thead><tr>
+          <th style="text-align:left;min-width:200px;">REFERENCIA</th>
+          <th style="text-align:center;">Almacen<br><small style="font-weight:400;color:var(--grey2)">saldo</small></th>
+          <th style="text-align:center;">En casas<br><small style="font-weight:400;color:var(--grey2)">stock hoy</small></th>
+          <th style="text-align:center;">Total<br><small style="font-weight:400;color:var(--grey2)">disponible</small></th>
+          <th style="text-align:center;">Venta sem<br><small style="font-weight:400;color:var(--grey2)">actual</small></th>
+          <th style="text-align:center;">Proyectado<br><small style="font-weight:400;color:var(--grey2)">sem completa</small></th>
+          <th style="text-align:center;">Dias<br><small style="font-weight:400;color:var(--grey2)">cobertura</small></th>
+          <th style="text-align:center;">Decision</th>
+        </tr></thead>
+        <tbody id="compras-tbody"></tbody>
+        <tfoot id="compras-tfoot"></tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- Tabla detalle por ubicacion -->
+  <div class="sheet">
+    <div class="sheet-hdr"><span class="sheet-hdr-title">Detalle stock por ubicacion y referencia</span></div>
+    <div style="overflow-x:auto;">
+      <table class="tbl">
+        <thead><tr>
+          <th style="text-align:left;min-width:200px;">UBICACION</th>
+          <th style="text-align:center;">Samsung A07</th>
+          <th style="text-align:center;">Samsung A16</th>
+          <th style="text-align:center;">Motorola G06</th>
+          <th style="text-align:center;">TOTAL</th>
+        </tr></thead>
+        <tbody id="ubicacion-tbody"></tbody>
+        <tfoot id="ubicacion-tfoot"></tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+</div><!-- /content -->
+
+<!-- INFO BAR -->
+<div class="infobar">
+  <span id="ib-records">📂 Carga el CSV para comenzar</span>
+  <div class="ib-sep"></div>
+  <span id="ib-update">Sin datos</span>
+  <div class="ib-sep"></div>
+  <span>Krediya Perú · Dir. Comercial</span>
+  <div style="flex:1;"></div>
+  <span id="ib-zoom" style="cursor:pointer;" onclick="cyZoom()">100%</span>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// CONFIGURACIÓN DE METAS
+// ═══════════════════════════════════════════════════════
+
+// ── ABRIL 2026 (histórico) ──────────────────────────
+// 22 días hábiles, meta plan de comisiones (del docx)
+var META_ABR = {
+  'INDEPENDENCIA':          {mes:95, dh:22},
+  'CERCADO DE LIMA':        {mes:85, dh:22},
+  'MIRAFLORES':             {mes:75, dh:22},
+  'TRUJILLO':               {mes:45, dh:22},
+  'CHICLAYO':               {mes:45, dh:22},
+  'SAN JUAN DE MIRAFLORES': {mes:60, dh:22},
+  'PIURA':                  {mes:45, dh:22},
+  'SAN JUAN DE LURIGANCHO': {mes:50, dh:22},
+  'ICA':                    {mes:0,  dh:22},
+  'AREQUIPA':               {mes:0,  dh:22},
+};
+
+// ── MAYO 2026 ──────────────────────────────────────
+// 20 días hábiles (1 mayo = feriado, solo L-V)
+// Días hábiles: 4,5,6,7,8 / 11-15 / 18-22 / 25-29
+var BDAYS_MAYO = [
+  '2026-05-04','2026-05-05','2026-05-06','2026-05-07','2026-05-08',
+  '2026-05-11','2026-05-12','2026-05-13','2026-05-14','2026-05-15',
+  '2026-05-18','2026-05-19','2026-05-20','2026-05-21','2026-05-22',
+  '2026-05-25','2026-05-26','2026-05-27','2026-05-28','2026-05-29'
+];
+// Días hábiles abril (L-V, sin feriados conocidos)
+var BDAYS_ABR = (function(){
+  var days=[]; var d=new Date(2026,3,1); // April 1
+  while(d.getMonth()===3){
+    var dow=d.getDay();
+    if(dow>=1&&dow<=5) days.push(d.toISOString().slice(0,10));
+    d.setDate(d.getDate()+1);
+  }
+  return days;
+})();
+
+// Metas mayo por tienda — escenario base
+var META_MAY = {
+  'INDEPENDENCIA':          {mes:55, dh:20},
+  'MIRAFLORES':             {mes:55, dh:20},
+  'TRUJILLO':               {mes:55, dh:20},
+  'CERCADO DE LIMA':        {mes:45, dh:20},
+  'CHICLAYO':               {mes:50, dh:20},
+  'SAN JUAN DE MIRAFLORES': {mes:40, dh:20},
+  'ICA':                    {mes:25, dh:20},
+  'SAN JUAN DE LURIGANCHO': {mes:35, dh:20},
+  'PIURA':                  {mes:25, dh:20},
+  'AREQUIPA':               {mes:25, dh:20},
+};
+
+// Hoy
+var HOY=(function(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})();
+var MES_METAS = '2026-05'; // pestaña activa por defecto: MAYO
+
+// ═══════════════════════════════════════════════════════
+// ESTADO
+// ═══════════════════════════════════════════════════════
+var ALL=[{"Fecha Venta":"7 may 2026, 15:56:04","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"LUIS ARNALDO CASTILLO GAVIDIA","Tienda Venta":"SAN JUAN DE LURIGANCHO","Vendedor":"Zoraida Ardiles Almeida","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"7 may 2026, 15:18:05","Estado Contrato":"INICIADO","Nombre Completo Cliente":"NELLY MALPARTIDA PARDAVE VDA DE MEZA","Tienda Venta":"CERCADO DE LIMA","Vendedor":"Call Cercado Center","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"7 may 2026, 13:04:09","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"LORENZO VILLANUEVA FUENTES","Tienda Venta":"CERCADO DE LIMA","Vendedor":"Natalia As\u00edan Ramos","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"7 may 2026, 11:54:24","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"OLGA ALTEMIRA MIROPE RAMIREZ RUIZ","Tienda Venta":"PIURA","Vendedor":"Leoncio Yarleque Coello","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"7 may 2026, 11:41:41","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"DIONICIO TABUADA RIVERA","Tienda Venta":"SAN JUAN DE LURIGANCHO","Vendedor":"Zoraida Ardiles Almeida","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"7 may 2026, 10:02:35","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"ANTENOR ORFILIO CAMPOS ESTACIO","Tienda Venta":"CERCADO DE LIMA","Vendedor":"Natalia As\u00edan Ramos","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"7 may 2026, 9:44:32","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"ROALDO ORDONEZ FLORES","Tienda Venta":"PIURA","Vendedor":"Leoncio Yarleque Coello","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"6 may 2026, 17:37:53","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"OSCAR ERNESTO DELGADO RODRIGUEZ","Tienda Venta":"SAN JUAN DE MIRAFLORES","Vendedor":"Stephani Ato Arredondo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"6 may 2026, 16:29:19","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"ELIZABETH CRISTINA PARRENO MENDOZA","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"6 may 2026, 16:01:33","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"REBECA NOEMI NARVAEZ DE GRUBER","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"MOTOROLA G06 4 RAM 256GB","Numero de cuotas":"10","Monto Cuota":"72","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"6 may 2026, 15:56:17","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"DINA MARIA DE LOS SANTOS FACHO","Tienda Venta":"CHICLAYO","Vendedor":"Medaly D\u00edaz Rodrigo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"6 may 2026, 13:30:32","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"VICTOR RAUL CHOQUEVILCA CCUNO","Tienda Venta":"AREQUIPA","Vendedor":"Evelyn Nataly Ramos Zu\u00f1iga","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"100","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"6 may 2026, 13:00:22","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"MANUEL HERMES GRADOS GUTIERREZ","Tienda Venta":"TRUJILLO","Vendedor":"Nikol Ramirez P\u00e9rez","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"6 may 2026, 12:58:07","Estado Contrato":"INICIADO","Nombre Completo Cliente":"HENRY MANUEL SECLEN MARQUEZ","Tienda Venta":"CHICLAYO","Vendedor":"Call Chiclayo Center","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"6 may 2026, 12:11:29","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"PABLO ROCA PONTE","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"MOTOROLA G06 4 RAM 256GB","Numero de cuotas":"10","Monto Cuota":"72","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"6 may 2026, 11:55:30","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"JOSEFA CRUZ DE SILVA","Tienda Venta":"PIURA","Vendedor":"Leoncio Yarleque Coello","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"96","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"6 may 2026, 11:38:01","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"CECILIA CRISTINA BARRIENTOS GONZALES","Tienda Venta":"ICA","Vendedor":"Ronny Olivares","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"127","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"6 may 2026, 11:21:30","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"ROSA GABRIELA CAMINO BECERRA","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"MOTOROLA G06 4 RAM 256GB","Numero de cuotas":"10","Monto Cuota":"72","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"6 may 2026, 10:59:05","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"LUIS ALBERTO ECHEVARRIA VIERA","Tienda Venta":"CHICLAYO","Vendedor":"Medaly D\u00edaz Rodrigo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"6 may 2026, 10:56:50","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"SILBANA CLARA CUMPA VELASQUEZ","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"100","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"6 may 2026, 10:30:41","Estado Contrato":"INICIADO","Nombre Completo Cliente":"BRAUDILIO TABARA CHUZON","Tienda Venta":"CHICLAYO","Vendedor":"Call Chiclayo Center","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"6 may 2026, 9:29:07","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"MARIA CRISTINA ALBAN MOSCOL DE DIAZ","Tienda Venta":"CERCADO DE LIMA","Vendedor":"Natalia As\u00edan Ramos","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"6 may 2026, 8:45:37","Estado Contrato":"INICIADO","Nombre Completo Cliente":"GLIDER SAAVEDRA PEREDA","Tienda Venta":"SAN JUAN DE LURIGANCHO","Vendedor":"Call San Juna del Lurigancho Center","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"5 may 2026, 17:06:32","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"GLORIA PRUDENCIA RODRIGUEZ PORRAS","Tienda Venta":"CERCADO DE LIMA","Vendedor":"Natalia As\u00edan Ramos","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"100","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"5 may 2026, 16:38:55","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"ELOISA ALEJANDRINA LOBATON NAVARRO DE HOYOS","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"5 may 2026, 16:08:49","Estado Contrato":"INICIADO","Nombre Completo Cliente":"CARMEN EMILIA PRIETO GALLARDO","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"100","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"5 may 2026, 15:31:18","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"FLOR FELICITA QUEVEDO HUYHUA","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"5 may 2026, 13:44:53","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"JULIO CESAR BERNAOLA CRUZ","Tienda Venta":"CERCADO DE LIMA","Vendedor":"Natalia As\u00edan Ramos","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"5 may 2026, 11:58:45","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"ZOILA ANTONIETA YZQUIERDO BAZAN","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"100","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"5 may 2026, 11:49:12","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"JOSE EUSEBIO HIDALGO PANTA","Tienda Venta":"PIURA","Vendedor":"Leoncio Yarleque Coello","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"5 may 2026, 11:25:20","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"FLORENCIA MAGDALENA LUNA DIAZ","Tienda Venta":"ICA","Vendedor":"Ronny Olivares","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"127","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"5 may 2026, 11:09:20","Estado Contrato":"INICIADO","Nombre Completo Cliente":"NELLY ESPERANZA PEREZ ROSALES","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"5 may 2026, 10:16:07","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"ROSA LUDOVINA DAVILA BUENO","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"5 may 2026, 10:07:30","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"NILTON BLANCO LUNA","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"5 may 2026, 9:29:59","Estado Contrato":"INICIADO","Nombre Completo Cliente":"BENITA MEZA LAZO","Tienda Venta":"AREQUIPA","Vendedor":"Call Arequipa Center","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"5 may 2026, 9:06:51","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"GUSTAVO ENRIQUE MALLEA VALDERRAMA","Tienda Venta":"AREQUIPA","Vendedor":"Evelyn Nataly Ramos Zu\u00f1iga","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"4 may 2026, 16:36:30","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"GLADYS AGRIPINA LARICO BORDA","Tienda Venta":"AREQUIPA","Vendedor":"Evelyn Nataly Ramos Zu\u00f1iga","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"127","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"4 may 2026, 16:22:18","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"ROSA MARIANA MORAN MEDINA DE SEMINARIO","Tienda Venta":"SAN JUAN DE MIRAFLORES","Vendedor":"Stephani Ato Arredondo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"4 may 2026, 14:57:59","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"HERVEE CORNEJO VILLARREYES","Tienda Venta":"TRUJILLO","Vendedor":"Nikol Ramirez P\u00e9rez","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"4 may 2026, 13:16:40","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"MANUEL LOCON CAPITAN","Tienda Venta":"CHICLAYO","Vendedor":"Medaly D\u00edaz Rodrigo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"127","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"4 may 2026, 11:08:38","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"DANIEL ABANTO AYAYPOMA","Tienda Venta":"TRUJILLO","Vendedor":"Nikol Ramirez P\u00e9rez","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"100","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"4 may 2026, 11:00:56","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"VICTOR GARCIA LOAYZA","Tienda Venta":"SAN JUAN DE LURIGANCHO","Vendedor":"Zoraida Ardiles Almeida","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"4 may 2026, 10:55:17","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"EUDOCIA VILLENA ALONSO","Tienda Venta":"TRUJILLO","Vendedor":"Nikol Ramirez P\u00e9rez","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"127","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"4 may 2026, 10:33:54","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"SANTOS VICTOR CORTEZ AVELINO","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"4 may 2026, 10:32:03","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"WILLIAM RICARDO MORENO INONAN","Tienda Venta":"CHICLAYO","Vendedor":"Medaly D\u00edaz Rodrigo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"4 may 2026, 10:15:35","Estado Contrato":"INICIADO","Nombre Completo Cliente":"ALEJANDRO ANGELES LOPEZ","Tienda Venta":"SAN JUAN DE LURIGANCHO","Vendedor":"Call San Juna del Lurigancho Center","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"4 may 2026, 10:00:25","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"JOSE GUILLERMO PAMUCENA ROJAS","Tienda Venta":"ICA","Vendedor":"Irvin Martin Mu\u00f1ante Hernanndez","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"4 may 2026, 9:30:43","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"HILDA PAULINA LEON REYES","Tienda Venta":"TRUJILLO","Vendedor":"Nikol Ramirez P\u00e9rez","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"30 abr 2026, 16:49:54","Estado Contrato":"INICIADO","Nombre Completo Cliente":"LUZ GRISELDA BELLODAS DE PACHECO","Tienda Venta":"AREQUIPA","Vendedor":"Mois\u00e9s Romero Phocco","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"100","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"30 abr 2026, 16:37:31","Estado Contrato":"INICIADO","Nombre Completo Cliente":"GLENDA AMPARO CORNEJO ROSADO","Tienda Venta":"AREQUIPA","Vendedor":"Mois\u00e9s Romero Phocco","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"30 abr 2026, 16:29:37","Estado Contrato":"INICIADO","Nombre Completo Cliente":"YOLANDA SANTOSA ARROYO LOPEZ","Tienda Venta":"INDEPENDENCIA","Vendedor":"Call Independencia Center","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"30 abr 2026, 14:47:05","Estado Contrato":"ANULADO","Nombre Completo Cliente":"ENRIQUE SALAZAR VILLANUEVA","Tienda Venta":"MIRAFLORES","Vendedor":"Call Miraflores Center","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"96","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"30 abr 2026, 14:35:22","Estado Contrato":"ANULADO","Nombre Completo Cliente":"ENRIQUE SALAZAR VILLANUEVA","Tienda Venta":"MIRAFLORES","Vendedor":"Call Miraflores Center","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"96","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"30 abr 2026, 14:32:40","Estado Contrato":"ANULADO","Nombre Completo Cliente":"ENRIQUE SALAZAR VILLANUEVA","Tienda Venta":"MIRAFLORES","Vendedor":"Call Miraflores Center","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"127","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"30 abr 2026, 14:27:02","Estado Contrato":"ANULADO","Nombre Completo Cliente":"ENRIQUE SALAZAR VILLANUEVA","Tienda Venta":"MIRAFLORES","Vendedor":"Call Miraflores Center","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"96","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"30 abr 2026, 14:06:29","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"AMERICO HUGO MARCIAL UBALDO GONZALES","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"30 abr 2026, 12:54:32","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"ELDA ALINA ORMENO PANTIGOSO","Tienda Venta":"MIRAFLORES","Vendedor":"Call Miraflores Center","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"30 abr 2026, 12:23:40","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"MIGUEL CASTRO CARPIO","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"30 abr 2026, 12:05:03","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"JOSE MIGUEL REVELO RIVERA","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"30 abr 2026, 11:51:43","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"NICOLAS CASTELLO MENESES","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"30 abr 2026, 10:12:01","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"SOMNIA FELICITA MENESES ACOSTA","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"30 abr 2026, 8:12:08","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"CARLOS FELIX WATANABE MORILLAS","Tienda Venta":"SAN JUAN DE LURIGANCHO","Vendedor":"Zoraida Ardiles Almeida","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"100","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"29 abr 2026, 17:12:34","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"ROSA CABRERA ODOLIA","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"75","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"29 abr 2026, 16:06:53","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"LUCERO MAGDALENA SOUQUON GRAVELO","Tienda Venta":"CHICLAYO","Vendedor":"Medaly D\u00edaz Rodrigo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"29 abr 2026, 16:06:24","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"SEGUNDO JUAN DOMINGUEZ ROJAS","Tienda Venta":"TRUJILLO","Vendedor":"Nikol Ramirez P\u00e9rez","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"29 abr 2026, 16:01:09","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"ZOILA ROSA LOPEZ CHACON VDA DE FLORES","Tienda Venta":"CERCADO DE LIMA","Vendedor":"Natalia As\u00edan Ramos","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"29 abr 2026, 15:46:13","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"EDILBERTA CARIDAD SOLON SIMON","Tienda Venta":"TRUJILLO","Vendedor":"Nikol Ramirez P\u00e9rez","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"29 abr 2026, 13:04:10","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"OSCAR LUIS MONTES VIVAS","Tienda Venta":"CERCADO DE LIMA","Vendedor":"Natalia As\u00edan Ramos","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"29 abr 2026, 12:46:35","Estado Contrato":"ANULADO","Nombre Completo Cliente":"LUZ ROMAN GUTIERREZ","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"100","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"29 abr 2026, 12:38:04","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"ROSARIO ENRIQUEZ CHAVEZ DE BRAVO","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"29 abr 2026, 11:56:24","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"LUISA ALBINA HEVIA VIZCARDO DE GALARZA","Tienda Venta":"CERCADO DE LIMA","Vendedor":"Natalia As\u00edan Ramos","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"100","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"29 abr 2026, 11:46:05","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"RAMON EDUARDO HERRERA FLORES","Tienda Venta":"CHICLAYO","Vendedor":"Medaly D\u00edaz Rodrigo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"127","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"29 abr 2026, 10:25:08","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"DOMINGO JIMENEZ SAAVEDRA","Tienda Venta":"PIURA","Vendedor":"Leoncio Yarleque Coello","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"29 abr 2026, 10:05:22","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"SANTOS LORENZO POLO BURGOS","Tienda Venta":"TRUJILLO","Vendedor":"Nikol Ramirez P\u00e9rez","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"29 abr 2026, 9:26:05","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"RAMON ELIAS VEJARANO JARA","Tienda Venta":"TRUJILLO","Vendedor":"Nikol Ramirez P\u00e9rez","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"29 abr 2026, 9:06:07","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"NESTOR RODRIGO LOPEZ VILLAGOMEZ","Tienda Venta":"ICA","Vendedor":"Irvin Martin Mu\u00f1ante Hernanndez","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"127","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"28 abr 2026, 16:29:36","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"CRUZ FERNANDA PENA DURAND","Tienda Venta":"CHICLAYO","Vendedor":"Medaly D\u00edaz Rodrigo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"127","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"28 abr 2026, 15:40:09","Estado Contrato":"INICIADO","Nombre Completo Cliente":"MARIO HERNAN CHAVEZ FLORES","Tienda Venta":"AREQUIPA","Vendedor":"Mois\u00e9s Romero Phocco","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"100","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"28 abr 2026, 15:36:12","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"MARIA LUZ QUINTEROS CARRERA","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"28 abr 2026, 15:35:15","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"EDILBERTO ROMALDO CONTRERAS GALINDO","Tienda Venta":"SAN JUAN DE MIRAFLORES","Vendedor":"Stephani Ato Arredondo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"28 abr 2026, 15:29:42","Estado Contrato":"INICIADO","Nombre Completo Cliente":"GERARDA ALBERTA TORRES APAZA","Tienda Venta":"AREQUIPA","Vendedor":"Mois\u00e9s Romero Phocco","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"28 abr 2026, 15:16:00","Estado Contrato":"INICIADO","Nombre Completo Cliente":"ANGELICA MORANTE DE OJEDA","Tienda Venta":"AREQUIPA","Vendedor":"Mois\u00e9s Romero Phocco","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"28 abr 2026, 13:58:57","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"MANUEL ANTONIO DAVILA BRATHWAIT","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"28 abr 2026, 13:13:16","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"ALFIERI LEONIDAS PINO NIETO","Tienda Venta":"CERCADO DE LIMA","Vendedor":"Natalia As\u00edan Ramos","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"28 abr 2026, 13:11:26","Estado Contrato":"INICIADO","Nombre Completo Cliente":"PAULINA NANCY ALVAREZ ROQUE","Tienda Venta":"AREQUIPA","Vendedor":"Mois\u00e9s Romero Phocco","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"96","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"28 abr 2026, 12:38:56","Estado Contrato":"INICIADO","Nombre Completo Cliente":"JIMY ARTURO LORENZO ESCALANTE PALACIOS","Tienda Venta":"ICA","Vendedor":"Ronny Olivares","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"28 abr 2026, 12:01:52","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"AUTOR MONDRAGON HERRERA","Tienda Venta":"CHICLAYO","Vendedor":"Medaly D\u00edaz Rodrigo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"28 abr 2026, 11:55:33","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"VICTORIA FRANCISCA LLAMPASI CRISOSTOMO","Tienda Venta":"SAN JUAN DE MIRAFLORES","Vendedor":"Stephani Ato Arredondo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"28 abr 2026, 11:44:52","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"TEOFILA LLAMPASI CRISOSTOMO","Tienda Venta":"SAN JUAN DE MIRAFLORES","Vendedor":"Stephani Ato Arredondo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"28 abr 2026, 11:38:44","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"JUSTO FELIX ARMAS PALPA","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"28 abr 2026, 11:35:43","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"ELVA MARIA CLAUDIO ESTRADA","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"28 abr 2026, 11:34:43","Estado Contrato":"INICIADO","Nombre Completo Cliente":"CAMILA LELYS SALDANA ZEVALLOS","Tienda Venta":"ICA","Vendedor":"Ronny Olivares","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"100","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"28 abr 2026, 11:31:51","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"FAUSTO IDROGO SILVA","Tienda Venta":"CHICLAYO","Vendedor":"Medaly D\u00edaz Rodrigo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"100","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"28 abr 2026, 11:05:34","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"KLEBER BERMUDEZ MARTINEZ","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"28 abr 2026, 10:53:09","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"JUANA CONSTANZA ARANA CACERES DE ECHEANDIA","Tienda Venta":"CERCADO DE LIMA","Vendedor":"Natalia As\u00edan Ramos","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"28 abr 2026, 10:40:49","Estado Contrato":"INICIADO","Nombre Completo Cliente":"AMPARO MATILDE MEZA DE RUIZ","Tienda Venta":"ICA","Vendedor":"Ronny Olivares","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"100","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"28 abr 2026, 10:26:42","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"HUGO MARCIAL GARCIA BERMEJO","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"100","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"28 abr 2026, 10:10:16","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"ALCIRA BERMUDEZ MARTINEZ","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"27 abr 2026, 16:29:58","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"PAULA JULIA GONZALES GAMBOA","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"127","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"27 abr 2026, 16:14:13","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"URPILA DORIS GONZALES GAMBOA","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"127","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"27 abr 2026, 15:36:26","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"ZENON ALEJANDRO SOLIS RONDON","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"27 abr 2026, 15:34:15","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"ELEODORO TABOADA VILLEGAS","Tienda Venta":"TRUJILLO","Vendedor":"Nikol Ramirez P\u00e9rez","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"127","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"27 abr 2026, 14:02:46","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"FILADELFO ACARO BERRU","Tienda Venta":"PIURA","Vendedor":"Leoncio Yarleque Coello","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"96","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"27 abr 2026, 11:51:43","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"NORMAN ALCIDES VILLANUEVA VARA","Tienda Venta":"SAN JUAN DE LURIGANCHO","Vendedor":"Brizeth Ch\u00e1vez Colchado","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"27 abr 2026, 11:08:42","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"LUZ ANGELICA RADAS PALACIOS","Tienda Venta":"TRUJILLO","Vendedor":"Nikol Ramirez P\u00e9rez","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"27 abr 2026, 11:05:25","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"JOVER GILMER CUEVA GUTIERREZ","Tienda Venta":"SAN JUAN DE LURIGANCHO","Vendedor":"Brizeth Ch\u00e1vez Colchado","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"27 abr 2026, 10:47:10","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"CARMEN ROSA ZAVALA COCA DE JARA","Tienda Venta":"SAN JUAN DE MIRAFLORES","Vendedor":"Stephani Ato Arredondo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"27 abr 2026, 10:39:07","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"JULIA ESPERANZA PAUCAR IBA\u00d1EZ","Tienda Venta":"CHICLAYO","Vendedor":"Medaly D\u00edaz Rodrigo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"100","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"27 abr 2026, 10:26:27","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"GREGORIO ADRIAN ABARCA BA\u00d1EZ","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"96","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"27 abr 2026, 10:00:42","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"OSCAR ALBERTO ARROYO URBINA","Tienda Venta":"CHICLAYO","Vendedor":"Medaly D\u00edaz Rodrigo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"127","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"27 abr 2026, 9:54:36","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"FLORENCIO QUISPE GALA","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"27 abr 2026, 9:43:36","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"LUCY VICTORIA CALERO MARCELO","Tienda Venta":"SAN JUAN DE MIRAFLORES","Vendedor":"Stephani Ato Arredondo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"24 abr 2026, 16:57:04","Estado Contrato":"INICIADO","Nombre Completo Cliente":"RAUL MACA AMASIFUEN","Tienda Venta":"SAN JUAN DE LURIGANCHO","Vendedor":"Call San Juna del Lurigancho Center","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"24 abr 2026, 16:27:14","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"GUILLERMO ERNESTO COLCHADO ESCOBAR","Tienda Venta":"CHICLAYO","Vendedor":"Medaly D\u00edaz Rodrigo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"24 abr 2026, 16:18:25","Estado Contrato":"INICIADO","Nombre Completo Cliente":"MANUEL ESTEBAN HUAMACO AUCCAPUMA","Tienda Venta":"SAN JUAN DE LURIGANCHO","Vendedor":"Call San Juna del Lurigancho Center","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"24 abr 2026, 15:57:54","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"MARTHA IRENE ANGASPILCO MONTOYA","Tienda Venta":"TRUJILLO","Vendedor":"Nikol Ramirez P\u00e9rez","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"24 abr 2026, 15:38:21","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"MARIA LUISA RIVAS BECERRA","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"24 abr 2026, 15:15:44","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"MARCOS HURTADO CARLOS","Tienda Venta":"SAN JUAN DE LURIGANCHO","Vendedor":"Brizeth Ch\u00e1vez Colchado","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"24 abr 2026, 14:54:25","Estado Contrato":"INICIADO","Nombre Completo Cliente":"JUAN FLORES MORENO","Tienda Venta":"ICA","Vendedor":"Irvin Martin Mu\u00f1ante Hernanndez","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"24 abr 2026, 14:51:27","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"PEDRO ZUNIGA LLUNCOR","Tienda Venta":"CHICLAYO","Vendedor":"Medaly D\u00edaz Rodrigo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"127","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"24 abr 2026, 14:34:51","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"MARIA AURORA SOLIS ARIZA","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"127","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"24 abr 2026, 13:22:54","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"MARIA DELIA SOLIS ARIZA","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"24 abr 2026, 12:43:07","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"PEDRO FRANCISCO JIMENEZ GONZALES","Tienda Venta":"TRUJILLO","Vendedor":"Nikol Ramirez P\u00e9rez","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"24 abr 2026, 12:30:43","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"CESAR AUGUSTO TAGLE PIZARRO","Tienda Venta":"CHICLAYO","Vendedor":"Medaly D\u00edaz Rodrigo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"24 abr 2026, 11:21:32","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"JOSE ANTONIO ZEVALLOS OLIVA","Tienda Venta":"CHICLAYO","Vendedor":"Medaly D\u00edaz Rodrigo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"24 abr 2026, 10:49:32","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"JUAN CARLOS MARCHENA LA ROSA","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"24 abr 2026, 10:40:39","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"MARIA ELENA SOSA SANDOVAL","Tienda Venta":"CHICLAYO","Vendedor":"Medaly D\u00edaz Rodrigo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"127","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"24 abr 2026, 10:35:14","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"VICTOR CORNELIO HILARES","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"100","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"24 abr 2026, 10:31:35","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"CESAR TELMO HERRERA VEGA","Tienda Venta":"CHICLAYO","Vendedor":"Medaly D\u00edaz Rodrigo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"24 abr 2026, 10:27:10","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"ARMANDO FLAVIO CASUSOL GARCIA","Tienda Venta":"TRUJILLO","Vendedor":"Nikol Ramirez P\u00e9rez","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"24 abr 2026, 10:21:58","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"LORENZO FORTUNATO ZACARIAS CARDOZO","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"24 abr 2026, 10:20:20","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"WALTER HERNANI VIDARTE ROJAS","Tienda Venta":"CHICLAYO","Vendedor":"Medaly D\u00edaz Rodrigo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"24 abr 2026, 9:37:29","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"ROSA BETSABE LA NOIRE LA CRUZ","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"24 abr 2026, 9:23:10","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"ISAAC WENCESLAO ABANTO ARIAS","Tienda Venta":"TRUJILLO","Vendedor":"Nikol Ramirez P\u00e9rez","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"100","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"24 abr 2026, 8:59:37","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"LUIS ALBERTO MARTINEZ MELENDEZ","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"24 abr 2026, 8:53:59","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"LUIS ALBERTO RAVELO AYALA","Tienda Venta":"TRUJILLO","Vendedor":"Nikol Ramirez P\u00e9rez","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"23 abr 2026, 18:08:24","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"ZARELA CENTURION RAMIREZ","Tienda Venta":"CHICLAYO","Vendedor":"Medaly D\u00edaz Rodrigo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"127","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"23 abr 2026, 16:35:49","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"CONSEPCION ANGELICA VALVERDE MALO","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"23 abr 2026, 16:23:23","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"ARMANDO CAMPOS FERNANDEZ","Tienda Venta":"CERCADO DE LIMA","Vendedor":"Natalia As\u00edan Ramos","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"23 abr 2026, 16:15:06","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"LUZMILA GONZALES OROZCO","Tienda Venta":"CHICLAYO","Vendedor":"Medaly D\u00edaz Rodrigo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"23 abr 2026, 15:45:53","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"JUAN MANUEL MINES SANDOVAL","Tienda Venta":"TRUJILLO","Vendedor":"Nikol Ramirez P\u00e9rez","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"23 abr 2026, 15:34:48","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"RICARDO ZAVALA ESCUDERO","Tienda Venta":"TRUJILLO","Vendedor":"Nikol Ramirez P\u00e9rez","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"127","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"23 abr 2026, 15:23:13","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"BUENAVENTURA VILLEGAS VILLEGAS","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"23 abr 2026, 15:21:41","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"BLANCA GRACIELA GALLO CASTILLO","Tienda Venta":"PIURA","Vendedor":"Leoncio Yarleque Coello","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"96","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"23 abr 2026, 14:54:37","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"MERY LUZ ELGUERA BALLENAS","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"23 abr 2026, 13:38:55","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"JULIA ZUNIGA SILVA","Tienda Venta":"CERCADO DE LIMA","Vendedor":"Natalia As\u00edan Ramos","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"23 abr 2026, 13:29:21","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"RAUL GUEVARA CABRERA","Tienda Venta":"CERCADO DE LIMA","Vendedor":"Natalia As\u00edan Ramos","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"96","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"23 abr 2026, 12:59:47","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"VIRGINIA MAZZOTTI TOUMA","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"127","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"23 abr 2026, 12:55:22","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"FERMIN CASTANEDA BARRERA","Tienda Venta":"TRUJILLO","Vendedor":"Nikol Ramirez P\u00e9rez","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"23 abr 2026, 12:31:53","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"RUBELA BEBELU MONTESINOS GARCIA","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"23 abr 2026, 11:50:10","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"JESUS ALTAMIRANO CAJOS","Tienda Venta":"CERCADO DE LIMA","Vendedor":"Natalia As\u00edan Ramos","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"23 abr 2026, 11:42:17","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"LILIAN ESTHER HUAMAN DE LA GRUZ","Tienda Venta":"SAN JUAN DE MIRAFLORES","Vendedor":"Stephani Ato Arredondo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"23 abr 2026, 11:39:12","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"JOSE ALBERTO SILUPU COLCHADO","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"100","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"23 abr 2026, 11:33:24","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"LUIS ARSENIO CERNA ARAUJO","Tienda Venta":"TRUJILLO","Vendedor":"Nikol Ramirez P\u00e9rez","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"23 abr 2026, 10:49:13","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"LILIA PEREZ VILLANUEVA DE ESPINOZA","Tienda Venta":"CHICLAYO","Vendedor":"Medaly D\u00edaz Rodrigo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"127","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"23 abr 2026, 8:47:10","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"DILCIA MAGDALINA HIDALGO OLEMAR","Tienda Venta":"PIURA","Vendedor":"Leoncio Yarleque Coello","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"100","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"22 abr 2026, 17:16:41","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"SABINO ALDAVE CANALES","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"22 abr 2026, 16:48:18","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"ENRIQUE RODRIGUEZ CALATAYUD","Tienda Venta":"SAN JUAN DE MIRAFLORES","Vendedor":"Stephani Ato Arredondo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"22 abr 2026, 16:44:06","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"APOLINAR PUMA HUANACO","Tienda Venta":"SAN JUAN DE MIRAFLORES","Vendedor":"Stephani Ato Arredondo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"22 abr 2026, 16:29:42","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"MARIA LAZARTE LEGUIA","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"22 abr 2026, 16:18:57","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"AUBERTO ORESTES ALEGRE ANGELES","Tienda Venta":"ICA","Vendedor":"Ronny Olivares","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"96","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"22 abr 2026, 16:14:39","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"SUSANA VICTORIA VEGA HIDALGO","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"22 abr 2026, 15:27:14","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"JOSE MIGUEL CASTILLO ASANZA","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"22 abr 2026, 15:21:18","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"ELENA GRACIELA DIEGUEZ PAREDES","Tienda Venta":"SAN JUAN DE MIRAFLORES","Vendedor":"Stephani Ato Arredondo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"100","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"22 abr 2026, 14:47:13","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"CARLOS LINDOLFO GARAY MARCHAN","Tienda Venta":"SAN JUAN DE LURIGANCHO","Vendedor":"Brizeth Ch\u00e1vez Colchado","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"22 abr 2026, 14:31:36","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"MANUEL JESUS ESPINOZA VELIZ","Tienda Venta":"CERCADO DE LIMA","Vendedor":"Natalia As\u00edan Ramos","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"22 abr 2026, 12:35:16","Estado Contrato":"INICIADO","Nombre Completo Cliente":"RAQUEL HUANAY CHULAN DE OBREGON","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"100","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"22 abr 2026, 11:48:45","Estado Contrato":"INICIADO","Nombre Completo Cliente":"ROSARIO ENRIQUEZ CHAVEZ DE BRAVO","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"22 abr 2026, 11:43:07","Estado Contrato":"INICIADO","Nombre Completo Cliente":"KLEBER BERMUDEZ MARTINEZ","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"22 abr 2026, 9:57:32","Estado Contrato":"INICIADO","Nombre Completo Cliente":"CESAR AUGUSTO UGAS CRISPIN","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"21 abr 2026, 17:00:28","Estado Contrato":"INICIADO","Nombre Completo Cliente":"RITA AZUCENA REYES","Tienda Venta":"TRUJILLO","Vendedor":"Nikol Ramirez P\u00e9rez","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"21 abr 2026, 16:31:27","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"SONIA SANCHEZ HORNA","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"21 abr 2026, 16:04:39","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"LORENA ALAYO TACANGA","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"21 abr 2026, 15:58:40","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"DANIEL GUILLERMO MORENO UTRILLA","Tienda Venta":"TRUJILLO","Vendedor":"Nikol Ramirez P\u00e9rez","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"127","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"21 abr 2026, 15:53:41","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"IDELMIRA JOSEFINA SALAS MACAVILCA","Tienda Venta":"CERCADO DE LIMA","Vendedor":"Natalia As\u00edan Ramos","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"127","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"21 abr 2026, 14:27:09","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"REINALDA PASCUALA URIOL CHAVEZ","Tienda Venta":"CHICLAYO","Vendedor":"Medaly D\u00edaz Rodrigo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"21 abr 2026, 12:46:11","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"PATRICIA BELEVAN VASQUEZ","Tienda Venta":"TRUJILLO","Vendedor":"Nikol Ramirez P\u00e9rez","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"127","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"21 abr 2026, 12:24:06","Estado Contrato":"INICIADO","Nombre Completo Cliente":"ANTONIA VARGAS IQUISE","Tienda Venta":"SAN JUAN DE MIRAFLORES","Vendedor":"Stephani Ato Arredondo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"21 abr 2026, 12:21:56","Estado Contrato":"INICIADO","Nombre Completo Cliente":"JUANA CONSTANZA ARANA CACERES DE ECHEANDIA","Tienda Venta":"CERCADO DE LIMA","Vendedor":"Natalia As\u00edan Ramos","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"21 abr 2026, 12:17:41","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"CESAR ANTONIO ZARATE ZARATE","Tienda Venta":"TRUJILLO","Vendedor":"Nikol Ramirez P\u00e9rez","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"21 abr 2026, 10:46:28","Estado Contrato":"INICIADO","Nombre Completo Cliente":"LUCILA GUILLERMINA JIMENEZ GUERRA","Tienda Venta":"SAN JUAN DE MIRAFLORES","Vendedor":"Stephani Ato Arredondo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"21 abr 2026, 10:23:58","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"LUCRECIA HERCILIA ORTEGA ELERA","Tienda Venta":"CHICLAYO","Vendedor":"Medaly D\u00edaz Rodrigo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"100","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"21 abr 2026, 10:06:49","Estado Contrato":"INICIADO","Nombre Completo Cliente":"GABRIEL EUFRACIO VELASQUEZ CALDERON","Tienda Venta":"SAN JUAN DE MIRAFLORES","Vendedor":"Stephani Ato Arredondo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"21 abr 2026, 9:32:18","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"NELLY VILLANUEVA FONSECA DE OSORIO","Tienda Venta":"CERCADO DE LIMA","Vendedor":"Natalia As\u00edan Ramos","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"127","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"20 abr 2026, 16:50:12","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"NARCISA NEIRA DE VILLEGAS","Tienda Venta":"CHICLAYO","Vendedor":"Medaly D\u00edaz Rodrigo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"100","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"20 abr 2026, 16:14:00","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"MERCEDES LOPEZ CHERRES","Tienda Venta":"PIURA","Vendedor":"Leoncio Yarleque Coello","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"127","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"20 abr 2026, 16:06:17","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"MAYER BRYNNER HUAMANLAZO FABIAN","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"96","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"20 abr 2026, 15:41:54","Estado Contrato":"INICIADO","Nombre Completo Cliente":"YMELDA YVONE RAMIREZ ALCEDO","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"20 abr 2026, 15:21:39","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"EULALIA ULLOA AURORA","Tienda Venta":"TRUJILLO","Vendedor":"Nikol Ramirez P\u00e9rez","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"20 abr 2026, 15:02:39","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"LUCIANO ASCENCION ROBLES VILLACORTA","Tienda Venta":"TRUJILLO","Vendedor":"Nikol Ramirez P\u00e9rez","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"127","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"20 abr 2026, 14:13:27","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"EDUARDO SAAVEDRA LEZAMA","Tienda Venta":"TRUJILLO","Vendedor":"Nikol Ramirez P\u00e9rez","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"127","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"20 abr 2026, 12:56:57","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"JOSE LUIS JUAREZ RODRIGUEZ","Tienda Venta":"CHICLAYO","Vendedor":"Medaly D\u00edaz Rodrigo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"20 abr 2026, 12:30:15","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"BLANCA TALLERI COTRINA VDA DE DUPONT","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"100","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"20 abr 2026, 12:11:36","Estado Contrato":"INICIADO","Nombre Completo Cliente":"IRIS ADELA NAVARRO DE DEL CASTILLO","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"20 abr 2026, 11:44:55","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"ROSA MARITZA SAN ROMAN NU\u00d1EZ DE CASTILLO","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"20 abr 2026, 11:43:49","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"ROSA ELENA RODAS ROMERO","Tienda Venta":"CHICLAYO","Vendedor":"Medaly D\u00edaz Rodrigo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"20 abr 2026, 11:02:51","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"HUBERT MAXIMO VELASQUEZ RAMIREZ","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"20 abr 2026, 10:59:34","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"MARIA EUGENIA MACEDO CASTRO","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"20 abr 2026, 9:33:45","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"FLOR DE MARIA GUEVARA POLAR","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"96","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"17 abr 2026, 16:59:03","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"JULIO FERNANDEZ PE\u00d1A","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"17 abr 2026, 16:54:28","Estado Contrato":"INICIADO","Nombre Completo Cliente":"WALTER EXEQUIEL ALVARADO PORTILLO","Tienda Venta":"CERCADO DE LIMA","Vendedor":"Natalia As\u00edan Ramos","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"100","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"17 abr 2026, 16:45:06","Estado Contrato":"INICIADO","Nombre Completo Cliente":"JOSE MIGUEL REVELO RIVERA","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"17 abr 2026, 16:19:53","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"EDUARDO WALTER STIGLICH INFANTE","Tienda Venta":"CERCADO DE LIMA","Vendedor":"Natalia As\u00edan Ramos","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"17 abr 2026, 16:01:14","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"JUAN PABLO TELLO DE LA CRUZ","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"17 abr 2026, 15:03:37","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"HILARIO TIMOTEO TORIBIO","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"17 abr 2026, 14:40:33","Estado Contrato":"INICIADO","Nombre Completo Cliente":"CLARA ELENA MENDOZA HUAMANI DE HUAMANI","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"17 abr 2026, 14:18:36","Estado Contrato":"INICIADO","Nombre Completo Cliente":"MARIA JACINTA CANALES ROSARIO VDA DE MORON","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"17 abr 2026, 10:26:24","Estado Contrato":"INICIADO","Nombre Completo Cliente":"FELIPE ANCAJIMA SUYON","Tienda Venta":"CHICLAYO","Vendedor":"Medaly D\u00edaz Rodrigo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"17 abr 2026, 9:59:46","Estado Contrato":"INICIADO","Nombre Completo Cliente":"MARCOS TAPIA PINEDO","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"16 abr 2026, 14:21:29","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"AMANDA EVANGELINA ORE HUARCAYA","Tienda Venta":"CERCADO DE LIMA","Vendedor":"Natalia As\u00edan Ramos","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"127","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"16 abr 2026, 11:46:45","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"TEODULO EDILBERTO ROMERO TELLO","Tienda Venta":"ICA","Vendedor":"Ronny Olivares","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"16 abr 2026, 11:05:59","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"WALTER VIRGILIO CAMAHUALI VIVAR","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"100","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"16 abr 2026, 11:00:49","Estado Contrato":"INICIADO","Nombre Completo Cliente":"SONIA MARINA ODICIO RIOS","Tienda Venta":"SAN JUAN DE MIRAFLORES","Vendedor":"Stephani Ato Arredondo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"16 abr 2026, 9:49:27","Estado Contrato":"INICIADO","Nombre Completo Cliente":"RAMON EDUARDO HERRERA FLORES","Tienda Venta":"CHICLAYO","Vendedor":"Medaly D\u00edaz Rodrigo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"127","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"16 abr 2026, 9:43:23","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"ANATOLIA CALERO CARHUARICRA","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"127","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"16 abr 2026, 9:01:45","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"GRACIELA URSULA CHIMA INCIO","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"100","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"16 abr 2026, 8:50:09","Estado Contrato":"INICIADO","Nombre Completo Cliente":"OSCAR ALBERTO ARROYO URBINA","Tienda Venta":"CHICLAYO","Vendedor":"Medaly D\u00edaz Rodrigo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"96","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"16 abr 2026, 8:49:24","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"RICARDINA LUCIA GUTIERREZ VIVANCO DE CUETO","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"16 abr 2026, 8:30:20","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"CAROLINA ACHA TORRES","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"15 abr 2026, 16:52:44","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"FELIX GONZALES ORDO\u00d1EZ","Tienda Venta":"ICA","Vendedor":"Ronny Olivares","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"15 abr 2026, 16:00:09","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"CARMEN ELENA ELEUTERIA HABRAHAMSHON ESCOBEDO VDA DE CORONEL","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"15 abr 2026, 15:58:15","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"GODOFREDO SOTO BAZAN","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"15 abr 2026, 15:43:44","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"RUTH YANIRA MARTINEZ BOYER","Tienda Venta":"CERCADO DE LIMA","Vendedor":"Natalia As\u00edan Ramos","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"15 abr 2026, 15:38:18","Estado Contrato":"INICIADO","Nombre Completo Cliente":"EDILBERTO ROMALDO CONTRERAS GALINDO","Tienda Venta":"SAN JUAN DE MIRAFLORES","Vendedor":"Stephani Ato Arredondo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"15 abr 2026, 15:23:14","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"PABLO ALARCON COLAN","Tienda Venta":"CERCADO DE LIMA","Vendedor":"Natalia As\u00edan Ramos","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"75","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"15 abr 2026, 9:26:22","Estado Contrato":"INICIADO","Nombre Completo Cliente":"NELLY SOCORRO ZARATE ROJAS","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"100","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"14 abr 2026, 12:28:07","Estado Contrato":"INICIADO","Nombre Completo Cliente":"FELIX GENARO CAMPOS BRAVO","Tienda Venta":"SAN JUAN DE MIRAFLORES","Vendedor":"Stephani Ato Arredondo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"14 abr 2026, 12:11:54","Estado Contrato":"INICIADO","Nombre Completo Cliente":"SONIA IRENE QUISPE SANCHEZ","Tienda Venta":"SAN JUAN DE MIRAFLORES","Vendedor":"Stephani Ato Arredondo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"14 abr 2026, 11:31:04","Estado Contrato":"INICIADO","Nombre Completo Cliente":"LUCERO MAGDALENA SOUQUON GRAVELO","Tienda Venta":"CHICLAYO","Vendedor":"Medaly D\u00edaz Rodrigo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"14 abr 2026, 11:02:49","Estado Contrato":"INICIADO","Nombre Completo Cliente":"FLORA MYRIAM SANTOS ALATA","Tienda Venta":"SAN JUAN DE MIRAFLORES","Vendedor":"Stephani Ato Arredondo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"13 abr 2026, 15:25:36","Estado Contrato":"INICIADO","Nombre Completo Cliente":"IVANIA LUZMILA PALACIOS RAMIREZ VDA DE BEDON","Tienda Venta":"INDEPENDENCIA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"13 abr 2026, 11:39:34","Estado Contrato":"INICIADO","Nombre Completo Cliente":"HILDA PAULINA LEON REYES","Tienda Venta":"TRUJILLO","Vendedor":"Nikol Ramirez P\u00e9rez","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"13 abr 2026, 10:52:57","Estado Contrato":"INICIADO","Nombre Completo Cliente":"WALTER VIRGILIO CAMAHUALI VIVAR","Tienda Venta":"CERCADO DE LIMA","Vendedor":"Natalia As\u00edan Ramos","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"100","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"13 abr 2026, 9:32:06","Estado Contrato":"INICIADO","Nombre Completo Cliente":"IGNACIO MARIO RODRIGUEZ GUZMAN","Tienda Venta":"TRUJILLO","Vendedor":"Nikol Ramirez P\u00e9rez","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"10 abr 2026, 16:20:07","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"MANUEL JESUS OBLITAS CHAVEZ","Tienda Venta":"CERCADO DE LIMA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"100","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"10 abr 2026, 15:58:49","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"CARLOS ALFREDO MARREROS RUIZ","Tienda Venta":"ICA","Vendedor":"Ronny Olivares","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"10 abr 2026, 15:42:16","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"LEONOR AURORA CHIHUAN RUIZ","Tienda Venta":"ICA","Vendedor":"Ronny Olivares","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"10 abr 2026, 15:40:42","Estado Contrato":"INICIADO","Nombre Completo Cliente":"ANGEL MIGUEL EDUARDO QUEA LAZO","Tienda Venta":"AREQUIPA","Vendedor":"Mois\u00e9s Romero Phocco","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"75","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"10 abr 2026, 15:26:26","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"FAUSTO LUDENA CARDENAS","Tienda Venta":"ICA","Vendedor":"Ronny Olivares","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"10 abr 2026, 15:11:07","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"JUAN ELEODORO SOTIL ANCI","Tienda Venta":"SAN JUAN DE MIRAFLORES","Vendedor":"Stephani Ato Arredondo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"10 abr 2026, 14:57:58","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"AMADA VIOLETA FLORES DE SANCHEZ","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"10 abr 2026, 14:31:59","Estado Contrato":"INICIADO","Nombre Completo Cliente":"TEODULO EDILBERTO ROMERO TELLO","Tienda Venta":"ICA","Vendedor":"Ronny Olivares","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"10 abr 2026, 14:24:39","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"JULIO CESAR IRRIBARREN SALAS CORNEJO","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"100","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"10 abr 2026, 12:41:11","Estado Contrato":"INICIADO","Nombre Completo Cliente":"LUIS JAVIER VAZQUEZ HUANILO","Tienda Venta":"TRUJILLO","Vendedor":"Nikol Ramirez P\u00e9rez","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"127","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"10 abr 2026, 9:57:45","Estado Contrato":"INICIADO","Nombre Completo Cliente":"WILDE AMARO PONCE CASTANEDA","Tienda Venta":"TRUJILLO","Vendedor":"Nikol Ramirez P\u00e9rez","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"127","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"9 abr 2026, 10:08:03","Estado Contrato":"INICIADO","Nombre Completo Cliente":"FELIPA NERY CALLAS ROJAS","Tienda Venta":"ICA","Vendedor":"Ronny Olivares","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"9 abr 2026, 8:20:03","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"LUIS FELIPE VIVANCO MANTILLA","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"8 abr 2026, 16:28:01","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"CARLOS MARIO GONZALEZ GONZALEZ","Tienda Venta":"ICA","Vendedor":"Ronny Olivares","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"8 abr 2026, 16:05:54","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"EDMUNDO JUSTO CORTEZ","Tienda Venta":"ICA","Vendedor":"Ronny Olivares","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"8 abr 2026, 15:49:08","Estado Contrato":"INICIADO","Nombre Completo Cliente":"ROSA MARGARITA ALCALDE SOLIS","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"8 abr 2026, 15:38:43","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"AVILIO FELIPE LIVIA","Tienda Venta":"INDEPENDENCIA","Vendedor":"\u00c1ngelo Cavassa P\u00e9rez Palma","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"8 abr 2026, 15:19:51","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"JOSE JULIO PERALES RODRIGUEZ","Tienda Venta":"CERCADO DE LIMA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"100","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"8 abr 2026, 14:11:54","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"TEOFILO JOSE CARMONA HERNANDEZ","Tienda Venta":"SAN JUAN DE LURIGANCHO","Vendedor":"Brizeth Ch\u00e1vez Colchado","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"7 abr 2026, 11:43:04","Estado Contrato":"INICIADO","Nombre Completo Cliente":"CARLOS ALFREDO MARREROS RUIZ","Tienda Venta":"ICA","Vendedor":"Ronny Olivares","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"7 abr 2026, 11:27:25","Estado Contrato":"INICIADO","Nombre Completo Cliente":"PURIFICACION ALACHA BANOS","Tienda Venta":"ICA","Vendedor":"Ronny Olivares","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"7 abr 2026, 9:20:54","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"NIMIO CEDILLO ROMERO","Tienda Venta":"SAN JUAN DE LURIGANCHO","Vendedor":"Brizeth Ch\u00e1vez Colchado","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"6 abr 2026, 12:54:24","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"NORA GODOY CORNEJO VDA DE","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"75","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"6 abr 2026, 11:28:30","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"HILARIO GUERRERO VALENCIA","Tienda Venta":"SAN JUAN DE LURIGANCHO","Vendedor":"Brizeth Ch\u00e1vez Colchado","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"6 abr 2026, 9:51:48","Estado Contrato":"INICIADO","Nombre Completo Cliente":"ARMANDO ALLPOC HILARIO","Tienda Venta":"CERCADO DE LIMA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"1 abr 2026, 16:23:48","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"ABRAHAM PEDRO JOSE MADRID DURAND","Tienda Venta":"CERCADO DE LIMA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"1 abr 2026, 15:36:02","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"ROSA ADELA MENDOZA BENDEZU","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"100","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"1 abr 2026, 15:08:57","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"RAYMUNDO ROMULO NUNEZ DAVILA","Tienda Venta":"CERCADO DE LIMA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"1 abr 2026, 15:03:59","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"WILLY G JIMENEZ UNCHUPAYCO","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"1 abr 2026, 14:47:44","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"LENA JANETT TUTAYA DE ROSADIO","Tienda Venta":"CERCADO DE LIMA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"96","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"1 abr 2026, 14:25:15","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"CARMEN MARITZA GAMARRA TUTAYA","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"100","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"1 abr 2026, 13:02:30","Estado Contrato":"INICIADO","Nombre Completo Cliente":"IRMA REBECA HEREDIA MU\u00d1OZ","Tienda Venta":"SAN JUAN DE LURIGANCHO","Vendedor":"Brizeth Ch\u00e1vez Colchado","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"31 mar 2026, 10:37:32","Estado Contrato":"INICIADO","Nombre Completo Cliente":"LOURDES MARLENY VILLANUEVA TORRES","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"100","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"31 mar 2026, 10:17:21","Estado Contrato":"INICIADO","Nombre Completo Cliente":"JUANA ISOLINA BYRNE PIAGGIO","Tienda Venta":"CERCADO DE LIMA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"31 mar 2026, 9:51:34","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"JUANA ROSA USQUIANO SALAZAR","Tienda Venta":"ICA","Vendedor":"Ronny Olivares","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"30 mar 2026, 15:09:28","Estado Contrato":"INICIADO","Nombre Completo Cliente":"JUAN ELEODORO SOTIL ANCI","Tienda Venta":"SAN JUAN DE MIRAFLORES","Vendedor":"Stephani Ato Arredondo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"30 mar 2026, 14:34:41","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"MIRNA ZULEMA TOMAYRO TORRES","Tienda Venta":"CERCADO DE LIMA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"127","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"30 mar 2026, 11:24:00","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"FLOR LUZMILA RODRIGUEZ TORRES","Tienda Venta":"SAN JUAN DE MIRAFLORES","Vendedor":"Stephani Ato Arredondo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"127","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"30 mar 2026, 10:00:41","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"ALCIDES MARIO MEJIA SALAS","Tienda Venta":"SAN JUAN DE MIRAFLORES","Vendedor":"Stephani Ato Arredondo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"27 mar 2026, 16:37:00","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"VIRGILIO AUGUSTO VADILLO ZAVALA","Tienda Venta":"INDEPENDENCIA","Vendedor":"\u00c1ngelo Cavassa P\u00e9rez Palma","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"27 mar 2026, 16:22:56","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"SABINO HUILLCA DIAZ","Tienda Venta":"SAN JUAN DE MIRAFLORES","Vendedor":"Stephani Ato Arredondo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"27 mar 2026, 16:12:15","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"ADELFO ROGER ZEVALLOS RUPAY","Tienda Venta":"SAN JUAN DE MIRAFLORES","Vendedor":"Stephani Ato Arredondo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"27 mar 2026, 15:59:36","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"PABLO ABILIO SANTOS CABELLO","Tienda Venta":"INDEPENDENCIA","Vendedor":"\u00c1ngelo Cavassa P\u00e9rez Palma","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"96","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"27 mar 2026, 15:44:19","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"CRISTINA JUANA ROJAS CARBAJAL","Tienda Venta":"INDEPENDENCIA","Vendedor":"\u00c1ngelo Cavassa P\u00e9rez Palma","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"27 mar 2026, 15:10:51","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"JUAN JOSE GONZALES REVOLLEDO","Tienda Venta":"SAN JUAN DE MIRAFLORES","Vendedor":"Stephani Ato Arredondo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"27 mar 2026, 15:04:33","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"CLAUDIA FAUSTINO DIONICIO","Tienda Venta":"ICA","Vendedor":"Ronny Olivares","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"27 mar 2026, 14:44:06","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"TALIA HILDA CAVERO HERRERA","Tienda Venta":"ICA","Vendedor":"Ronny Olivares","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"96","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"27 mar 2026, 14:28:34","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"RAFAELA VICTORIA COELLO VEGA VDA DE SOLANO","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"27 mar 2026, 14:11:45","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"CARMEN TERESA HUAMANI FLORES","Tienda Venta":"ICA","Vendedor":"Ronny Olivares","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"27 mar 2026, 13:51:39","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"ANA BERTHA YANCAN POMA","Tienda Venta":"SAN JUAN DE LURIGANCHO","Vendedor":"Brizeth Ch\u00e1vez Colchado","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"27 mar 2026, 13:15:45","Estado Contrato":"INICIADO","Nombre Completo Cliente":"NORA GODOY CORNEJO VDA DE","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"75","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"27 mar 2026, 11:53:02","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"NANCY IDELMA SALAZAR SANCHEZ","Tienda Venta":"CERCADO DE LIMA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"127","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"27 mar 2026, 10:53:47","Estado Contrato":"INICIADO","Nombre Completo Cliente":"MARIA PILAR DEL CASTILLO GOMEZ","Tienda Venta":"SAN JUAN DE MIRAFLORES","Vendedor":"Stephani Ato Arredondo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"27 mar 2026, 8:29:23","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"FERNANDO GENARO FERNANDEZ FLORES","Tienda Venta":"SAN JUAN DE MIRAFLORES","Vendedor":"Stephani Ato Arredondo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"26 mar 2026, 17:17:19","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"CIRO MARCELINO SANTIAGO CHAVEZ","Tienda Venta":"SAN JUAN DE LURIGANCHO","Vendedor":"Brizeth Ch\u00e1vez Colchado","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"100","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"26 mar 2026, 16:58:40","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"ROSARIO ELSA EGUSQUIZA HUAMAN","Tienda Venta":"SAN JUAN DE LURIGANCHO","Vendedor":"Brizeth Ch\u00e1vez Colchado","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"26 mar 2026, 15:28:11","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"CONCESA CARDENAS RAMOS","Tienda Venta":"SAN JUAN DE MIRAFLORES","Vendedor":"Stephani Ato Arredondo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"96","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"26 mar 2026, 15:16:34","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"MARIA ROSALIA TORRES SIFUENTES","Tienda Venta":"SAN JUAN DE MIRAFLORES","Vendedor":"Stephani Ato Arredondo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"127","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"26 mar 2026, 14:31:08","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"CESAR AUGUSTO CASTRO DIAZ","Tienda Venta":"SAN JUAN DE LURIGANCHO","Vendedor":"Brizeth Ch\u00e1vez Colchado","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"100","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"26 mar 2026, 13:49:26","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"ELENA ROSARIO HUAYTA QUISPE DE GARCIA","Tienda Venta":"SAN JUAN DE MIRAFLORES","Vendedor":"Stephani Ato Arredondo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"26 mar 2026, 13:36:44","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"IRMA GLORIA GAVILAN MOSQUERA","Tienda Venta":"SAN JUAN DE MIRAFLORES","Vendedor":"Stephani Ato Arredondo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"26 mar 2026, 12:52:02","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"PEPE MATEO CABELLO","Tienda Venta":"SAN JUAN DE MIRAFLORES","Vendedor":"Stephani Ato Arredondo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"26 mar 2026, 12:06:45","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"EDGAR GAMBOA YARANGA","Tienda Venta":"SAN JUAN DE LURIGANCHO","Vendedor":"Brizeth Ch\u00e1vez Colchado","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"127","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"26 mar 2026, 11:40:56","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"FEDERICO MORALES NAVARRO","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"26 mar 2026, 9:48:56","Estado Contrato":"INICIADO","Nombre Completo Cliente":"CIRILO SEGUNDO OBREGON OBREGON","Tienda Venta":"INDEPENDENCIA","Vendedor":"\u00c1ngelo Cavassa P\u00e9rez Palma","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"127","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"25 mar 2026, 16:44:07","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"ALBERTO JUAN PALACIOS DUYMOVICH","Tienda Venta":"SAN JUAN DE LURIGANCHO","Vendedor":"Brizeth Ch\u00e1vez Colchado","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"25 mar 2026, 15:27:02","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"ANA MARIA LOPEZ OLIVARES","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"25 mar 2026, 15:12:12","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"LUCINDA MALLQUI SOBRADO","Tienda Venta":"ICA","Vendedor":"Ronny Olivares","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"24 mar 2026, 17:16:28","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"RAMON VALDERRAMA SANABRIA","Tienda Venta":"INDEPENDENCIA","Vendedor":"\u00c1ngelo Cavassa P\u00e9rez Palma","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"127","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"24 mar 2026, 16:18:47","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"RODOLFO INGA TORRE","Tienda Venta":"ICA","Vendedor":"Ronny Olivares","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"100","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"24 mar 2026, 16:09:25","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"JUSTA CARIDAD TRUJILLO VASQUEZ","Tienda Venta":"INDEPENDENCIA","Vendedor":"\u00c1ngelo Cavassa P\u00e9rez Palma","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"24 mar 2026, 16:05:17","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"FRANCISCO JUAN PE\u00d1A GUTIERREZ","Tienda Venta":"ICA","Vendedor":"Ronny Olivares","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"24 mar 2026, 15:56:41","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"CLAUDIO LUIS ESPINOZA MILLA","Tienda Venta":"ICA","Vendedor":"Ronny Olivares","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"24 mar 2026, 15:53:27","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"WILLIAMS ZAPATA AMAYA","Tienda Venta":"INDEPENDENCIA","Vendedor":"\u00c1ngelo Cavassa P\u00e9rez Palma","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"24 mar 2026, 15:20:39","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"JOSE ALEJANDRO ELIAS MANRIQUE","Tienda Venta":"ICA","Vendedor":"Ronny Olivares","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"24 mar 2026, 14:57:48","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"MARIA YRENE BUSTAMANTE PEREZ VDA DE VALQUEZ","Tienda Venta":"ICA","Vendedor":"Ronny Olivares","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"24 mar 2026, 14:33:20","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"ALBERTO EDUVINO TORRES CAHUANA","Tienda Venta":"ICA","Vendedor":"Ronny Olivares","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"24 mar 2026, 12:08:47","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"WALTER CASTAGNE CASTRO","Tienda Venta":"INDEPENDENCIA","Vendedor":"\u00c1ngelo Cavassa P\u00e9rez Palma","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"24 mar 2026, 10:10:44","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"FELIX VIVANCO ARONE","Tienda Venta":"CERCADO DE LIMA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"23 mar 2026, 16:17:41","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"HERLINDA ESTELA GUEVARA LOPEZ","Tienda Venta":"CERCADO DE LIMA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"23 mar 2026, 15:52:17","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"MARIA ELENA ORDINOLA ACOSTA","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"23 mar 2026, 15:27:10","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"ROSA GUILLEN SARMIENTO DE ROJAS","Tienda Venta":"ICA","Vendedor":"Ronny Olivares","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"62","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"23 mar 2026, 12:06:39","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"APOLONIA MARGARITA ZAPATA MENESES VDA DE","Tienda Venta":"CERCADO DE LIMA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"23 mar 2026, 11:26:37","Estado Contrato":"INICIADO","Nombre Completo Cliente":"JAIME FELIX LOPEZ PADILLA","Tienda Venta":"INDEPENDENCIA","Vendedor":"\u00c1ngelo Cavassa P\u00e9rez Palma","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"100","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"23 mar 2026, 10:29:37","Estado Contrato":"INICIADO","Nombre Completo Cliente":"MARIANO ALARCON LIMA","Tienda Venta":"INDEPENDENCIA","Vendedor":"\u00c1ngelo Cavassa P\u00e9rez Palma","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"75","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"23 mar 2026, 10:08:41","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"JUAN CARLOS ENRIQUE PALOMINO MEJIA","Tienda Venta":"CERCADO DE LIMA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"23 mar 2026, 9:41:24","Estado Contrato":"INICIADO","Nombre Completo Cliente":"MAURO CAMPOS ARZAPALO","Tienda Venta":"ICA","Vendedor":"Ronny Olivares","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"127","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"23 mar 2026, 9:25:54","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"EDGARDO ABRAHAM GUEVARA GAMEZ","Tienda Venta":"CERCADO DE LIMA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"127","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"20 mar 2026, 16:50:41","Estado Contrato":"FIRMADO","Nombre Completo Cliente":"GONZALO JOSE DEL CARMEN DIAZ LLACAS","Tienda Venta":"CERCADO DE LIMA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"Aprobado"},{"Fecha Venta":"20 mar 2026, 10:27:38","Estado Contrato":"INICIADO","Nombre Completo Cliente":"JOSE ANTONIO GODOY VEGA","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"18 mar 2026, 12:07:17","Estado Contrato":"INICIADO","Nombre Completo Cliente":"MARIA ROSALIA TORRES SIFUENTES","Tienda Venta":"SAN JUAN DE MIRAFLORES","Vendedor":"Stephani Ato Arredondo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"100","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"18 mar 2026, 11:09:21","Estado Contrato":"INICIADO","Nombre Completo Cliente":"ZENOBIA ANA CAMPOS PIZARRO","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"127","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"18 mar 2026, 9:45:22","Estado Contrato":"INICIADO","Nombre Completo Cliente":"IDA TINEO QUISPE","Tienda Venta":"INDEPENDENCIA","Vendedor":"\u00c1ngelo Cavassa P\u00e9rez Palma","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"17 mar 2026, 11:36:30","Estado Contrato":"INICIADO","Nombre Completo Cliente":"JUAN ARIZA SOTO","Tienda Venta":"INDEPENDENCIA","Vendedor":"\u00c1ngelo Cavassa P\u00e9rez Palma","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"17 mar 2026, 9:13:00","Estado Contrato":"INICIADO","Nombre Completo Cliente":"EDGARDO ABRAHAM GUEVARA GAMEZ","Tienda Venta":"CERCADO DE LIMA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"100","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"16 mar 2026, 16:19:32","Estado Contrato":"INICIADO","Nombre Completo Cliente":"CONCESA CARDENAS RAMOS","Tienda Venta":"SAN JUAN DE MIRAFLORES","Vendedor":"Stephani Ato Arredondo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"16 mar 2026, 15:37:46","Estado Contrato":"INICIADO","Nombre Completo Cliente":"JULIAN LUIS CARDENAS","Tienda Venta":"ICA","Vendedor":"Ronny Olivares","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"127","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"16 mar 2026, 15:06:49","Estado Contrato":"INICIADO","Nombre Completo Cliente":"HUGO SANTOS RIOS PORTILLO","Tienda Venta":"ICA","Vendedor":"Ronny Olivares","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"127","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"16 mar 2026, 11:07:04","Estado Contrato":"INICIADO","Nombre Completo Cliente":"CRESENCIO HERMOGENES VIDAL CAMPOMANES","Tienda Venta":"SAN JUAN DE MIRAFLORES","Vendedor":"Stephani Ato Arredondo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"13 mar 2026, 14:54:24","Estado Contrato":"INICIADO","Nombre Completo Cliente":"MANUELA EDITA HIDALGO DE VERCELLI","Tienda Venta":"CERCADO DE LIMA","Vendedor":"Jina Arrieta Crisostomo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"84","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"13 mar 2026, 14:48:17","Estado Contrato":"INICIADO","Nombre Completo Cliente":"MOISES FERNANDEZ ZUTA","Tienda Venta":"ICA","Vendedor":"Ronny Olivares","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"13 mar 2026, 14:27:35","Estado Contrato":"INICIADO","Nombre Completo Cliente":"MARIA SOFIA RODRIGUEZ RENGIFO","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"96","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"13 mar 2026, 12:29:29","Estado Contrato":"INICIADO","Nombre Completo Cliente":"JORGE AMADO SAVI\u00d1ON G\u00d3MEZ","Tienda Venta":"AREQUIPA","Vendedor":"Mayra Marquez","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"13 mar 2026, 12:02:24","Estado Contrato":"INICIADO","Nombre Completo Cliente":"MARIA LUZ IVONE GARTNER TALLEDO DE AGUILAR","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"163","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"13 mar 2026, 11:06:11","Estado Contrato":"INICIADO","Nombre Completo Cliente":"MARIA CARLOTA CHACALTANA PE\u00d1A","Tienda Venta":"CERCADO DE LIMA","Vendedor":"Natalia As\u00edan Ramos","Producto Vendido":"SAMSUNG A16 128GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"86","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"13 mar 2026, 10:37:10","Estado Contrato":"INICIADO","Nombre Completo Cliente":"PORFIRIO PINTO ARCE","Tienda Venta":"MIRAFLORES","Vendedor":"Eduardo Muro Chambergo","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"6","Monto Cuota":"94","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"13 mar 2026, 10:17:13","Estado Contrato":"INICIADO","Nombre Completo Cliente":"FAUSTO LUDENA CARDENAS","Tienda Venta":"INDEPENDENCIA","Vendedor":"\u00c1ngelo Cavassa P\u00e9rez Palma","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"8","Monto Cuota":"74","Estado de la Solicitud":"CANCELADA"},{"Fecha Venta":"12 mar 2026, 11:52:13","Estado Contrato":"INICIADO","Nombre Completo Cliente":"ROSARIO ELSA EGUSQUIZA HUAMAN","Tienda Venta":"ICA","Vendedor":"Ronny Olivares","Producto Vendido":"SAMSUNG A07 64GB 4 RAM","Numero de cuotas":"10","Monto Cuota":"64","Estado de la Solicitud":"CANCELADA"}], FILTERED=[], CHARTS={};
+var MES_F='', TIENDA_F='', VEND_F='';
+var VISTA='firmadas', EST='todos';
+
+// ═══════════════════════════════════════════════════════
+// UTILS FECHAS
+// ═══════════════════════════════════════════════════════
+var MES_IDX={ene:0,feb:1,mar:2,abr:3,may:4,jun:5,jul:6,ago:7,sep:8,oct:9,nov:10,dic:11};
+function parseFecha(s){
+  if(!s) return null;
+  var m=String(s).match(/^(\d+)\s+(\w+)\s+(\d{4})/);
+  if(m){var mi=MES_IDX[m[2].toLowerCase().slice(0,3)]; if(mi!==undefined) return new Date(+m[3],mi,+m[1]);}
+  m=String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(m) return new Date(+m[1],+m[2]-1,+m[3]);
+  // Excel serial
+  var n=parseFloat(s); if(!isNaN(n)&&n>40000){var d=new Date((n-25569)*86400000); return d;}
+  return null;
+}
+function toISO(d){if(!d)return''; return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function toMesKey(d){if(!d)return''; return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
+function mesLabel(k){var p=k.split('-'); var n=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']; return n[+p[1]-1]+' '+p[0];}
+
+function esFirmado(r){return r['Estado de la Solicitud']==='Aprobado'&&r['Estado Contrato']==='FIRMADO';}
+function esIniciado(r){return r['Estado Contrato']==='INICIADO'&&r['Estado de la Solicitud']!=='CANCELADA';}
+function esCancelado(r){return r['Estado de la Solicitud']==='CANCELADA';}
+
+// ── Días hábiles transcurridos hasta hoy en un mes ──
+function diasHabilesHastaHoy(bdays){
+  return bdays.filter(function(d){return d<=HOY;}).length;
+}
+function diasHabilesTotales(bdays){return bdays.length;}
+
+// ── Meta acumulada al día de hoy ──
+function metaAcumHoy(metaMes, bdays){
+  var dh=diasHabilesTotales(bdays);
+  var dt=diasHabilesHastaHoy(bdays);
+  if(!dh) return 0;
+  return Math.round(metaMes*(dt/dh)*10)/10; // con decimal para precisión
+}
+
+// ═══════════════════════════════════════════════════════
+// CSV PARSER
+// ═══════════════════════════════════════════════════════
+function parseCSV(txt){
+  var lines=txt.trim().split('\n');
+  var hdrs=lines[0].replace(/^\uFEFF/,'').split(',').map(function(h){return h.trim().replace(/^"|"$/g,'');});
+  return lines.slice(1).map(function(line){
+    var cols=[],cur='',inQ=false;
+    for(var i=0;i<line.length;i++){
+      var c=line[i];
+      if(c==='"'){inQ=!inQ;}else if(c===','&&!inQ){cols.push(cur.trim());cur='';}else{cur+=c;}
+    }
+    cols.push(cur.trim());
+    var row={};
+    hdrs.forEach(function(h,i){row[h]=(cols[i]||'').replace(/^"|"$/g,'').trim();});
+    return row;
+  }).filter(function(r){return Object.values(r).some(function(v){return v;});});
+}
+
+function loadCSVFile(e){
+  var f=e.target.files[0];if(!f)return;
+  var reader=new FileReader();
+  reader.onload=function(ev){initData(parseCSV(ev.target.result),f.name);};
+  reader.readAsText(f,'UTF-8');
+}
+function handleDrop(e){
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.remove('drag');
+  var f=e.dataTransfer.files[0];if(!f)return;
+  var reader=new FileReader();
+  reader.onload=function(ev){initData(parseCSV(ev.target.result),f.name);};
+  reader.readAsText(f,'UTF-8');
+}
+function toggleUpload(){
+  document.getElementById('upload-zone').classList.toggle('hidden');
+}
+
+function initData(rows,fname){
+  ALL=rows;
+  document.getElementById('upload-zone').classList.add('hidden');
+  document.getElementById('ib-records').textContent='📊 '+ALL.length+' registros · '+fname;
+  document.getElementById('ib-update').textContent='Actualizado: '+new Date().toLocaleString('es-PE');
+  buildMesPills();
+  buildSelects();
+  applyFilters();
+  renderMetas();
+}
+
+// ═══════════════════════════════════════════════════════
+// FILTROS
+// ═══════════════════════════════════════════════════════
+function buildMesPills(){
+  var set={};
+  ALL.forEach(function(r){var d=parseFecha(r['Fecha Venta']);if(d)set[toMesKey(d)]=true;});
+  var meses=Object.keys(set).sort();
+  var cont=document.getElementById('mes-btns');
+  cont.innerHTML='<button class="pill active" onclick="setMes(\'\',this)">Todos</button>';
+  meses.forEach(function(k){
+    cont.innerHTML+='<button class="pill" onclick="setMes(\''+k+'\',this)">'+mesLabel(k)+'</button>';
+  });
+}
+function buildSelects(){
+  var tiendas=[...new Set(ALL.map(function(r){return r['Tienda Venta'];}).filter(Boolean))].sort();
+  var vend=[...new Set(ALL.map(function(r){return r['Vendedor'];}).filter(Boolean))].sort();
+  var st=document.getElementById('f-tienda');
+  var sv=document.getElementById('f-vendedor');
+  st.innerHTML='<option value="">Todas las tiendas</option>';
+  sv.innerHTML='<option value="">Todos los vendedores</option>';
+  tiendas.forEach(function(t){st.innerHTML+='<option value="'+t+'">'+t+'</option>';});
+  vend.forEach(function(v){sv.innerHTML+='<option value="'+v+'">'+v+'</option>';});
+}
+function setMes(mes,btn){
+  MES_F=mes;
+  document.querySelectorAll('#mes-btns .pill').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  applyFilters();
+}
+function applyFilters(){
+  TIENDA_F=document.getElementById('f-tienda').value||'';
+  VEND_F=document.getElementById('f-vendedor').value||'';
+  FILTERED=ALL.filter(function(r){
+    if(MES_F){var d=parseFecha(r['Fecha Venta']);if(!d||toMesKey(d)!==MES_F)return false;}
+    if(TIENDA_F&&r['Tienda Venta']!==TIENDA_F)return false;
+    if(VEND_F&&r['Vendedor']!==VEND_F)return false;
+    return true;
+  });
+  renderAll();
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER ALL
+// ═══════════════════════════════════════════════════════
+function renderAll(){
+  var rows=FILTERED;
+  renderKPIs(rows);
+  renderChartDias(rows);
+  renderChartProd(rows);
+  renderRanking(rows);
+  renderTiendas(rows);
+  renderTendencia(rows);
+  renderDetalle(rows);
+}
+
+// ═══════════════════════════════════════════════════════
+// KPIs
+// ═══════════════════════════════════════════════════════
+function renderKPIs(rows){
+  var fin=rows.filter(esFirmado);
+  var ini=rows.filter(esIniciado);
+  var can=rows.filter(esCancelado);
+  var conv=rows.length?Math.round(fin.length/rows.length*100):0;
+  var dias={};
+  fin.forEach(function(r){var d=parseFecha(r['Fecha Venta']);if(d)dias[toISO(d)]=true;});
+  var nd=Object.keys(dias).length;
+  var prom=nd?Math.round(fin.length/nd*10)/10:0;
+
+  var d=[
+    {l:'Firmadas',v:fin.length,c:'green',s:'FIRMADO + Aprobado'},
+    {l:'Pipeline',v:ini.length,c:'amber',s:'INICIADO activo'},
+    {l:'Canceladas',v:can.length,c:'red',s:'Tasa '+(Math.round(can.length/Math.max(rows.length,1)*100))+'%'},
+    {l:'Conversión',v:conv+'%',c:'blue',s:'Firmadas / total sol.'},
+    {l:'Prom. diario',v:prom,c:'grey',s:'ventas/día hábil'},
+  ];
+  document.getElementById('kpi-main').innerHTML=d.map(function(k){
+    return '<div class="kpi '+k.c+'"><div class="kpi-lbl">'+k.l+'</div><div class="kpi-val '+k.c+'">'+k.v+'</div><div class="kpi-sub">'+k.s+'</div></div>';
+  }).join('');
+  document.getElementById('ftext').value='=COUNTIFS(Estado,"FIRMADO") → '+fin.length+' firmadas · '+ini.length+' en pipeline';
+  document.getElementById('fref').textContent='T'+fin.length;
+}
+
+// ═══════════════════════════════════════════════════════
+// CHARTS
+// ═══════════════════════════════════════════════════════
+function mkChart(id,type,data,opts){
+  if(CHARTS[id])CHARTS[id].destroy();
+  var ctx=document.getElementById(id);if(!ctx)return;
+  CHARTS[id]=new Chart(ctx,{type:type,data:data,options:Object.assign({responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},color:'#5f6368'},opts||{})});
+}
+function renderChartDias(rows){
+  var fin=rows.filter(esFirmado);
+  var bd={};
+  fin.forEach(function(r){var d=parseFecha(r['Fecha Venta']);if(d){var k=toISO(d);bd[k]=(bd[k]||0)+1;}});
+  var ent=Object.entries(bd).sort(function(a,b){return a[0].localeCompare(b[0]);});
+  mkChart('c-dias','bar',{
+    labels:ent.map(function(e){return e[0].slice(5);}),
+    datasets:[{label:'Firmadas',data:ent.map(function(e){return e[1];}),backgroundColor:'rgba(26,115,232,.7)',borderColor:'#1a73e8',borderWidth:1,borderRadius:2}]
+  },{scales:{x:{ticks:{color:'#5f6368',font:{size:9},maxRotation:45},grid:{display:false}},y:{beginAtZero:true,ticks:{color:'#5f6368',stepSize:1},grid:{color:'#f1f3f4'}}}});
+}
+function renderChartProd(rows){
+  var fin=rows.filter(esFirmado);
+  var cnt={};
+  fin.forEach(function(r){var p=(r['Producto Vendido']||'').replace('SAMSUNG ','').replace(' 4 RAM','').trim();cnt[p]=(cnt[p]||0)+1;});
+  var ent=Object.entries(cnt).sort(function(a,b){return b[1]-a[1];});
+  mkChart('c-prod','doughnut',{
+    labels:ent.map(function(e){return e[0];}),
+    datasets:[{data:ent.map(function(e){return e[1];}),backgroundColor:['#1a73e8','#34a853','#fbbc04','#ea4335','#9334e6'],borderWidth:2,borderColor:'#fff'}]
+  },{plugins:{legend:{display:true,position:'right',labels:{color:'#5f6368',font:{size:10},padding:8,boxWidth:10}}}});
+}
+
+// ═══════════════════════════════════════════════════════
+// RANKING TIENDAS
+// ═══════════════════════════════════════════════════════
+function renderRanking(rows){
+  var fin=rows.filter(esFirmado);
+  var ini=rows.filter(esIniciado);
+  var base=VISTA==='firmadas'?fin:VISTA==='iniciadas'?ini:rows;
+  var cnt={};
+  base.forEach(function(r){var t=r['Tienda Venta']||'Sin asignar';cnt[t]=(cnt[t]||0)+1;});
+  var ent=Object.entries(cnt).sort(function(a,b){return b[1]-a[1];});
+  var mx=ent[0]?ent[0][1]:1;
+  var COLS=['#1a73e8','#34a853','#fbbc04','#ea4335','#9334e6','#00bcd4','#ff5722'];
+  var wrap=document.getElementById('ranking-wrap');
+  if(!ent.length){wrap.innerHTML='<div class="empty">Sin datos — carga tu CSV</div>';return;}
+  wrap.innerHTML='<table class="tbl"><thead><tr><th>Tienda</th><th>Distribución</th><th class="r">Ventas</th><th class="r">%</th></tr></thead><tbody>'+
+    ent.map(function(e,i){
+      var pct=Math.round(e[1]/Math.max(base.length,1)*100);
+      var w=Math.round(e[1]/mx*100);
+      return '<tr><td class="bld">'+e[0]+'</td><td style="min-width:120px;"><div style="display:flex;align-items:center;gap:6px;"><div style="flex:1;height:6px;background:#f1f3f4;border-radius:3px;overflow:hidden;"><div style="width:'+w+'%;height:100%;background:'+COLS[i%COLS.length]+';border-radius:3px;"></div></div></div></td><td class="r bld">'+e[1]+'</td><td class="r"><span class="chip blue">'+pct+'%</span></td></tr>';
+    }).join('')+'</tbody></table>';
+}
+function setVista(v,btn){
+  VISTA=v;
+  document.querySelectorAll('.sheet .pill').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  renderRanking(FILTERED);
+}
+
+// ═══════════════════════════════════════════════════════
+// METAS VS REAL — LÓGICA PRINCIPAL
+// ═══════════════════════════════════════════════════════
+function setMetasMes(mes,btn){
+  MES_METAS=mes;
+  document.querySelectorAll('.mes-tab').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  renderMetas();
+}
+
+function renderMetas(){
+  var isAbr=MES_METAS==='2026-04';
+  var META=isAbr?META_ABR:META_MAY;
+  var BDAYS=isAbr?BDAYS_ABR:BDAYS_MAYO;
+  var mesLabel=isAbr?'Abril 2026':'Mayo 2026';
+  var dhTotal=diasHabilesTotales(BDAYS);
+  var dhHoy=isAbr?dhTotal:diasHabilesHastaHoy(BDAYS); // abril = fin de mes
+  // Para abril siempre mostrar el total (ya cerró)
+  var dhMostrado=isAbr?dhTotal:dhHoy;
+
+  // Filtrar ventas del mes
+  var rowsMes=ALL.filter(function(r){
+    var d=parseFecha(r['Fecha Venta']);
+    return d&&toMesKey(d)===MES_METAS;
+  });
+  var finMes=rowsMes.filter(esFirmado);
+
+  // Por tienda
+  var porTienda={};
+  finMes.forEach(function(r){var t=r['Tienda Venta']||'Sin asignar';porTienda[t]=(porTienda[t]||0)+1;});
+
+  // Meta total del mes
+  var metaTotalMes=Object.values(META).reduce(function(s,m){return s+m.mes;},0);
+  var metaAcumTotal=Math.round(metaTotalMes*(dhMostrado/dhTotal)*10)/10;
+  var realTotal=finMes.length;
+  var pctTotal=metaAcumTotal?Math.round(realTotal/metaAcumTotal*100):0;
+  var proyFin=dhHoy?Math.round(realTotal/dhHoy*dhTotal):0;
+
+  // ── KPIs ──
+  document.getElementById('kpi-metas').innerHTML=[
+    {l:'Meta del mes',v:metaTotalMes,c:'grey',s:mesLabel+' · '+dhTotal+' días hábiles'},
+    {l:'Meta acum. hoy',v:Math.round(metaAcumTotal),c:'blue',s:'Día '+dhMostrado+' de '+dhTotal},
+    {l:'Real acumulado',v:realTotal,c:realTotal>=metaAcumTotal?'green':realTotal>=metaAcumTotal*.8?'amber':'red',s:'Ventas firmadas '+mesLabel},
+    {l:'Cumplimiento',v:pctTotal+'%',c:pctTotal>=100?'green':pctTotal>=80?'amber':'red',s:'vs. meta acumulada hoy'},
+  ].map(function(k){
+    return '<div class="kpi '+k.c+'"><div class="kpi-lbl">'+k.l+'</div><div class="kpi-val '+k.c+'">'+k.v+'</div><div class="kpi-sub">'+k.s+'</div></div>';
+  }).join('');
+
+  // ── BARRA PROGRESO MES ──
+  var pctRealBar=metaTotalMes?Math.min(realTotal/metaTotalMes*100,100):0;
+  var pctMetaBar=metaTotalMes?Math.min(metaAcumTotal/metaTotalMes*100,100):0;
+  document.getElementById('prog-real-bar').style.width=pctRealBar.toFixed(1)+'%';
+  document.getElementById('prog-real-bar').style.background=realTotal>=metaAcumTotal?'var(--green)':realTotal>=metaAcumTotal*.8?'var(--amber)':'var(--red)';
+  document.getElementById('prog-meta-bar').style.width=pctMetaBar.toFixed(1)+'%';
+  document.getElementById('prog-left-label').textContent='Día '+dhMostrado+' de '+dhTotal+' hábiles ('+mesLabel+')';
+  document.getElementById('prog-right-label').textContent=realTotal+' ventas reales / '+Math.round(metaAcumTotal)+' meta hoy / '+metaTotalMes+' meta mes';
+  document.getElementById('mes-prog-title').textContent='Progreso '+mesLabel;
+
+  // ── TABLA POR TIENDA ──
+  document.getElementById('tabla-metas-title').textContent='Detalle por tienda — '+mesLabel;
+  document.getElementById('tabla-metas-sub').textContent='Meta/día = Meta÷'+dhTotal+' días hábiles · Meta acum. = Meta/día × '+dhMostrado+' días';
+
+  var tiendas=Object.keys(META).filter(function(t){return META[t].mes>0||porTienda[t]>0;});
+  var totReal=0,totMeta=0;
+
+  var rows=tiendas.map(function(t){
+    var m=META[t]||{mes:0,dh:dhTotal};
+    var real=porTienda[t]||0;
+    var mDia=dhTotal?+(m.mes/dhTotal).toFixed(2):0;
+    var mAcum=+(m.mes*dhMostrado/dhTotal).toFixed(1);
+    var gap=+(real-mAcum).toFixed(1);
+    var pct=mAcum?Math.round(real/mAcum*100):real>0?999:0;
+    var proyT=dhHoy?Math.round(real/dhHoy*dhTotal):0;
+    totReal+=real; totMeta+=m.mes;
+
+    var barCol=pct>=100?'var(--green)':pct>=80?'var(--amber)':'var(--red)';
+    var gapStr=(gap>0?'+':'')+gap;
+    var gapCol=gap>=0?'var(--green)':gap>=-1?'var(--amber)':'var(--red)';
+
+    var estadoTxt,estadoChip;
+    if(pct>=100){estadoTxt='✅ En meta';estadoChip='green';}
+    else if(pct>=80){estadoTxt='⚡ Cerca';estadoChip='amber';}
+    else if(pct>=60){estadoTxt='🔵 En proceso';estadoChip='blue';}
+    else{estadoTxt='⚠️ Riesgo';estadoChip='red';}
+
+    return '<tr>'+
+      '<td class="bld">'+t+'</td>'+
+      '<td class="r">'+m.mes+'</td>'+
+      '<td class="r" style="font-family:var(--mono);font-size:11px;color:var(--grey2);">'+mDia.toFixed(1)+'</td>'+
+      '<td class="r" style="font-family:var(--mono);color:var(--blue);">'+mAcum.toFixed(1)+'</td>'+
+      '<td class="r" style="font-family:var(--mono);font-weight:700;">'+real+'</td>'+
+      '<td class="r" style="font-family:var(--mono);color:'+gapCol+';font-weight:600;">'+gapStr+'</td>'+
+      '<td style="min-width:130px;"><div class="pg-cell"><div class="pg-track"><div class="pg-fill" style="width:'+Math.min(pct,100)+'%;background:'+barCol+';"></div></div><span class="pg-pct" style="color:'+barCol+';">'+pct+'%</span></div></td>'+
+      '<td class="r"><span style="font-family:var(--mono);font-size:11px;color:var(--grey);">'+proyT+'</span></td>'+
+      '<td><span class="chip '+estadoChip+'">'+estadoTxt+'</span></td>'+
+    '</tr>';
+  });
+
+  // Fila total
+  var mAcumTotFila=+(metaAcumTotal).toFixed(1);
+  var gapTot=+(totReal-mAcumTotFila).toFixed(1);
+  var pctTotFila=mAcumTotFila?Math.round(totReal/mAcumTotFila*100):0;
+  var proyTot=dhHoy?Math.round(totReal/dhHoy*dhTotal):0;
+  rows.push('<tr class="total">'+
+    '<td>TOTAL</td>'+
+    '<td class="r">'+totMeta+'</td>'+
+    '<td class="r"></td>'+
+    '<td class="r" style="font-family:var(--mono);color:var(--blue);">'+mAcumTotFila.toFixed(1)+'</td>'+
+    '<td class="r" style="font-family:var(--mono);font-weight:700;">'+totReal+'</td>'+
+    '<td class="r" style="font-family:var(--mono);color:'+(gapTot>=0?'var(--green)':'var(--red)')+';font-weight:700;">'+(gapTot>0?'+':'')+gapTot.toFixed(1)+'</td>'+
+    '<td><div class="pg-cell"><div class="pg-track"><div class="pg-fill" style="width:'+Math.min(pctTotFila,100)+'%;background:'+(pctTotFila>=100?'var(--green)':pctTotFila>=80?'var(--amber)':'var(--red)')+';"></div></div><span class="pg-pct">'+(pctTotFila>=100?'var(--green)':pctTotFila>=80?'var(--amber)':'var(--red)')+'">'+pctTotFila+'%</span></div></td>'+
+    '<td class="r"><span style="font-family:var(--mono);font-size:11px;">'+proyTot+'</span></td>'+
+    '<td></td>'+
+  '</tr>');
+
+  document.getElementById('tbody-metas').innerHTML=rows.join('');
+
+  // ── CHART METAS ──
+  var tiend2=tiendas.filter(function(t){return META[t]&&META[t].mes>0;});
+  document.getElementById('chart-metas-title').textContent='Real vs. Meta acumulada (día '+dhMostrado+'/'+dhTotal+') — '+mesLabel;
+  mkChart('c-metas','bar',{
+    labels:tiend2,
+    datasets:[
+      {label:'Meta acum. hoy',data:tiend2.map(function(t){return Math.round(META[t].mes*dhMostrado/dhTotal);}),backgroundColor:'rgba(26,115,232,.18)',borderColor:'#1a73e8',borderWidth:2,type:'bar',order:2},
+      {label:'Real firmadas',data:tiend2.map(function(t){return porTienda[t]||0;}),backgroundColor:tiend2.map(function(t){
+        var real=porTienda[t]||0;
+        var ma=META[t].mes*dhMostrado/dhTotal;
+        return real>=ma?'rgba(24,128,56,.7)':real>=ma*.8?'rgba(227,116,0,.7)':'rgba(217,48,37,.7)';
+      }),borderRadius:3,order:1}
+    ]
+  },{
+    plugins:{legend:{display:true,labels:{color:'#5f6368',font:{size:11}}}},
+    scales:{x:{ticks:{color:'#5f6368',font:{size:10},maxRotation:30},grid:{display:false}},y:{beginAtZero:true,ticks:{color:'#5f6368'},grid:{color:'#f1f3f4'}}}
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// TIENDAS
+// ═══════════════════════════════════════════════════════
+function renderTiendas(rows){
+  var fin=rows.filter(esFirmado);
+  var cT={},cV={};
+  fin.forEach(function(r){
+    var t=r['Tienda Venta']||'Sin asignar';cT[t]=(cT[t]||0)+1;
+    var v=r['Vendedor']||'Sin asignar';if(!v.toUpperCase().includes('CALL'))cV[v]=(cV[v]||0)+1;
+  });
+  function bars(obj,id,col){
+    var ent=Object.entries(obj).sort(function(a,b){return b[1]-a[1];});
+    var mx=ent[0]?ent[0][1]:1;
+    var el=document.getElementById(id);
+    el.innerHTML=ent.map(function(e){
+      return '<div class="mb-wrap"><span class="mb-label" title="'+e[0]+'">'+e[0].split(' ').slice(0,3).join(' ')+'</span><div class="mb-track"><div class="mb-fill" style="width:'+Math.round(e[1]/mx*100)+'%;background:'+col+';"></div></div><span class="mb-val">'+e[1]+'</span></div>';
+    }).join('') || '<div class="empty">Sin datos</div>';
+  }
+  bars(cT,'bars-tiendas','#1a73e8');
+  bars(cV,'bars-vendedores','#34a853');
+
+  // Semanal
+  var bS={};
+  fin.forEach(function(r){var d=parseFecha(r['Fecha Venta']);if(d){var dt=new Date(d);dt.setDate(dt.getDate()-dt.getDay());var k=toISO(dt);bS[k]=(bS[k]||0)+1;}});
+  var sE=Object.entries(bS).sort(function(a,b){return a[0].localeCompare(b[0]);});
+  mkChart('c-semanal','line',{
+    labels:sE.map(function(e){return e[0].slice(5);}),
+    datasets:[{label:'Firmadas/semana',data:sE.map(function(e){return e[1];}),borderColor:'#1a73e8',backgroundColor:'rgba(26,115,232,.07)',tension:.4,fill:true,pointRadius:4,pointBackgroundColor:'#1a73e8',pointBorderColor:'#fff',pointBorderWidth:2}]
+  },{scales:{x:{ticks:{color:'#5f6368',font:{size:10}},grid:{display:false}},y:{beginAtZero:true,ticks:{color:'#5f6368'},grid:{color:'#f1f3f4'}}}});
+}
+
+// ═══════════════════════════════════════════════════════
+// TENDENCIA + ALERTAS
+// ═══════════════════════════════════════════════════════
+function renderTendencia(rows){
+  var fin=rows.filter(esFirmado);
+  var ini=rows.filter(esIniciado);
+  var can=rows.filter(esCancelado);
+  var bS={};
+  fin.forEach(function(r){var d=parseFecha(r['Fecha Venta']);if(d){var dt=new Date(d);dt.setDate(dt.getDate()-dt.getDay());var k=toISO(dt);bS[k]=(bS[k]||0)+1;}});
+  var sE=Object.entries(bS).sort(function(a,b){return a[0].localeCompare(b[0]);});
+  var sV=sE.map(function(e){return e[1];});
+  mkChart('c-tend','line',{
+    labels:sE.map(function(e){return e[0];}),
+    datasets:[{label:'Firmadas/semana',data:sV,borderColor:'#1a73e8',backgroundColor:'rgba(26,115,232,.06)',tension:.4,fill:true,pointRadius:5,pointBackgroundColor:'#1a73e8',pointBorderColor:'#fff',pointBorderWidth:2}]
+  },{scales:{x:{ticks:{color:'#5f6368',font:{size:10},maxRotation:45},grid:{display:false}},y:{beginAtZero:true,ticks:{color:'#5f6368'},grid:{color:'#f1f3f4'}}}});
+
+  // Alertas
+  var al=[];
+  var tc=can.length/Math.max(fin.length+can.length,1);
+  if(tc>.3) al.push({t:'danger',ti:'⚠️ Alta tasa de cancelación',d:Math.round(tc*100)+'% canceladas en el período'});
+  if(sV.length>=2&&sV[sV.length-1]<sV[sV.length-2]) al.push({t:'warning',ti:'📉 Caída en última semana',d:sV[sV.length-2]+' → '+sV[sV.length-1]+' ventas'});
+  if(sV.length>=2&&sV[sV.length-1]>sV[sV.length-2]) al.push({t:'success',ti:'📈 Semana en alza',d:sV[sV.length-2]+' → '+sV[sV.length-1]+' ventas'});
+  if(ini.length>fin.length*.4) al.push({t:'warning',ti:'🔔 Pipeline acumulado',d:ini.length+' contratos INICIADOS sin firmar'});
+  if(!al.length) al.push({t:'success',ti:'Sin alertas activas ✅',d:'Todo en rango normal'});
+  document.getElementById('alertas').innerHTML=al.map(function(a){
+    return '<div class="alert '+a.t+'"><strong>'+a.ti+'</strong><span>'+a.d+'</span></div>';
+  }).join('');
+
+  // Top vendedores
+  var cV={};
+  fin.forEach(function(r){var v=r['Vendedor']||'Sin asignar';if(!v.toUpperCase().includes('CALL'))cV[v]=(cV[v]||0)+1;});
+  var topV=Object.entries(cV).sort(function(a,b){return b[1]-a[1];}).slice(0,8);
+  var mxV=topV[0]?topV[0][1]:1;
+  var medals=['🥇','🥈','🥉'];
+  document.getElementById('top-vend').innerHTML=topV.map(function(e,i){
+    return '<div class="mb-wrap"><span class="mb-label">'+(medals[i]||'  ')+' '+e[0].split(' ').slice(0,2).join(' ')+'</span><div class="mb-track"><div class="mb-fill" style="width:'+Math.round(e[1]/mxV*100)+'%;background:'+(i===0?'var(--green)':i===1?'#fbbc04':'var(--blue)')+';"></div></div><span class="mb-val">'+e[1]+'</span></div>';
+  }).join('') || '<div class="empty">Sin datos</div>';
+}
+
+// ═══════════════════════════════════════════════════════
+// DETALLE
+// ═══════════════════════════════════════════════════════
+function setEst(v,btn){
+  EST=v;
+  document.querySelectorAll('#det-filters .pill').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  renderDetalle(FILTERED);
+}
+function renderDetalle(rows){
+  var f=rows;
+  if(EST==='firmado')f=rows.filter(esFirmado);
+  else if(EST==='iniciado')f=rows.filter(esIniciado);
+  else if(EST==='cancelado')f=rows.filter(esCancelado);
+  document.getElementById('det-count').textContent=f.length+' registros';
+  var sorted=f.slice().sort(function(a,b){return(b['Fecha Venta']||'').localeCompare(a['Fecha Venta']||'');}).slice(0,300);
+  document.getElementById('tbody-det').innerHTML=sorted.map(function(r,i){
+    var chip,lbl;
+    if(esFirmado(r)){chip='green';lbl='✅ Firmado';}
+    else if(esCancelado(r)){chip='red';lbl='❌ Cancelado';}
+    else if(esIniciado(r)){chip='amber';lbl='🕐 Iniciado';}
+    else{chip='grey';lbl=r['Estado Contrato']||'';}
+    var prod=(r['Producto Vendido']||'').replace('SAMSUNG ','').replace(' 4 RAM','').trim();
+    var fecha=(r['Fecha Venta']||'').split(',')[0];
+    return '<tr><td class="r" style="color:var(--grey2);">'+(i+1)+'</td><td style="white-space:nowrap;">'+fecha+'</td><td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+r['Nombre Completo Cliente']+'">'+r['Nombre Completo Cliente']+'</td><td>'+r['Tienda Venta']+'</td><td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+r['Vendedor']+'</td><td>'+prod+'</td><td class="r">'+r['Número de cuotas']+'</td><td class="r">S/'+r['Monto Cuota']+'</td><td><span class="chip '+chip+'">'+lbl+'</span></td></tr>';
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════════════════
+function showTab(id,btn){
+  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+  if(id==='metas') renderMetas();
+  if(id==='casas') renderCasas();
+  if(id==='stock') renderStock();
+  if(id==='compras') renderCompras();
+}
+
+// ═══════════════════════════════════════════════════════
+// ZOOM
+// ═══════════════════════════════════════════════════════
+var ZI=2,ZS=[75,90,100,110,125];
+function cyZoom(){ZI=(ZI+1)%ZS.length;document.body.style.zoom=ZS[ZI]+'%';document.getElementById('ib-zoom').textContent=ZS[ZI]+'%';}
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded',function(){
+  // Renderizar metas aunque no haya datos (muestra la estructura)
+  renderMetas();
+  document.getElementById('ib-records').textContent='📂 Carga el CSV de Krediya Perú para comenzar';
+  document.getElementById('ib-update').textContent='Hoy: 6 mayo 2026 · Día hábil #3 de mayo';
+});
+var xSEDES_CFG={"INDEPENDENCIA": "lima", "MIRAFLORES": "lima", "CERCADO DE LIMA": "lima", "SAN JUAN DE MIRAFLORES": "lima", "SAN JUAN DE LURIGANCHO": "lima", "TRUJILLO": "provincia", "CHICLAYO": "provincia", "PIURA": "provincia", "AREQUIPA": "provincia", "ICA": "provincia"};
+var xSEDES=Object.keys(xSEDES_CFG);
+var xSK="krd_sk_v9";
+var xSU="https://docs.google.com/spreadsheets/d/e/2PACX-1vSOH1zrHykRFFAmqtnw2J_QMdDRXciuse5kdXGLJ_tSEFnGHR8hYMRYC7Wdp5xckGRUOgktsa2TDjLa/pub?output=csv";
+var xMAX=15;
+var xIDEAL={"INDEPENDENCIA": {"A07": 3, "A16": 5, "MOTO": 2}, "MIRAFLORES": {"A07": 3, "A16": 4, "MOTO": 3}, "CERCADO DE LIMA": {"A07": 2, "A16": 4, "MOTO": 2}, "SAN JUAN DE MIRAFLORES": {"A07": 3, "A16": 3, "MOTO": 2}, "SAN JUAN DE LURIGANCHO": {"A07": 2, "A16": 3, "MOTO": 2}, "TRUJILLO": {"A07": 3, "A16": 5, "MOTO": 2}, "CHICLAYO": {"A07": 3, "A16": 5, "MOTO": 2}, "PIURA": {"A07": 2, "A16": 3, "MOTO": 2}, "AREQUIPA": {"A07": 2, "A16": 2, "MOTO": 2}, "ICA": {"A07": 3, "A16": 3, "MOTO": 2}};
+var xMIN={"INDEPENDENCIA": {"A07": 3, "A16": 5, "MOTO": 2}, "MIRAFLORES": {"A07": 3, "A16": 4, "MOTO": 3}, "CERCADO DE LIMA": {"A07": 2, "A16": 4, "MOTO": 2}, "SAN JUAN DE MIRAFLORES": {"A07": 3, "A16": 3, "MOTO": 2}, "SAN JUAN DE LURIGANCHO": {"A07": 2, "A16": 3, "MOTO": 2}, "TRUJILLO": {"A07": 3, "A16": 5, "MOTO": 2}, "CHICLAYO": {"A07": 3, "A16": 5, "MOTO": 2}, "PIURA": {"A07": 2, "A16": 3, "MOTO": 2}, "AREQUIPA": {"A07": 2, "A16": 2, "MOTO": 2}, "ICA": {"A07": 3, "A16": 3, "MOTO": 2}};
+
+function xGP(p){
+  var u=(p||"").toUpperCase();
+  if(u.indexOf("A07")>-1)return"A07";
+  if(u.indexOf("A16")>-1)return"A16";
+  if(u.indexOf("MOTOR")>-1||u.indexOf("MOTO")>-1)return"MOTO";
+  return"OTRO";
+}
+function xGS(){try{return JSON.parse(localStorage.getItem(xSK))||{};}catch(e){return{};}}
+function xSS(s){try{localStorage.setItem(xSK,JSON.stringify(s));}catch(e){}}
+
+function xGV(){
+  var v={};
+  xSEDES.forEach(function(s){v[s]={A07:0,A16:0,MOTO:0,total:0};});
+  if(!ALL||!ALL.length)return v;
+  var rango=getStockRango();
+  ALL.filter(function(r){
+    if(r["Estado de la Solicitud"]!=="Aprobado"||r["Estado Contrato"]!=="FIRMADO")return false;
+    if(rango.desde&&rango.hasta){
+      var d=parseFecha(r["Fecha Venta"]);
+      if(!d)return false;
+      if(d<rango.desde||d>rango.hasta)return false;
+    }
+    return true;
+  }).forEach(function(r){
+    var p=xGP(r["Producto Vendido"]),s=r["Tienda Venta"]||"";
+    if(v[s]&&p!=="OTRO"){v[s][p]++;v[s].total++;}
+  });
+  return v;
+}
+
+
+function renderCasas(){
+  var mes=document.getElementById("casas-mes-sel")?document.getElementById("casas-mes-sel").value:"";
+  if(!ALL||!ALL.length){
+    document.getElementById("casas-kpis").innerHTML="<div style=\"grid-column:1/-1;text-align:center;padding:20px;color:var(--grey2)\">Carga el CSV primero</div>";
+    return;
+  }
+  var fin=ALL.filter(function(r){
+    if(r["Estado de la Solicitud"]!=="Aprobado"||r["Estado Contrato"]!=="FIRMADO")return false;
+    if(mes){var d=parseFecha(r["Fecha Venta"]);if(!d||toMesKey(d)!==mes)return false;}
+    return true;
+  });
+  
+  var dt={};
+  xSEDES.forEach(function(s){dt[s]={A07:0,A16:0,MOTO:0,t:0};});
+  
+  fin.forEach(function(r){
+    var s=r["Tienda Venta"]||"",p=xGP(r["Producto Vendido"]);
+    if(dt[s]&&p!=="OTRO"){dt[s][p]++;dt[s].t++;}
+    else if(dt[s]){dt[s].t++;}
+  });
+  
+  var srt=Object.entries(dt).sort(function(a,b){return b[1].t-a[1].t;});
+  var tA07=srt.reduce(function(s,e){return s+e[1].A07;},0);
+  var tA16=srt.reduce(function(s,e){return s+e[1].A16;},0);
+  var tMoto=srt.reduce(function(s,e){return s+e[1].MOTO;},0);
+  
+  document.getElementById("casas-kpis").innerHTML=
+    "<div class=\"kpi-card blue\"><div class=\"kpi-label\">Total firmado</div><div class=\"kpi-val\">"+fin.length+"</div><div class=\"kpi-sub\">ventas periodo</div></div>"+
+    "<div class=\"kpi-card blue\"><div class=\"kpi-label\">Samsung A07</div><div class=\"kpi-val\">"+tA07+"</div><div class=\"kpi-sub\">unidades</div></div>"+
+    "<div class=\"kpi-card green\"><div class=\"kpi-label\">Samsung A16</div><div class=\"kpi-val\">"+tA16+"</div><div class=\"kpi-sub\">unidades</div></div>"+
+    "<div class=\"kpi-card amber\"><div class=\"kpi-label\">Motorola</div><div class=\"kpi-val\">"+tMoto+"</div><div class=\"kpi-sub\">unidades</div></div>";
+  
+  document.getElementById("casas-thead").innerHTML=
+    "<tr><th style=\"text-align:left;min-width:180px\">CASA / SEDE</th>"+
+    "<th style=\"text-align:center\">Tipo</th>"+
+    "<th style=\"text-align:center\">A07</th>"+
+    "<th style=\"text-align:center\">A16</th>"+
+    "<th style=\"text-align:center\">Moto</th>"+
+    "<th style=\"text-align:center\">TOTAL</th>"+
+    "<th>Mix</th></tr>";
+  
+  document.getElementById("casas-tbody").innerHTML=srt.map(function(e){
+    var nm=e[0],d=e[1];
+    var tipo=xSEDES_CFG[nm]==="lima"?"<span class=\"tipo-lima\">Lima</span>":"<span class=\"tipo-prov\">Provincia</span>";
+    var w7=d.t?Math.round(d.A07/d.t*100):0;
+    var w6=d.t?Math.round(d.A16/d.t*100):0;
+    var wM=d.t?Math.round(d.MOTO/d.t*100):0;
+    return"<tr onmouseover=\"this.style.background='var(--sh)'\" onmouseout=\"this.style.background=''\">"+
+      "<td style=\"font-weight:500\">"+nm+"</td>"+
+      "<td style=\"text-align:center\">"+tipo+"</td>"+
+      "<td style=\"text-align:center;font-family:var(--mono)\">"+d.A07+"</td>"+
+      "<td style=\"text-align:center;font-family:var(--mono)\">"+d.A16+"</td>"+
+      "<td style=\"text-align:center;font-family:var(--mono)\">"+d.MOTO+"</td>"+
+      "<td style=\"text-align:center;font-weight:700;color:var(--blue);font-family:var(--mono)\">"+d.t+"</td>"+
+      "<td><div style=\"display:flex;height:8px;border-radius:4px;overflow:hidden;width:80px\">"+
+        "<div style=\"width:"+w7+"%;background:#1a73e8\"></div>"+
+        "<div style=\"width:"+w6+"%;background:#34a853\"></div>"+
+        "<div style=\"width:"+wM+"%;background:#fa7b17\"></div>"+
+      "</div></td></tr>";
+  }).join("");
+  
+  document.getElementById("casas-bars").innerHTML=
+    "<div style=\"display:flex;gap:12px;font-size:11px;color:var(--grey2);margin-bottom:10px\">"+
+    "<span><span style=\"display:inline-block;width:10px;height:10px;background:#1a73e8;border-radius:2px;margin-right:3px\"></span>A07</span>"+
+    "<span><span style=\"display:inline-block;width:10px;height:10px;background:#34a853;border-radius:2px;margin-right:3px\"></span>A16</span>"+
+    "<span><span style=\"display:inline-block;width:10px;height:10px;background:#fa7b17;border-radius:2px;margin-right:3px\"></span>Moto</span></div>"+
+    srt.map(function(e){
+      var d=e[1],w7=d.t?Math.round(d.A07/d.t*100):0,w6=d.t?Math.round(d.A16/d.t*100):0,wM=d.t?Math.round(d.MOTO/d.t*100):0;
+      return"<div style=\"display:flex;align-items:center;gap:10px;margin-bottom:8px\">"+
+        "<span style=\"min-width:180px;font-size:12px\">"+e[0]+"</span>"+
+        "<div style=\"flex:1;height:11px;background:#f1f3f4;border-radius:6px;overflow:hidden;display:flex\">"+
+          "<div style=\"width:"+w7+"%;background:#1a73e8\"></div>"+
+          "<div style=\"width:"+w6+"%;background:#34a853\"></div>"+
+          "<div style=\"width:"+wM+"%;background:#fa7b17\"></div>"+
+        "</div>"+
+        "<span style=\"font-size:12px;font-weight:700;color:var(--blue);min-width:24px;text-align:right;font-family:var(--mono)\">"+d.t+"</span>"+
+      "</div>";
+    }).join("");
+  
+  document.getElementById("casas-title").textContent="Ventas por casa"+(mes?" - "+mes:" - todos los meses");
+}
+
+
+function renderStock(){
+  var st=xGS(),vd=xGV();
+  var tHoy=0,tDesp=0,nUrg=0,nOk=0;
+  
+  document.getElementById("stock-tbody").innerHTML=xSEDES.map(function(sd){
+    var s=st[sd]||{A07:0,A16:0,MOTO:0};
+    var v=vd[sd]||{A07:0,A16:0,MOTO:0,total:0};
+    var hasData=(s.A07||0)+(s.A16||0)+(s.MOTO||0)>0;
+    
+    var hoy7=s.A07||0, hoy6=s.A16||0, hoyM=s.MOTO||0;
+    var hoyTotal=hoy7+hoy6+hoyM;
+    var vendCSV=v.total||0;
+    
+    // Minimos por referencia segun rotacion historica
+    var min7=(xMIN[sd]&&xMIN[sd].A07)||0;
+    var min6=(xMIN[sd]&&xMIN[sd].A16)||0;
+    var minM=(xMIN[sd]&&xMIN[sd].MOTO)||0;
+    var stockRec=min7+min6+minM;
+    // Despacho por referencia = max(0, minimo - stock actual)
+    var desp7=hasData?Math.max(0,min7-hoy7):0;
+    var desp6=hasData?Math.max(0,min6-hoy6):0;
+    var despM=hasData?Math.max(0,minM-hoyM):0;
+    var despTotal=desp7+desp6+despM;
+    
+    tHoy+=hoyTotal;
+    tDesp+=despTotal;
+    
+    // Estado del stock
+    // Estado basado en cuantas refs tienen stock 0
+    var refsEnCero=[hoy7===0,hoy6===0,hoyM===0].filter(Boolean).length;
+    var bg,bc;
+    if(!hasData){bg="Sin datos";bc="nd";}
+    else if(hoyTotal>=xMAX){bg="Maximo";bc="warn";nOk++;}
+    else if(refsEnCero>=2){bg="Critico";bc="crit";nUrg++;}
+    else if(refsEnCero>=1||despTotal>0){bg="Reponer";bc="warn";nUrg++;}
+    else{bg="OK";bc="ok";nOk++;}
+    
+    // Urgencia de despacho
+    // Urgencia de despacho
+    var esLima=xSEDES_CFG[sd]==="lima";
+    var entrega=esLima?"mismo dia":"2 dias";
+    var urg,urgCls;
+    if(!hasData){urg="Sin datos Sheets";urgCls="nd";}
+    else if(despTotal===0){urg="Sin despacho";urgCls="ok";}
+    else if(refsEnCero>=1){urg="URGENTE · "+entrega;urgCls="crit";}
+    else{urg="Programar · "+entrega;urgCls="warn";}
+    
+    var tipo=esLima?"<span class=\"tipo-lima\">Lima</span>":"<span class=\"tipo-prov\">Provincia</span>";
+    
+    var c7=hoy7<=3?"color:#d93025":hoy7<=7?"color:#f29900":"color:#188038";
+    var c6=hoy6<=3?"color:#d93025":hoy6<=7?"color:#f29900":"color:#188038";
+    
+    return"<tr onmouseover=\"this.style.background='var(--sh)'\" onmouseout=\"this.style.background=''\">"+
+      "<td style=\"font-weight:500;font-size:12px\">"+sd+"</td>"+
+      "<td style=\"text-align:center\">"+tipo+"</td>"+
+      "<td style=\"text-align:center;font-weight:700;font-family:var(--mono);"+c7+"\">"+hoy7+"</td>"+
+      "<td style=\"text-align:center;font-weight:700;font-family:var(--mono);"+c6+"\">"+hoy6+"</td>"+
+      "<td style=\"text-align:center;font-family:var(--mono)\">"+hoyM+"</td>"+
+      "<td style=\"text-align:center;font-weight:700;font-family:var(--mono)\">"+hoyTotal+"</td>"+
+      "<td style=\"text-align:center;font-family:var(--mono);color:var(--blue);font-weight:600\">"+(xIDEAL[sd]||"-")+"</td>"+
+      "<td style=\"display:none\">"+vendCSV+"</td>"+
+      "<td style=\"text-align:center\"><span class=\"sbadge "+bc+"\">"+bg+"</span></td>"+
+      "<td class=\"desp "+(hoy7===0&&min7>0?"crit":desp7>0?"warn":"ok")+"\" title=\"Ideal: "+min7+" uds\">"+(!hasData?"—":hoy7===0&&min7>0?"🔴 +"+desp7:desp7>0?"+"+desp7:"✅")+"</td>"+
+      "<td class=\"desp "+(hoy6===0&&min6>0?"crit":desp6>0?"warn":"ok")+"\" title=\"Ideal: "+min6+" uds\">"+(!hasData?"—":hoy6===0&&min6>0?"🔴 +"+desp6:desp6>0?"+"+desp6:"✅")+"</td>"+
+      "<td class=\"desp "+(hoyM===0&&minM>0?"crit":despM>0?"warn":"ok")+"\" title=\"Ideal: "+minM+" uds\">"+(!hasData?"—":hoyM===0&&minM>0?"🔴 +"+despM:despM>0?"+"+despM:"✅")+"</td>"+
+      "<td style=\"text-align:center\"><span class=\"sbadge "+urgCls+"\">"+urg+"</span></td>"+
+    "</tr>";
+  }).join("");
+  
+  document.getElementById("stock-tfoot").innerHTML=
+    "<tr style=\"background:var(--sh);font-weight:700\">"+
+    "<td colspan=\"5\">TOTAL</td>"+
+    "<td style=\"text-align:center;font-family:var(--mono)\">"+tHoy+"</td>"+
+    "<td colspan=\"2\"></td>"+
+    "<td colspan=\"3\" style=\"text-align:center;color:var(--red);font-family:var(--mono)\">Despacho total: "+tDesp+" uds</td>"+
+    "<td></td></tr>";
+  
+  document.getElementById("stock-kpis").innerHTML=
+    "<div class=\"kpi-card blue\"><div class=\"kpi-label\">Stock total hoy</div><div class=\"kpi-val\">"+tHoy+"</div><div class=\"kpi-sub\">todas las casas</div></div>"+
+    "<div class=\"kpi-card red\"><div class=\"kpi-label\">Despacho sugerido</div><div class=\"kpi-val\">"+tDesp+"</div><div class=\"kpi-sub\">uds para llegar a max 15</div></div>"+
+    "<div class=\"kpi-card "+(nUrg>0?"red":"green")+"\"><div class=\"kpi-label\">Casas urgentes</div><div class=\"kpi-val\">"+nUrg+"</div><div class=\"kpi-sub\">stock &lt;=7 unidades</div></div>"+
+    "<div class=\"kpi-card green\"><div class=\"kpi-label\">Casas OK</div><div class=\"kpi-val\">"+nOk+"</div><div class=\"kpi-sub\">stock &gt;=8 unidades</div></div>";
+}
+
+
+function cargarStock(){
+  var btn=document.getElementById("btn-stock"),st=document.getElementById("stock-status");
+  if(btn){btn.textContent="Cargando...";btn.disabled=true;}
+  if(st)st.textContent="Conectando con Sheets...";
+  fetch("https://corsproxy.io/?" + encodeURIComponent(xSU))
+    .then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.text();})
+    .then(function(csv){
+      var lines=csv.trim().split("\n");
+      var hdrs=lines[0].split(",").map(function(h){return h.trim().replace(/^"|"$/g,"");});
+      var rows=lines.slice(1).map(function(line){
+        var cols=[],cur="",inQ=false;
+        for(var i=0;i<line.length;i++){
+          var ch=line[i];
+          if(ch==='"'){inQ=!inQ;}
+          else if(ch===","&&!inQ){cols.push(cur.trim());cur="";}
+          else{cur+=ch;}
+        }
+        cols.push(cur.trim());
+        var row={};
+        hdrs.forEach(function(h,i){row[h]=(cols[i]||"").replace(/^"|"$/g,"").trim();});
+        return row;
+      }).filter(function(r){return r["CASA YUYAC"];});
+      
+      // Tomar el ultimo reporte por sede
+      var ultimo={};
+      rows.forEach(function(r){
+        var s=(r["CASA YUYAC"]||"").toUpperCase().trim();
+        if(s)ultimo[s]=r;
+      });
+      
+      var stock={};
+      Object.entries(ultimo).forEach(function(e){
+        stock[e[0]]={
+          A07:parseInt(e[1]["STOCK ACTUAL EN SEDE [SAMSUNG A07]"])||0,
+          A16:parseInt(e[1]["STOCK ACTUAL EN SEDE [SAMSUNG A16]"])||0,
+          MOTO:parseInt(e[1]["STOCK ACTUAL EN SEDE [MOTOROLA G06]"])||0
+        };
+      });
+      
+      xSS(stock);
+      renderStock();
+      if(st)st.textContent="Actualizado: "+rows.length+" registros de Sheets";
+      if(btn){btn.textContent="Actualizar Sheets";btn.disabled=false;}
+    })
+    .catch(function(err){
+      if(st)st.textContent="Error al conectar: "+err.message;
+      if(btn){btn.textContent="Actualizar Sheets";btn.disabled=false;}
+    });
+}
+
+// Auto-cargar stock al abrir
+document.addEventListener("DOMContentLoaded",function(){
+  setTimeout(cargarStock,1500);
+});
+
+
+var xStockPeriod="semact";
+
+function setStockPeriod(p,btn){
+  xStockPeriod=p;
+  document.querySelectorAll("#tab-stock .pill").forEach(function(b){b.classList.remove("active");});
+  btn.classList.add("active");
+  renderStock();
+}
+
+function getStockRango(){
+  var hoy=new Date();
+  var dow=hoy.getDay(); // 0=dom,1=lun...5=vie,6=sab
+  var lun=new Date(hoy);
+  // Lunes de esta semana
+  var diffLun=dow===0?-6:1-dow;
+  lun.setDate(hoy.getDate()+diffLun);
+  lun.setHours(0,0,0,0);
+  
+  var vie=new Date(lun);
+  vie.setDate(lun.getDate()+4); // viernes
+  vie.setHours(23,59,59,0);
+  
+  var lunAnt=new Date(lun);
+  lunAnt.setDate(lun.getDate()-7);
+  var vieAnt=new Date(lunAnt);
+  vieAnt.setDate(lunAnt.getDate()+4);
+  vieAnt.setHours(23,59,59,0);
+  
+  var mesIni=new Date(hoy.getFullYear(),hoy.getMonth(),1);
+  
+  if(xStockPeriod==="semact") return{desde:lun,hasta:vie,label:"Semana actual (L-V)"};
+  if(xStockPeriod==="semant") return{desde:lunAnt,hasta:vieAnt,label:"Semana anterior"};
+  if(xStockPeriod==="mes") return{desde:mesIni,hasta:hoy,label:"Este mes"};
+  return{desde:null,hasta:null,label:"Todo el periodo"};
+}
+
+
+var xALMACEN_URL='https://docs.google.com/spreadsheets/d/e/2PACX-1vSOH1zrHykRFFAmqtnw2J_QMdDRXciuse5kdXGLJ_tSEFnGHR8hYMRYC7Wdp5xckGRUOgktsa2TDjLa/pub?gid=34176342&single=true&output=csv';
+var xALMACEN={A07:0,A16:0,MOTO:0}; // se llena desde Sheets
+
+function cargarCompras(){
+  var btn=document.getElementById("btn-compras");
+  var st=document.getElementById("compras-status");
+  if(btn){btn.textContent="Cargando...";btn.disabled=true;}
+  if(st)st.textContent="Conectando...";
+  
+  fetch("https://corsproxy.io/?"+encodeURIComponent(xALMACEN_URL))
+    .then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.text();})
+    .then(function(csv){
+      var lines=csv.trim().split("\n").filter(function(l){return l.trim();});
+      // Fila 2 = headers (MODELO, TOTAL, ENTREGADO, SALDO)
+      // Filas 3-5 = datos
+      xALMACEN={A07:0,A16:0,MOTO:0};
+      // Estructura: Marca temporal | STOCK SAMSUNG A07 | STOCK SAMSUNG A16 | STOCK MOTOROLA G06
+      // Tomar la fila mas reciente (ultima fecha)
+      var hdrs=lines[0].split(",").map(function(h){return h.replace(/^"|"$/g,"").trim().toUpperCase();});
+      var iA07=hdrs.indexOf("STOCK SAMSUNG A07");
+      var iA16=hdrs.indexOf("STOCK SAMSUNG A16");
+      var iMOTO=hdrs.indexOf("STOCK MOTOROLA G06");
+      // Ultima fila con datos (ignorar vacias)
+      var dataLines=lines.slice(1).filter(function(l){return l.trim()&&l.trim()!==",,,";});
+      if(dataLines.length>0){
+        var ultima=dataLines[dataLines.length-1].split(",").map(function(c){return c.replace(/^"|"$/g,"").trim();});
+        xALMACEN.A07=parseInt(ultima[iA07])||0;
+        xALMACEN.A16=parseInt(ultima[iA16])||0;
+        xALMACEN.MOTO=parseInt(ultima[iMOTO])||0;
+      }
+      renderCompras();
+      if(st)st.textContent="Almacen actualizado: A07="+xALMACEN.A07+" A16="+xALMACEN.A16+" Moto="+xALMACEN.MOTO;
+      if(btn){btn.textContent="Actualizar";btn.disabled=false;}
+    })
+    .catch(function(err){
+      // Si falla Sheets, usar datos de la captura como fallback
+      xALMACEN={A07:6,A16:43,MOTO:1}; // ultimo dato conocido 11/05/2026
+      renderCompras();
+      if(st)st.textContent="Sheets no disponible, usando ultimo dato conocido";
+      if(btn){btn.textContent="Actualizar";btn.disabled=false;}
+    });
+}
+
+function getVentaSemana(ref){
+  // Ventas de la semana actual (lun-hoy)
+  var hoy=new Date();
+  var dow=hoy.getDay();
+  var diffLun=dow===0?-6:1-dow;
+  var lun=new Date(hoy);
+  lun.setDate(hoy.getDate()+diffLun);
+  lun.setHours(0,0,0,0);
+  
+  return ALL.filter(function(r){
+    if(r["Estado de la Solicitud"]!=="Aprobado"||r["Estado Contrato"]!=="FIRMADO")return false;
+    var d=parseFecha(r["Fecha Venta"]);
+    if(!d||d<lun)return false;
+    var p=xGP(r["Producto Vendido"]);
+    return p===ref;
+  }).length;
+}
+
+function getPromedioSemanal(ref){
+  // Promedio de ventas por semana basado en historico
+  // 20 dias habiles = 4 semanas
+  var total=ALL.filter(function(r){
+    if(r["Estado de la Solicitud"]!=="Aprobado"||r["Estado Contrato"]!=="FIRMADO")return false;
+    return xGP(r["Producto Vendido"])===ref;
+  }).length;
+  return Math.round(total/4); // 4 semanas
+}
+
+function getStockCasas(ref){
+  var st=xGS();
+  var total=0;
+  xSEDES.forEach(function(sd){
+    var s=st[sd]||{A07:0,A16:0,MOTO:0};
+    total+=(s[ref]||0);
+  });
+  return total;
+}
+
+function renderCompras(){
+  var refs=[
+    {key:"A16",nombre:"Samsung A16 128GB"},
+    {key:"A07",nombre:"Samsung A07 64GB"},
+    {key:"MOTO",nombre:"Motorola G06 256GB"},
+  ];
+  
+  var totalAlm=xALMACEN.A07+xALMACEN.A16+xALMACEN.MOTO;
+  var totalCasas=getStockCasas("A07")+getStockCasas("A16")+getStockCasas("MOTO");
+  var totalDisp=totalAlm+totalCasas;
+  
+  // Ventas semana actual total
+  var ventaSemTotal=getVentaSemana("A07")+getVentaSemana("A16")+getVentaSemana("MOTO");
+  var promSemTotal=getPromedioSemanal("A07")+getPromedioSemanal("A16")+getPromedioSemanal("MOTO");
+  
+  document.getElementById("compras-kpis").innerHTML=
+    "<div class=\"kpi-card blue\"><div class=\"kpi-label\">Total en almacen</div><div class=\"kpi-val\">"+totalAlm+"</div><div class=\"kpi-sub\">saldo disponible</div></div>"+
+    "<div class=\"kpi-card green\"><div class=\"kpi-label\">Total en casas</div><div class=\"kpi-val\">"+totalCasas+"</div><div class=\"kpi-sub\">stock hoy</div></div>"+
+    "<div class=\"kpi-card blue\"><div class=\"kpi-label\">Total disponible</div><div class=\"kpi-val\">"+totalDisp+"</div><div class=\"kpi-sub\">almacen + casas</div></div>"+
+    "<div class=\"kpi-card amber\"><div class=\"kpi-label\">Venta sem actual</div><div class=\"kpi-val\">"+ventaSemTotal+"</div><div class=\"kpi-sub\">prom sem: "+promSemTotal+"</div></div>";
+
+  // Tabla resumen por referencia
+  var tbodyHTML="";
+  var tfootA07=0,tfootA16=0,tfootMOTO=0,tfootTotal=0,tfootAlm=0,tfootCasas=0;
+  
+  refs.forEach(function(ref){
+    var alm=xALMACEN[ref.key]||0;
+    var casas=getStockCasas(ref.key);
+    var total=alm+casas;
+    var ventaSem=getVentaSemana(ref.key);
+    var promSem=getPromedioSemanal(ref.key);
+    
+    // Proyectado semana completa (5 dias habiles)
+    var hoy=new Date();
+    var dow=hoy.getDay();
+    var diasTransc=dow===0?5:Math.min(dow,5);
+    var diasRest=5-diasTransc;
+    var proy=ventaSem+(diasRest>0&&diasTransc>0?Math.round(ventaSem/diasTransc*diasRest):0);
+    
+    // Dias de cobertura con stock total
+    var promDia=promSem/5;
+    var diasCob=promDia>0?Math.round(total/promDia):999;
+    
+    // Decision de compra
+    var dec,decCls;
+    if(diasCob>=14){dec="OK — suficiente";decCls="ok";}
+    else if(diasCob>=7){dec="Revisar pronto";decCls="revisar";}
+    else{dec="COMPRAR YA";decCls="si";}
+    
+    tfootAlm+=alm;tfootCasas+=casas;tfootTotal+=total;
+    
+    tbodyHTML+="<tr onmouseover=\"this.style.background='var(--sh)'\" onmouseout=\"this.style.background=''\">"+
+      "<td style=\"font-weight:500\">"+ref.nombre+"</td>"+
+      "<td style=\"text-align:center;font-weight:700;font-family:var(--mono)\">"+alm+"</td>"+
+      "<td style=\"text-align:center;font-family:var(--mono)\">"+casas+"</td>"+
+      "<td style=\"text-align:center;font-weight:700;font-family:var(--mono);color:var(--blue)\">"+total+"</td>"+
+      "<td style=\"text-align:center;font-family:var(--mono)\">"+ventaSem+"</td>"+
+      "<td style=\"text-align:center;font-family:var(--mono);font-weight:600\">"+proy+"</td>"+
+      "<td style=\"text-align:center;font-family:var(--mono);color:"+(diasCob<7?"var(--red)":diasCob<14?"var(--amber)":"var(--green)")+"\">"+( diasCob===999?"∞":diasCob+" dias")+"</td>"+
+      "<td style=\"text-align:center\"><span class=\"decision-compra "+decCls+"\">"+dec+"</span></td>"+
+    "</tr>";
+  });
+  
+  document.getElementById("compras-tbody").innerHTML=tbodyHTML;
+  document.getElementById("compras-tfoot").innerHTML=
+    "<tr style=\"background:var(--sh);font-weight:700\">"+
+    "<td>TOTAL</td>"+
+    "<td style=\"text-align:center;font-family:var(--mono)\">"+tfootAlm+"</td>"+
+    "<td style=\"text-align:center;font-family:var(--mono)\">"+tfootCasas+"</td>"+
+    "<td style=\"text-align:center;font-family:var(--mono);color:var(--blue)\">"+tfootTotal+"</td>"+
+    "<td colspan=\"4\"></td></tr>";
+
+  // Tabla detalle por ubicacion
+  var st=xGS();
+  var ubRows="";
+  var totA07=0,totA16=0,totMOTO=0;
+  
+  // Almacen primero
+  ubRows+="<tr style=\"background:#f8f9fa\">"+
+    "<td style=\"font-weight:600\">&#127968; Almacen central</td>"+
+    "<td style=\"text-align:center;font-weight:700;font-family:var(--mono)\">"+xALMACEN.A07+"</td>"+
+    "<td style=\"text-align:center;font-weight:700;font-family:var(--mono)\">"+xALMACEN.A16+"</td>"+
+    "<td style=\"text-align:center;font-weight:700;font-family:var(--mono)\">"+xALMACEN.MOTO+"</td>"+
+    "<td style=\"text-align:center;font-weight:700;font-family:var(--mono)\">"+( xALMACEN.A07+xALMACEN.A16+xALMACEN.MOTO)+"</td></tr>";
+  totA07+=xALMACEN.A07;totA16+=xALMACEN.A16;totMOTO+=xALMACEN.MOTO;
+  
+  // Casas
+  xSEDES.forEach(function(sd){
+    var s=st[sd]||{A07:0,A16:0,MOTO:0};
+    var tipo=xSEDES_CFG[sd]==="lima"?"&#127960;":"&#127968;";
+    var tot=(s.A07||0)+(s.A16||0)+(s.MOTO||0);
+    totA07+=(s.A07||0);totA16+=(s.A16||0);totMOTO+=(s.MOTO||0);
+    ubRows+="<tr onmouseover=\"this.style.background='var(--sh)'\" onmouseout=\"this.style.background=''\">"+
+      "<td>"+tipo+" "+sd+"</td>"+
+      "<td style=\"text-align:center;font-family:var(--mono)\">"+(s.A07||0)+"</td>"+
+      "<td style=\"text-align:center;font-family:var(--mono)\">"+(s.A16||0)+"</td>"+
+      "<td style=\"text-align:center;font-family:var(--mono)\">"+(s.MOTO||0)+"</td>"+
+      "<td style=\"text-align:center;font-family:var(--mono);font-weight:600\">"+tot+"</td></tr>";
+  });
+  
+  document.getElementById("ubicacion-tbody").innerHTML=ubRows;
+  document.getElementById("ubicacion-tfoot").innerHTML=
+    "<tr style=\"background:var(--sh);font-weight:700\">"+
+    "<td>TOTAL GENERAL</td>"+
+    "<td style=\"text-align:center;font-family:var(--mono);color:var(--blue)\">"+totA07+"</td>"+
+    "<td style=\"text-align:center;font-family:var(--mono);color:var(--blue)\">"+totA16+"</td>"+
+    "<td style=\"text-align:center;font-family:var(--mono);color:var(--blue)\">"+totMOTO+"</td>"+
+    "<td style=\"text-align:center;font-family:var(--mono);color:var(--blue);font-weight:700\">"+(totA07+totA16+totMOTO)+"</td></tr>";
+}
+
+// Auto-cargar al abrir compras
+document.addEventListener("DOMContentLoaded",function(){
+  // ya carga stock automatico, compras se carga al hacer click en la tab
+});
+
+</script>
+</body>
+</html>
