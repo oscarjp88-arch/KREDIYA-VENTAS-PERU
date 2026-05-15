@@ -223,6 +223,7 @@ select.filter-sel:hover{border-color:var(--blue);}
   <div class="tab" onclick="showTab('stock',this)">📦 Stock</div>
   <div class="tab" onclick="showTab('compras',this)">🛒 Compras</div>
   <div class="tab" onclick="showTab('comisiones',this)">💰 Comisiones</div>
+  <div class="tab" onclick="showTab('precios',this)">🏷️ Histórico Precios</div>
 </div>
 
 <div class="content">
@@ -365,11 +366,14 @@ select.filter-sel:hover{border-color:var(--blue);}
     <div class="sec-title">Ventas por Sede</div>
     <div class="sec-actions" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
       <span style="font-size:11px;font-weight:700;color:var(--grey2);">Período:</span>
-      <button class="pill active" onclick="setSedePeriod('semact',this)">Esta semana</button>
-      <button class="pill" onclick="setSedePeriod('semant',this)">Sem anterior</button>
-      <button class="pill" onclick="setSedePeriod('mes',this)">Este mes</button>
-      <button class="pill" onclick="setSedePeriod('abr',this)">Abril</button>
-      <button class="pill" onclick="setSedePeriod('todo',this)">Todo</button>
+      <button class="pill active" id="sede-pill-semact" onclick="setSedePeriod('semact',this)">Esta semana</button>
+      <button class="pill" id="sede-pill-semant" onclick="setSedePeriod('semant',this)">Sem anterior</button>
+      <button class="pill" id="sede-pill-mes" onclick="setSedePeriod('mes',this)">Este mes</button>
+      <button class="pill" id="sede-pill-abr" onclick="setSedePeriod('abr',this)">Abril</button>
+      <button class="pill" id="sede-pill-todo" onclick="setSedePeriod('todo',this)">Todo</button>
+      <span style="font-size:11px;font-weight:700;color:var(--grey2);margin-left:8px;">Ordenar:</span>
+      <button class="pill active" id="sede-sort-ventas" onclick="setSedeSort('ventas',this)">↓ Ventas</button>
+      <button class="pill" id="sede-sort-cumpl" onclick="setSedeSort('cumpl',this)">↓ % Presupuesto</button>
     </div>
   </div>
   <div class="kpi-grid" id="sedes-kpis" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px;"></div>
@@ -574,6 +578,68 @@ select.filter-sel:hover{border-color:var(--blue);}
     </div>
   </div>
 </div>
+
+<!-- ═══ HISTÓRICO PRECIOS ═══════════════════════════════ -->
+<div id="tab-precios" class="panel">
+  <div class="sec-hdr">
+    <div class="sec-title">Histórico de Precios de Compra</div>
+    <div class="sec-actions">
+      <button class="btn btn-primary" onclick="cargarPrecios()" id="btn-precios" style="font-size:11px;">&#128260; Actualizar</button>
+      <span style="font-size:11px;color:var(--grey2);margin-left:8px;" id="precios-status">No cargado</span>
+    </div>
+  </div>
+
+  <div class="g2" style="margin-bottom:14px;">
+    <div class="kpi-card blue"><div class="kpi-label">Referencias</div><div class="kpi-val" id="kpi-refs">—</div><div class="kpi-sub">modelos distintos</div></div>
+    <div class="kpi-card green"><div class="kpi-label">Total compras</div><div class="kpi-val" id="kpi-compras-total">—</div><div class="kpi-sub">registros en historial</div></div>
+    <div class="kpi-card amber"><div class="kpi-label">Última compra</div><div class="kpi-val" id="kpi-ultima-fecha">—</div><div class="kpi-sub">fecha más reciente</div></div>
+    <div class="kpi-card blue"><div class="kpi-label">Mejor ahorro</div><div class="kpi-val" id="kpi-mejor-ahorro">—</div><div class="kpi-sub">vs último precio pagado</div></div>
+  </div>
+
+  <div class="sheet">
+    <div class="sheet-hdr">
+      <span class="sheet-hdr-title">Precios por referencia</span>
+      <span style="font-size:11px;color:var(--grey2);">Verde = último precio es el mejor · Rojo = se compró más caro recientemente</span>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th style="text-align:left;min-width:160px">Referencia</th>
+            <th style="text-align:center"># Compras</th>
+            <th style="text-align:right">Mejor precio</th>
+            <th style="text-align:center;color:var(--grey2);font-size:11px">Fecha</th>
+            <th style="text-align:right">Último precio</th>
+            <th style="text-align:center;color:var(--grey2);font-size:11px">Fecha</th>
+            <th style="text-align:center">Estado</th>
+            <th style="min-width:180px">Evolución</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-precios"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="sheet" style="margin-top:14px;">
+    <div class="sheet-hdr"><span class="sheet-hdr-title">Detalle de todas las compras</span></div>
+    <div style="overflow-x:auto;">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th style="text-align:left">N° Factura</th>
+            <th style="text-align:left">Referencia</th>
+            <th style="text-align:center">Fecha</th>
+            <th style="text-align:right">Precio unit.</th>
+            <th style="text-align:right">Cantidad</th>
+            <th style="text-align:right">Total</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-precios-detalle"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 </div><!-- /content -->
 
 <!-- INFO BAR -->
@@ -1135,6 +1201,7 @@ function showTab(id,btn){
   if(id==='stock') renderStock();
   if(id==='compras'){ cargarCompras(); }
   if(id==='comisiones') renderComisiones();
+  if(id==='precios') cargarPrecios();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -2004,10 +2071,18 @@ function renderComisiones(){
 var xREFS = [{"key": "A07", "nombre": "Samsung A07", "color": "#1a73e8"}, {"key": "A16", "nombre": "Samsung A16", "color": "#34a853"}, {"key": "MOTO", "nombre": "Motorola G06", "color": "#fa7b17"}];
 var xSEDES_CFG2 = {"INDEPENDENCIA": "lima", "MIRAFLORES": "lima", "CERCADO DE LIMA": "lima", "SAN JUAN DE MIRAFLORES": "lima", "SAN JUAN DE LURIGANCHO": "lima", "TRUJILLO": "provincia", "CHICLAYO": "provincia", "PIURA": "provincia", "AREQUIPA": "provincia", "ICA": "provincia"};
 var xSEDE_PERIOD = "semact";
+var xSEDE_SORT = "ventas";
 
 function setSedePeriod(p, btn){
   xSEDE_PERIOD = p;
-  document.querySelectorAll("#tab-sedes .pill").forEach(function(b){b.classList.remove("active");});
+  document.querySelectorAll("#tab-sedes #sede-pill-semact,#tab-sedes #sede-pill-semant,#tab-sedes #sede-pill-mes,#tab-sedes #sede-pill-abr,#tab-sedes #sede-pill-todo").forEach(function(b){b.classList.remove("active");});
+  btn.classList.add("active");
+  renderSedes();
+}
+
+function setSedeSort(s, btn){
+  xSEDE_SORT = s;
+  document.querySelectorAll("#sede-sort-ventas,#sede-sort-cumpl").forEach(function(b){b.classList.remove("active");});
   btn.classList.add("active");
   renderSedes();
 }
@@ -2069,6 +2144,17 @@ function renderSedes(){
   var fin = filtrarPorRango(rango);
   var finAnt = (xSEDE_PERIOD==="semact") ? filtrarPorRangoAnt() : [];
 
+  // Determinar índice de semana para comparar vs meta
+  var hoyIso = new Date().toISOString().slice(0,10);
+  var weekIdx = -1;
+  for(var wi=0;wi<xSEM_FECHAS.length;wi++){
+    if(hoyIso>=xSEM_FECHAS[wi].desde && hoyIso<=xSEM_FECHAS[wi].hasta){weekIdx=wi;break;}
+  }
+  // Semana anterior = semana actual - 1
+  var weekIdxSem = (xSEDE_PERIOD==="semant") ? Math.max(0, weekIdx-1) : weekIdx;
+  // Para vista mensual, usar total mes (índice 4)
+  var usarMetaMes = (xSEDE_PERIOD==="mes");
+
   document.getElementById("sedes-titulo").textContent = "Ventas por sede — " + rango.label;
 
   // Agregar sedes del CSV que no esten en config
@@ -2084,7 +2170,7 @@ function renderSedes(){
   });
   thead += "<th style=\"text-align:center\">Total</th>" +
     "<th style=\"text-align:center\">Tend.</th>" +
-    "<th style=\"min-width:120px\">Progreso</th>" +
+    "<th style=\"min-width:150px\">Progreso vs Meta</th>" +
     "</tr>";
   document.getElementById("sedes-thead").innerHTML = thead;
 
@@ -2108,8 +2194,16 @@ function renderSedes(){
     dataAnt[s]++;
   });
 
-  var sorted = sedes.map(function(s){ return {sede:s, d:dataSedes[s]}; })
-    .sort(function(a,b){return b.d.total-a.d.total;});
+  var sorted = sedes.map(function(s){
+    var meta = 0;
+    if(usarMetaMes && xMETAS_SEM[s]) meta = xMETAS_SEM[s][4]||0;
+    else if(weekIdxSem>=0 && xMETAS_SEM[s]) meta = xMETAS_SEM[s][weekIdxSem]||0;
+    var pct = meta>0 ? dataSedes[s].total/meta : 0;
+    return {sede:s, d:dataSedes[s], meta:meta, pct:pct};
+  }).sort(function(a,b){
+    if(xSEDE_SORT==="cumpl") return b.pct-a.pct;
+    return b.d.total-a.d.total;
+  });
   var maxTotal = sorted[0]?sorted[0].d.total:1;
   var grandTotal = sorted.reduce(function(s,e){return s+e.d.total;},0);
   var totRefs = {}; xREFS.forEach(function(r){totRefs[r.key]=0;});
@@ -2130,10 +2224,24 @@ function renderSedes(){
       else tend="<span class=\"tend-eq\">—</span>";
     }
 
-    // Barra progreso vs max
-    var pct = maxTotal>0?Math.round(d.total/maxTotal*100):0;
-    var barColor = pct>=80?"#34a853":pct>=50?"#1a73e8":"#fa7b17";
-    var progHTML = "<div class=\"prog-bar-wrap\"><div class=\"prog-bar-track\"><div class=\"prog-bar-fill\" style=\"width:"+pct+"%;background:"+barColor+"\"></div></div><span style=\"font-size:11px;color:var(--grey2);min-width:30px;text-align:right\">"+pct+"%</span></div>";
+    // Barra progreso vs meta semanal o mensual
+    var metaSede = 0;
+    if(usarMetaMes && xMETAS_SEM[sede]) metaSede = xMETAS_SEM[sede][4]||0;
+    else if(weekIdxSem>=0 && xMETAS_SEM[sede]) metaSede = xMETAS_SEM[sede][weekIdxSem]||0;
+    var pctMeta = metaSede>0 ? Math.round(d.total/metaSede*100) : null;
+    var progHTML;
+    if(pctMeta!==null){
+      var barColor = pctMeta>=100?"#34a853":pctMeta>=80?"#fbbc04":"#ea4335";
+      var barW = Math.min(pctMeta,100);
+      progHTML = "<div class=\"prog-bar-wrap\">"+
+        "<div class=\"prog-bar-track\"><div class=\"prog-bar-fill\" style=\"width:"+barW+"%;background:"+barColor+"\"></div></div>"+
+        "<span style=\"font-size:11px;font-weight:700;min-width:80px;text-align:right;color:"+barColor+"\">"+d.total+"/"+metaSede+" ("+pctMeta+"%)</span>"+
+        "</div>";
+    } else {
+      var pct = maxTotal>0?Math.round(d.total/maxTotal*100):0;
+      var barColor = pct>=80?"#34a853":pct>=50?"#1a73e8":"#fa7b17";
+      progHTML = "<div class=\"prog-bar-wrap\"><div class=\"prog-bar-track\"><div class=\"prog-bar-fill\" style=\"width:"+pct+"%;background:"+barColor+"\"></div></div><span style=\"font-size:11px;color:var(--grey2);min-width:30px;text-align:right\">"+pct+"%</span></div>";
+    }
 
     var row = "<tr onmouseover=\"this.style.background='var(--sh)'\" onmouseout=\"this.style.background=''\">"+
       "<td style=\"font-weight:500\">"+sede+"</td>"+
@@ -2160,6 +2268,25 @@ function renderSedes(){
   var tfootHTML = "<tr style=\"background:var(--sh);font-weight:700\"><td>TOTAL</td><td></td>";
   xREFS.forEach(function(r){ tfootHTML += "<td style=\"text-align:center;font-family:var(--mono)\">"+totRefs[r.key]+"</td>"; });
   tfootHTML += "<td style=\"text-align:center;font-family:var(--mono);color:var(--blue)\">"+grandTotal+"</td><td colspan=\"2\"></td></tr>";
+
+  // Fila META SEM. / META MES
+  if(weekIdxSem>=0 || usarMetaMes){
+    var metaLabel = usarMetaMes ? "META MES" : "META SEM.";
+    var metaTotal = Object.keys(xMETAS_SEM).reduce(function(sum,s){
+      return sum + ((usarMetaMes ? xMETAS_SEM[s][4] : xMETAS_SEM[s][weekIdxSem])||0);
+    },0);
+    var pctGlobal = metaTotal>0 ? Math.round(grandTotal/metaTotal*100) : 0;
+    var metaColor = pctGlobal>=100?"#34a853":pctGlobal>=80?"#e37400":"#c62828";
+    tfootHTML += "<tr style=\"background:#f1f8e9;font-weight:700\">"+
+      "<td style=\"color:#2e7d32\">"+metaLabel+"</td><td></td>";
+    xREFS.forEach(function(){ tfootHTML += "<td></td>"; });
+    tfootHTML +=
+      "<td style=\"text-align:center;font-family:var(--mono);color:#2e7d32\">"+metaTotal+"</td>"+
+      "<td></td>"+
+      "<td style=\"font-size:12px;font-weight:700;color:"+metaColor+"\">"+grandTotal+"/"+metaTotal+" ("+pctGlobal+"%)</td>"+
+      "</tr>";
+  }
+
   document.getElementById("sedes-tfoot").innerHTML = tfootHTML;
 
   // ── KPIs ────────────────────────────────────────────────────
@@ -2238,6 +2365,169 @@ function setMetasSort(s, btn){
   document.querySelectorAll('#tab-metas .pill').forEach(function(b){b.classList.remove('active');});
   btn.classList.add('active');
   renderMetas();
+}
+
+// ═══════════════════════════════════════════════════════
+// HISTÓRICO PRECIOS
+// ═══════════════════════════════════════════════════════
+
+var xPRECIOS_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOH1zrHykRFFAmqtnw2J_QMdDRXciuse5kdXGLJ_tSEFnGHR8hYMRYC7Wdp5xckGRUOgktsa2TDjLa/pub?gid=63169660&single=true&output=csv";
+var xPRECIOS_DATA = [];
+var xPRECIOS_CARGADO = false;
+
+function parsePrecio(s){
+  if(!s) return 0;
+  return parseFloat(String(s).replace(/[^0-9.]/g,"")) || 0;
+}
+
+function parseFechaCompra(s){
+  if(!s) return null;
+  var str = String(s).replace(/['"]/g,"").trim();
+  var m = str.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if(m) return new Date(parseInt(m[3]), parseInt(m[2])-1, parseInt(m[1]));
+  return null;
+}
+
+function fmtFechaCorta(d){
+  if(!d) return "—";
+  return d.getDate()+"/"+(d.getMonth()+1)+"/"+d.getFullYear();
+}
+
+function fmtSoles(n){
+  if(!n && n!==0) return "—";
+  return "S/. "+n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,",");
+}
+
+function cargarPrecios(){
+  if(xPRECIOS_CARGADO){ renderPrecios(); return; }
+  var btn = document.getElementById("btn-precios");
+  var st  = document.getElementById("precios-status");
+  btn.disabled = true;
+  btn.textContent = "Cargando...";
+  st.textContent = "Conectando con Google Sheets...";
+
+  fetch(xPRECIOS_URL)
+    .catch(function(){ return fetch("https://corsproxy.io/?"+encodeURIComponent(xPRECIOS_URL)); })
+    .catch(function(){ return fetch("https://api.allorigins.win/raw?url="+encodeURIComponent(xPRECIOS_URL)); })
+    .then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.text(); })
+    .then(function(csv){
+      var lines = csv.trim().split("\n").filter(function(l){ return l.trim(); });
+      var hdrs  = parseCsvLine(lines[0]).map(function(h){ return h.trim(); });
+      xPRECIOS_DATA = lines.slice(1).map(function(line){
+        var cols = parseCsvLine(line);
+        var row  = {};
+        hdrs.forEach(function(h,i){ row[h] = (cols[i]||"").trim(); });
+        return row;
+      }).filter(function(r){ return r["Modelo de equipo"] && r["Costo unitario"]; });
+
+      xPRECIOS_CARGADO = true;
+      btn.disabled = false;
+      btn.textContent = "↺ Actualizar";
+      st.textContent  = "Actualizado · "+xPRECIOS_DATA.length+" registros";
+      renderPrecios();
+    })
+    .catch(function(e){
+      btn.disabled = false;
+      btn.textContent = "↺ Actualizar";
+      st.textContent  = "Error: "+e.message;
+    });
+}
+
+function renderPrecios(){
+  if(!xPRECIOS_DATA.length) return;
+
+  // Agrupar por referencia
+  var porRef = {};
+  xPRECIOS_DATA.forEach(function(r){
+    var ref    = (r["Modelo de equipo"]||"").toUpperCase().trim();
+    var precio = parsePrecio(r["Costo unitario"]);
+    var fecha  = parseFechaCompra(r["Fecha de compra"]);
+    var cant   = parseFloat(r["Cantidad comprada"])||0;
+    var total  = parsePrecio(r["Costo total comprado"]);
+    if(!ref || !precio) return;
+    if(!porRef[ref]) porRef[ref] = [];
+    porRef[ref].push({precio:precio, fecha:fecha, factura:r["Número de factura"]||"", cant:cant, total:total});
+  });
+
+  // Calcular mejor precio y último precio por referencia
+  var resumen = Object.keys(porRef).sort().map(function(ref){
+    var compras  = porRef[ref];
+    var mejor    = compras.reduce(function(min,c){ return c.precio < min.precio ? c : min; }, compras[0]);
+    var conFecha = compras.filter(function(c){ return c.fecha; });
+    var ultimo   = conFecha.length
+      ? conFecha.reduce(function(max,c){ return c.fecha > max.fecha ? c : max; }, conFecha[0])
+      : compras[compras.length-1];
+    return {ref:ref, compras:compras, mejor:mejor, ultimo:ultimo};
+  });
+
+  // KPIs
+  var todasFechas = xPRECIOS_DATA.map(function(r){ return parseFechaCompra(r["Fecha de compra"]); }).filter(Boolean);
+  var fechaMax    = todasFechas.length ? todasFechas.reduce(function(max,d){ return d>max?d:max; }) : null;
+  var maxAhorro   = resumen.reduce(function(max,e){
+    var d = e.ultimo.precio - e.mejor.precio; return d>max?d:max;
+  }, 0);
+  document.getElementById("kpi-refs").textContent          = resumen.length;
+  document.getElementById("kpi-compras-total").textContent  = xPRECIOS_DATA.length;
+  document.getElementById("kpi-ultima-fecha").textContent   = fmtFechaCorta(fechaMax);
+  document.getElementById("kpi-mejor-ahorro").textContent   = maxAhorro > 0 ? fmtSoles(maxAhorro) : "—";
+
+  // Tabla resumen por referencia
+  document.getElementById("tbody-precios").innerHTML = resumen.map(function(e){
+    var igual      = e.mejor.precio === e.ultimo.precio;
+    var diferencia = e.ultimo.precio - e.mejor.precio;
+    var estado, estadoColor;
+    if(igual){
+      estado = "✅ Es el mejor precio";  estadoColor = "#34a853";
+    } else if(diferencia <= 0){
+      estado = "✅ Mejoró";              estadoColor = "#34a853";
+    } else {
+      estado = "⚠️ +"+fmtSoles(diferencia); estadoColor = "#ea4335";
+    }
+
+    // Dots de evolución (verde=mínimo, rojo=máximo, azul=resto)
+    var ordenados = e.compras.filter(function(c){ return c.fecha; })
+      .sort(function(a,b){ return a.fecha-b.fecha; });
+    var precios = ordenados.length ? ordenados.map(function(c){ return c.precio; }) : e.compras.map(function(c){ return c.precio; });
+    var minP = Math.min.apply(null,precios), maxP = Math.max.apply(null,precios);
+    var dots = precios.map(function(p){
+      var col = (p===minP)?"#34a853":(p===maxP)?"#ea4335":"#1a73e8";
+      return "<span title=\""+fmtSoles(p)+"\" style=\"display:inline-block;width:10px;height:10px;border-radius:50%;background:"+col+";margin:0 2px;vertical-align:middle\"></span>";
+    }).join("");
+
+    return "<tr onmouseover=\"this.style.background='var(--sh)'\" onmouseout=\"this.style.background=''\">"+
+      "<td style=\"font-weight:600\">"+e.ref+"</td>"+
+      "<td style=\"text-align:center;font-family:var(--mono)\">"+e.compras.length+"</td>"+
+      "<td style=\"text-align:right;font-family:var(--mono);font-weight:700;color:#34a853\">"+fmtSoles(e.mejor.precio)+"</td>"+
+      "<td style=\"text-align:center;font-size:11px;color:var(--grey2)\">"+fmtFechaCorta(e.mejor.fecha)+"</td>"+
+      "<td style=\"text-align:right;font-family:var(--mono);font-weight:700;color:"+estadoColor+"\">"+fmtSoles(e.ultimo.precio)+"</td>"+
+      "<td style=\"text-align:center;font-size:11px;color:var(--grey2)\">"+fmtFechaCorta(e.ultimo.fecha)+"</td>"+
+      "<td style=\"font-size:11px;font-weight:600;color:"+estadoColor+"\">"+estado+"</td>"+
+      "<td>"+dots+"</td>"+
+      "</tr>";
+  }).join("") || "<tr><td colspan='8' style='text-align:center;color:var(--grey2)'>Sin datos</td></tr>";
+
+  // Tabla detalle todas las compras, más reciente primero
+  document.getElementById("tbody-precios-detalle").innerHTML = xPRECIOS_DATA.slice()
+    .sort(function(a,b){
+      var da=parseFechaCompra(a["Fecha de compra"]), db=parseFechaCompra(b["Fecha de compra"]);
+      if(!da&&!db) return 0; if(!da) return 1; if(!db) return -1; return db-da;
+    })
+    .map(function(r){
+      var ref    = (r["Modelo de equipo"]||"").toUpperCase().trim();
+      var precio = parsePrecio(r["Costo unitario"]);
+      var total  = parsePrecio(r["Costo total comprado"]);
+      var fecha  = parseFechaCompra(r["Fecha de compra"]);
+      var minRef = porRef[ref] ? porRef[ref].reduce(function(m,c){ return c.precio<m?c.precio:m; }, Infinity) : 0;
+      var esMejor = precio > 0 && precio === minRef;
+      return "<tr onmouseover=\"this.style.background='var(--sh)'\" onmouseout=\"this.style.background=''\">"+
+        "<td style=\"font-family:var(--mono);font-size:12px\">"+(r["Número de factura"]||"—")+"</td>"+
+        "<td style=\"font-weight:500\">"+ref+"</td>"+
+        "<td style=\"text-align:center;font-size:12px\">"+fmtFechaCorta(fecha)+"</td>"+
+        "<td style=\"text-align:right;font-family:var(--mono);color:"+(esMejor?"#34a853":"inherit")+";font-weight:"+(esMejor?"700":"400")+"\">"+fmtSoles(precio)+"</td>"+
+        "<td style=\"text-align:right;font-family:var(--mono)\">"+(r["Cantidad comprada"]||"—")+"</td>"+
+        "<td style=\"text-align:right;font-family:var(--mono)\">"+fmtSoles(total)+"</td>"+
+        "</tr>";
+    }).join("") || "<tr><td colspan='6' style='text-align:center;color:var(--grey2)'>Sin datos</td></tr>";
 }
 
 </script>
