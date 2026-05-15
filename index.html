@@ -441,18 +441,29 @@ select.filter-sel:hover{border-color:var(--blue);}
     <div class="sheet-hdr"><span class="sheet-hdr-title">Inventario y plan de despacho</span></div>
     <div style="overflow-x:auto">
       <table class="tbl">
-        <thead><tr>
-          <th style="min-width:180px">CASA / SEDE</th>
-          <th style="text-align:center">Tipo</th>
-          <th style="text-align:center">A07 Hoy</th>
-          <th style="text-align:center">A16 Hoy</th>
-          <th style="text-align:center">Moto Hoy</th>
-          <th style="text-align:center">Total Hoy</th>
-          <th style="text-align:center">Despacho A07</th>
-          <th style="text-align:center">Despacho A16</th>
-          <th style="text-align:center">Despacho Moto</th>
-          <th style="text-align:center">Plan despacho</th>
-        </tr></thead>
+        <thead>
+          <tr>
+            <th rowspan="2" style="min-width:180px">CASA / SEDE</th>
+            <th rowspan="2" style="text-align:center">Tipo</th>
+            <th colspan="2" style="text-align:center;border-bottom:1px solid var(--border)">A07</th>
+            <th colspan="2" style="text-align:center;border-bottom:1px solid var(--border)">A16</th>
+            <th colspan="2" style="text-align:center;border-bottom:1px solid var(--border)">Moto</th>
+            <th rowspan="2" style="text-align:center">Total Hoy</th>
+            <th rowspan="2" style="text-align:center">Estado</th>
+            <th rowspan="2" style="text-align:center">Desp. A07</th>
+            <th rowspan="2" style="text-align:center">Desp. A16</th>
+            <th rowspan="2" style="text-align:center">Desp. Moto</th>
+            <th rowspan="2" style="text-align:center">Plan despacho</th>
+          </tr>
+          <tr>
+            <th style="text-align:center;font-size:11px;color:var(--grey2)">Hoy</th>
+            <th style="text-align:center;font-size:11px;color:#2e7d32">🚚</th>
+            <th style="text-align:center;font-size:11px;color:var(--grey2)">Hoy</th>
+            <th style="text-align:center;font-size:11px;color:#2e7d32">🚚</th>
+            <th style="text-align:center;font-size:11px;color:var(--grey2)">Hoy</th>
+            <th style="text-align:center;font-size:11px;color:#2e7d32">🚚</th>
+          </tr>
+        </thead>
         <tbody id="stock-tbody"></tbody>
         <tfoot id="stock-tfoot"></tfoot>
       </table>
@@ -1392,12 +1403,17 @@ function renderStock(){
     var c7=hoy7<=3?"color:#d93025":hoy7<=7?"color:#f29900":"color:#188038";
     var c6=hoy6<=3?"color:#d93025":hoy6<=7?"color:#f29900":"color:#188038";
     
+    var tr=xTRANSITO.porSede[sd]||{A07:0,A16:0,MOTO:0};
+    var tStyle="text-align:center;font-family:var(--mono);color:#2e7d32;font-weight:600";
     return"<tr onmouseover=\"this.style.background='var(--sh)'\" onmouseout=\"this.style.background=''\">"+
       "<td style=\"font-weight:500;font-size:12px\">"+sd+"</td>"+
       "<td style=\"text-align:center\">"+tipo+"</td>"+
       "<td style=\"text-align:center;font-weight:700;font-family:var(--mono);"+c7+"\">"+hoy7+"</td>"+
+      "<td style=\""+tStyle+"\">"+(tr.A07||"—")+"</td>"+
       "<td style=\"text-align:center;font-weight:700;font-family:var(--mono);"+c6+"\">"+hoy6+"</td>"+
+      "<td style=\""+tStyle+"\">"+(tr.A16||"—")+"</td>"+
       "<td style=\"text-align:center;font-family:var(--mono)\">"+hoyM+"</td>"+
+      "<td style=\""+tStyle+"\">"+(tr.MOTO||"—")+"</td>"+
       "<td style=\"text-align:center;font-weight:700;font-family:var(--mono)\">"+hoyTotal+"</td>"+
       "<td style=\"text-align:center\"><span class=\"sbadge "+bc+"\">"+bg+"</span></td>"+
       "<td class=\"desp "+(hoy7===0&&min7>0?"crit":desp7>0?"warn":"ok")+"\" title=\"Ideal: "+min7+" uds\">"+(!hasData?"—":hoy7===0&&min7>0?"🔴 +"+desp7:desp7>0?"+"+desp7:"✅")+"</td>"+
@@ -1407,21 +1423,17 @@ function renderStock(){
     "</tr>";
   }).join("");
   
-  var transitoRow = xTRANSITO.cargado
-    ? "<tr style=\"background:#e8f5e9;font-weight:700;color:#2e7d32\">"+
-        "<td colspan=\"2\">🚚 TRÁNSITO</td>"+
-        "<td style=\"text-align:center;font-family:var(--mono)\">"+xTRANSITO.A07+"</td>"+
-        "<td style=\"text-align:center;font-family:var(--mono)\">"+xTRANSITO.A16+"</td>"+
-        "<td style=\"text-align:center;font-family:var(--mono)\">"+xTRANSITO.MOTO+"</td>"+
-        "<td style=\"text-align:center;font-family:var(--mono);font-weight:700\">"+xTRANSITO.total+"</td>"+
-        "<td colspan=\"5\" style=\"font-size:11px;color:#2e7d32\">celulares en camino a sedes</td>"+
-      "</tr>"
-    : "";
-
+  // Columnas: CASA(1) Tipo(2) A07(3) T-A07(4) A16(5) T-A16(6) Moto(7) T-Moto(8) Total(9) Estado(10) DesA07(11) DesA16(12) DesMoto(13) Plan(14)
+  var tA07style="text-align:center;font-family:var(--mono);color:#2e7d32;font-weight:600";
   document.getElementById("stock-tfoot").innerHTML=
-    transitoRow+
     "<tr style=\"background:var(--sh);font-weight:700\">"+
-    "<td colspan=\"5\">TOTAL</td>"+
+    "<td colspan=\"2\">TOTAL</td>"+
+    "<td style=\"text-align:center;font-family:var(--mono)\">"+tHoy+"</td>"+
+    "<td style=\""+tA07style+"\">"+(xTRANSITO.cargado?xTRANSITO.A07:"—")+"</td>"+
+    "<td colspan=\"1\"></td>"+
+    "<td style=\""+tA07style+"\">"+(xTRANSITO.cargado?xTRANSITO.A16:"—")+"</td>"+
+    "<td colspan=\"1\"></td>"+
+    "<td style=\""+tA07style+"\">"+(xTRANSITO.cargado?xTRANSITO.MOTO:"—")+"</td>"+
     "<td style=\"text-align:center;font-family:var(--mono)\">"+tHoy+"</td>"+
     "<td></td>"+
     "<td colspan=\"3\" style=\"text-align:center;color:var(--red);font-family:var(--mono)\">Despacho total: "+tDesp+" uds</td>"+
@@ -1548,16 +1560,21 @@ function cargarStock(){
         .then(function(csv){
           var lines=csv.trim().split("\n").filter(function(l){return l.trim();});
           var hdrs=parseCsvLine(lines[0]).map(function(h){return h.trim();});
-          xTRANSITO={A07:0,A16:0,MOTO:0,total:0,cargado:true};
+          xTRANSITO={A07:0,A16:0,MOTO:0,total:0,cargado:true,porSede:{}};
           lines.slice(1).forEach(function(line){
             var cols=parseCsvLine(line);
             var row={};
             hdrs.forEach(function(h,i){row[h]=(cols[i]||"").trim();});
+            var sede=(row["Sede de Destino"]||"").toUpperCase().trim();
             var modelo=(row["Modelo de Equipo"]||"").toUpperCase();
             var cant=parseInt(row["Cantidad en Tránsito"])||0;
-            if(modelo.indexOf("A07")!==-1) xTRANSITO.A07+=cant;
-            else if(modelo.indexOf("A16")!==-1) xTRANSITO.A16+=cant;
-            else if(modelo.indexOf("G06")!==-1||modelo.indexOf("MOTO")!==-1) xTRANSITO.MOTO+=cant;
+            if(!cant) return;
+            if(!xTRANSITO.porSede[sede]) xTRANSITO.porSede[sede]={A07:0,A16:0,MOTO:0};
+            var ref;
+            if(modelo.indexOf("A07")!==-1)      ref="A07";
+            else if(modelo.indexOf("A16")!==-1) ref="A16";
+            else if(modelo.indexOf("G06")!==-1||modelo.indexOf("MOTO")!==-1) ref="MOTO";
+            if(ref){ xTRANSITO.porSede[sede][ref]+=cant; xTRANSITO[ref]+=cant; }
           });
           xTRANSITO.total=xTRANSITO.A07+xTRANSITO.A16+xTRANSITO.MOTO;
           renderStock();
@@ -1615,7 +1632,7 @@ function getStockRango(){
 
 var xALMACEN_URL='https://docs.google.com/spreadsheets/d/e/2PACX-1vSOH1zrHykRFFAmqtnw2J_QMdDRXciuse5kdXGLJ_tSEFnGHR8hYMRYC7Wdp5xckGRUOgktsa2TDjLa/pub?gid=34176342&single=true&output=csv';
 var xTRANSITO_URL='https://docs.google.com/spreadsheets/d/e/2PACX-1vSOH1zrHykRFFAmqtnw2J_QMdDRXciuse5kdXGLJ_tSEFnGHR8hYMRYC7Wdp5xckGRUOgktsa2TDjLa/pub?gid=629609629&single=true&output=csv';
-var xTRANSITO={A07:0,A16:0,MOTO:0,total:0,cargado:false};
+var xTRANSITO={A07:0,A16:0,MOTO:0,total:0,cargado:false,porSede:{}};
 var xALMACEN={A07:0,A16:0,MOTO:0}; // se llena desde Sheets
 
 function parseCsvLine(line){
