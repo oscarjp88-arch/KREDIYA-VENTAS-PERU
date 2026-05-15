@@ -1353,7 +1353,7 @@ function renderCasas(){
 
 function renderStock(){
   var st=xGS(),vd=xGV();
-  var tHoy=0,tDesp=0,nUrg=0,nOk=0;
+  var tHoy=0,tDesp=0,nUrg=0,nOk=0,tA07=0,tA16=0,tMOTO=0;
   
   document.getElementById("stock-tbody").innerHTML=xSEDES.map(function(sd){
     var s=st[sd]||{A07:0,A16:0,MOTO:0};
@@ -1377,6 +1377,7 @@ function renderStock(){
     
     tHoy+=hoyTotal;
     tDesp+=despTotal;
+    tA07+=hoy7; tA16+=hoy6; tMOTO+=hoyM;
     
     // Estado del stock
     // Estado basado en cuantas refs tienen stock 0
@@ -1424,17 +1425,18 @@ function renderStock(){
   }).join("");
   
   // Columnas: CASA(1) Tipo(2) A07(3) T-A07(4) A16(5) T-A16(6) Moto(7) T-Moto(8) Total(9) Estado(10) DesA07(11) DesA16(12) DesMoto(13) Plan(14)
-  var tA07style="text-align:center;font-family:var(--mono);color:#2e7d32;font-weight:600";
+  var tTs="text-align:center;font-family:var(--mono);color:#2e7d32;font-weight:600";
+  var tNs="text-align:center;font-family:var(--mono);font-weight:700";
   document.getElementById("stock-tfoot").innerHTML=
     "<tr style=\"background:var(--sh);font-weight:700\">"+
     "<td colspan=\"2\">TOTAL</td>"+
-    "<td style=\"text-align:center;font-family:var(--mono)\">"+tHoy+"</td>"+
-    "<td style=\""+tA07style+"\">"+(xTRANSITO.cargado?xTRANSITO.A07:"—")+"</td>"+
-    "<td colspan=\"1\"></td>"+
-    "<td style=\""+tA07style+"\">"+(xTRANSITO.cargado?xTRANSITO.A16:"—")+"</td>"+
-    "<td colspan=\"1\"></td>"+
-    "<td style=\""+tA07style+"\">"+(xTRANSITO.cargado?xTRANSITO.MOTO:"—")+"</td>"+
-    "<td style=\"text-align:center;font-family:var(--mono)\">"+tHoy+"</td>"+
+    "<td style=\""+tNs+"\">"+tA07+"</td>"+
+    "<td style=\""+tTs+"\">"+(xTRANSITO.cargado?xTRANSITO.A07:"—")+"</td>"+
+    "<td style=\""+tNs+"\">"+tA16+"</td>"+
+    "<td style=\""+tTs+"\">"+(xTRANSITO.cargado?xTRANSITO.A16:"—")+"</td>"+
+    "<td style=\""+tNs+"\">"+tMOTO+"</td>"+
+    "<td style=\""+tTs+"\">"+(xTRANSITO.cargado?xTRANSITO.MOTO:"—")+"</td>"+
+    "<td style=\""+tNs+";color:var(--blue)\">"+tHoy+"</td>"+
     "<td></td>"+
     "<td colspan=\"3\" style=\"text-align:center;color:var(--red);font-family:var(--mono)\">Despacho total: "+tDesp+" uds</td>"+
     "<td></td></tr>";
@@ -1561,13 +1563,17 @@ function cargarStock(){
           var lines=csv.trim().split("\n").filter(function(l){return l.trim();});
           var hdrs=parseCsvLine(lines[0]).map(function(h){return h.trim();});
           xTRANSITO={A07:0,A16:0,MOTO:0,total:0,cargado:true,porSede:{}};
-          lines.slice(1).forEach(function(line){
+          // Saltar filas vacías iniciales para encontrar los encabezados reales
+          var hdrIdx=0;
+          while(hdrIdx<lines.length && lines[hdrIdx].replace(/,/g,"").trim()==="") hdrIdx++;
+          hdrs=parseCsvLine(lines[hdrIdx]).map(function(h){return h.trim();});
+          lines.slice(hdrIdx+1).forEach(function(line){
             var cols=parseCsvLine(line);
             var row={};
             hdrs.forEach(function(h,i){row[h]=(cols[i]||"").trim();});
             var sede=(row["Sede de Destino"]||"").toUpperCase().trim();
             var modelo=(row["Modelo de Equipo"]||"").toUpperCase();
-            var cant=parseInt(row["Cantidad en Tránsito"])||0;
+            var cant=parseInt(row["Cantidad en Tránsito"]||row["Cantidad en Transito"]||row["cantidad en tránsito"]||row["CANTIDAD EN TRÁNSITO"]||0);
             if(!cant) return;
             if(!xTRANSITO.porSede[sede]) xTRANSITO.porSede[sede]={A07:0,A16:0,MOTO:0};
             var ref;
