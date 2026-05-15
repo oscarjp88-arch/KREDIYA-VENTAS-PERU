@@ -449,6 +449,7 @@ select.filter-sel:hover{border-color:var(--blue);}
             <th colspan="2" style="text-align:center;border-bottom:1px solid var(--border)">A16</th>
             <th colspan="2" style="text-align:center;border-bottom:1px solid var(--border)">Moto</th>
             <th rowspan="2" style="text-align:center">Total Hoy</th>
+            <th rowspan="2" style="text-align:center;color:#2e7d32">Total + 🚚</th>
             <th rowspan="2" style="text-align:center">Estado</th>
             <th rowspan="2" style="text-align:center">Desp. A07</th>
             <th rowspan="2" style="text-align:center">Desp. A16</th>
@@ -500,7 +501,8 @@ select.filter-sel:hover{border-color:var(--blue);}
           <th style="text-align:left;min-width:200px;">REFERENCIA</th>
           <th style="text-align:center;">Almacen<br><small style="font-weight:400;color:var(--grey2)">saldo</small></th>
           <th style="text-align:center;">En casas<br><small style="font-weight:400;color:var(--grey2)">stock hoy</small></th>
-          <th style="text-align:center;">Total<br><small style="font-weight:400;color:var(--grey2)">disponible</small></th>
+          <th style="text-align:center;color:#2e7d32;">🚚 Tránsito<br><small style="font-weight:400;color:#2e7d32">en camino</small></th>
+          <th style="text-align:center;">Total<br><small style="font-weight:400;color:var(--grey2)">almacen+casas+tránsito</small></th>
           <th style="text-align:center;">Venta sem<br><small style="font-weight:400;color:var(--grey2)">actual</small></th>
           <th style="text-align:center;">Proyectado<br><small style="font-weight:400;color:var(--grey2)">sem completa</small></th>
           <th style="text-align:center;">Dias<br><small style="font-weight:400;color:var(--grey2)">cobertura</small></th>
@@ -1405,6 +1407,7 @@ function renderStock(){
     var c6=hoy6<=3?"color:#d93025":hoy6<=7?"color:#f29900":"color:#188038";
     
     var tr=xTRANSITO.porSede[sd]||{A07:0,A16:0,MOTO:0};
+    var trTotal=(tr.A07||0)+(tr.A16||0)+(tr.MOTO||0);
     var tStyle="text-align:center;font-family:var(--mono);color:#2e7d32;font-weight:600";
     return"<tr onmouseover=\"this.style.background='var(--sh)'\" onmouseout=\"this.style.background=''\">"+
       "<td style=\"font-weight:500;font-size:12px\">"+sd+"</td>"+
@@ -1416,6 +1419,7 @@ function renderStock(){
       "<td style=\"text-align:center;font-family:var(--mono)\">"+hoyM+"</td>"+
       "<td style=\""+tStyle+"\">"+(tr.MOTO||"—")+"</td>"+
       "<td style=\"text-align:center;font-weight:700;font-family:var(--mono)\">"+hoyTotal+"</td>"+
+      "<td style=\"text-align:center;font-weight:700;font-family:var(--mono);color:#2e7d32\">"+(xTRANSITO.cargado?hoyTotal+trTotal:"—")+"</td>"+
       "<td style=\"text-align:center\"><span class=\"sbadge "+bc+"\">"+bg+"</span></td>"+
       "<td class=\"desp "+(hoy7===0&&min7>0?"crit":desp7>0?"warn":"ok")+"\" title=\"Ideal: "+min7+" uds\">"+(!hasData?"—":hoy7===0&&min7>0?"🔴 +"+desp7:desp7>0?"+"+desp7:"✅")+"</td>"+
       "<td class=\"desp "+(hoy6===0&&min6>0?"crit":desp6>0?"warn":"ok")+"\" title=\"Ideal: "+min6+" uds\">"+(!hasData?"—":hoy6===0&&min6>0?"🔴 +"+desp6:desp6>0?"+"+desp6:"✅")+"</td>"+
@@ -1437,6 +1441,7 @@ function renderStock(){
     "<td style=\""+tNs+"\">"+tMOTO+"</td>"+
     "<td style=\""+tTs+"\">"+(xTRANSITO.cargado?xTRANSITO.MOTO:"—")+"</td>"+
     "<td style=\""+tNs+";color:var(--blue)\">"+tHoy+"</td>"+
+    "<td style=\""+tNs+";color:#2e7d32\">"+(xTRANSITO.cargado?tHoy+xTRANSITO.total:"—")+"</td>"+
     "<td></td>"+
     "<td colspan=\"3\" style=\"text-align:center;color:var(--red);font-family:var(--mono)\">Despacho total: "+tDesp+" uds</td>"+
     "<td></td></tr>";
@@ -1788,7 +1793,8 @@ function renderCompras(){
   
   var totalAlm=xALMACEN.A07+xALMACEN.A16+xALMACEN.MOTO;
   var totalCasas=getStockCasas("A07")+getStockCasas("A16")+getStockCasas("MOTO");
-  var totalDisp=totalAlm+totalCasas;
+  var totalTrans=xTRANSITO.cargado?xTRANSITO.total:0;
+  var totalDisp=totalAlm+totalCasas+totalTrans;
   
   // Ventas semana actual total
   var ventaSemTotal=getVentaSemana("A07")+getVentaSemana("A16")+getVentaSemana("MOTO");
@@ -1802,12 +1808,13 @@ function renderCompras(){
 
   // Tabla resumen por referencia
   var tbodyHTML="";
-  var tfootA07=0,tfootA16=0,tfootMOTO=0,tfootTotal=0,tfootAlm=0,tfootCasas=0;
+  var tfootA07=0,tfootA16=0,tfootMOTO=0,tfootTotal=0,tfootAlm=0,tfootCasas=0,tfootTrans=0;
   
   refs.forEach(function(ref){
     var alm=xALMACEN[ref.key]||0;
     var casas=getStockCasas(ref.key);
-    var total=alm+casas;
+    var trans=xTRANSITO.cargado?(xTRANSITO[ref.key]||0):0;
+    var total=alm+casas+trans;
     var ventaSem=getVentaSemana(ref.key);
     var promSem=getPromedioSemanal(ref.key);
     
@@ -1835,12 +1842,12 @@ function renderCompras(){
     else if(diasCob>=5){dec="Comprar esta semana";decCls="revisar";}
     else{dec="COMPRAR YA";decCls="si";}
     
-    tfootAlm+=alm;tfootCasas+=casas;tfootTotal+=total;
-    
+    tfootAlm+=alm; tfootCasas+=casas; tfootTrans+=trans; tfootTotal+=total;
     tbodyHTML+="<tr onmouseover=\"this.style.background='var(--sh)'\" onmouseout=\"this.style.background=''\">"+
       "<td style=\"font-weight:500\">"+ref.nombre+"</td>"+
       "<td style=\"text-align:center;font-weight:700;font-family:var(--mono)\">"+alm+"</td>"+
       "<td style=\"text-align:center;font-family:var(--mono)\">"+casas+"</td>"+
+      "<td style=\"text-align:center;font-family:var(--mono);color:#2e7d32;font-weight:700\">"+(xTRANSITO.cargado?trans:"—")+"</td>"+
       "<td style=\"text-align:center;font-weight:700;font-family:var(--mono);color:var(--blue)\">"+total+"</td>"+
       "<td style=\"text-align:center;font-family:var(--mono)\">"+ventaSem+"</td>"+
       "<td style=\"text-align:center;font-family:var(--mono);font-weight:600\">"+proy+"</td>"+
@@ -1855,7 +1862,8 @@ function renderCompras(){
     "<td>TOTAL</td>"+
     "<td style=\"text-align:center;font-family:var(--mono)\">"+tfootAlm+"</td>"+
     "<td style=\"text-align:center;font-family:var(--mono)\">"+tfootCasas+"</td>"+
-    "<td style=\"text-align:center;font-family:var(--mono);color:var(--blue)\">"+tfootTotal+"</td>"+
+    "<td style=\"text-align:center;font-family:var(--mono);color:#2e7d32\">"+(xTRANSITO.cargado?tfootTrans:"—")+"</td>"+
+    "<td style=\"text-align:center;font-family:var(--mono);color:var(--blue);font-weight:700\">"+tfootTotal+"</td>"+
     "<td colspan=\"4\"></td></tr>";
 
   // Tabla detalle por ubicacion
@@ -1886,6 +1894,17 @@ function renderCompras(){
       "<td style=\"text-align:center;font-family:var(--mono);font-weight:600\">"+tot+"</td></tr>";
   });
   
+  // Fila tránsito en detalle ubicacion
+  if(xTRANSITO.cargado && xTRANSITO.total>0){
+    ubRows+="<tr style=\"background:#e8f5e9;\">"+
+      "<td style=\"font-weight:600;color:#2e7d32\">🚚 En tránsito</td>"+
+      "<td style=\"text-align:center;font-family:var(--mono);color:#2e7d32;font-weight:700\">"+xTRANSITO.A07+"</td>"+
+      "<td style=\"text-align:center;font-family:var(--mono);color:#2e7d32;font-weight:700\">"+xTRANSITO.A16+"</td>"+
+      "<td style=\"text-align:center;font-family:var(--mono);color:#2e7d32;font-weight:700\">"+xTRANSITO.MOTO+"</td>"+
+      "<td style=\"text-align:center;font-family:var(--mono);color:#2e7d32;font-weight:700\">"+xTRANSITO.total+"</td></tr>";
+    totA07+=xTRANSITO.A07; totA16+=xTRANSITO.A16; totMOTO+=xTRANSITO.MOTO;
+  }
+
   document.getElementById("ubicacion-tbody").innerHTML=ubRows;
   document.getElementById("ubicacion-tfoot").innerHTML=
     "<tr style=\"background:var(--sh);font-weight:700\">"+
