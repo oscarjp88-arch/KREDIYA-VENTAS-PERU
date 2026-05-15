@@ -448,7 +448,6 @@ select.filter-sel:hover{border-color:var(--blue);}
           <th style="text-align:center">A16 Hoy</th>
           <th style="text-align:center">Moto Hoy</th>
           <th style="text-align:center">Total Hoy</th>
-          <th style="text-align:center">Venta</th>
           <th style="text-align:center">Despacho A07</th>
           <th style="text-align:center">Despacho A16</th>
           <th style="text-align:center">Despacho Moto</th>
@@ -1400,8 +1399,6 @@ function renderStock(){
       "<td style=\"text-align:center;font-weight:700;font-family:var(--mono);"+c6+"\">"+hoy6+"</td>"+
       "<td style=\"text-align:center;font-family:var(--mono)\">"+hoyM+"</td>"+
       "<td style=\"text-align:center;font-weight:700;font-family:var(--mono)\">"+hoyTotal+"</td>"+
-      "<td style=\"text-align:center;font-family:var(--mono);color:var(--blue);font-weight:600\">"+(xIDEAL[sd]||"-")+"</td>"+
-      
       "<td style=\"text-align:center\"><span class=\"sbadge "+bc+"\">"+bg+"</span></td>"+
       "<td class=\"desp "+(hoy7===0&&min7>0?"crit":desp7>0?"warn":"ok")+"\" title=\"Ideal: "+min7+" uds\">"+(!hasData?"—":hoy7===0&&min7>0?"🔴 +"+desp7:desp7>0?"+"+desp7:"✅")+"</td>"+
       "<td class=\"desp "+(hoy6===0&&min6>0?"crit":desp6>0?"warn":"ok")+"\" title=\"Ideal: "+min6+" uds\">"+(!hasData?"—":hoy6===0&&min6>0?"🔴 +"+desp6:desp6>0?"+"+desp6:"✅")+"</td>"+
@@ -1410,11 +1407,23 @@ function renderStock(){
     "</tr>";
   }).join("");
   
+  var transitoRow = xTRANSITO.cargado
+    ? "<tr style=\"background:#e8f5e9;font-weight:700;color:#2e7d32\">"+
+        "<td colspan=\"2\">🚚 TRÁNSITO</td>"+
+        "<td style=\"text-align:center;font-family:var(--mono)\">"+xTRANSITO.A07+"</td>"+
+        "<td style=\"text-align:center;font-family:var(--mono)\">"+xTRANSITO.A16+"</td>"+
+        "<td style=\"text-align:center;font-family:var(--mono)\">"+xTRANSITO.MOTO+"</td>"+
+        "<td style=\"text-align:center;font-family:var(--mono);font-weight:700\">"+xTRANSITO.total+"</td>"+
+        "<td colspan=\"5\" style=\"font-size:11px;color:#2e7d32\">celulares en camino a sedes</td>"+
+      "</tr>"
+    : "";
+
   document.getElementById("stock-tfoot").innerHTML=
+    transitoRow+
     "<tr style=\"background:var(--sh);font-weight:700\">"+
     "<td colspan=\"5\">TOTAL</td>"+
     "<td style=\"text-align:center;font-family:var(--mono)\">"+tHoy+"</td>"+
-    "<td colspan=\"2\"></td>"+
+    "<td></td>"+
     "<td colspan=\"3\" style=\"text-align:center;color:var(--red);font-family:var(--mono)\">Despacho total: "+tDesp+" uds</td>"+
     "<td></td></tr>";
   
@@ -1530,6 +1539,30 @@ function cargarStock(){
       }).slice(0,3).join(" | ");
       if(st)st.textContent="Actualizado: "+rows.length+" registros | Ultimas fechas: "+fechasInfo;
       if(btn){btn.textContent="Actualizar Sheets";btn.disabled=false;}
+
+      // Cargar hoja tránsito en paralelo
+      fetch(xTRANSITO_URL)
+        .catch(function(){return fetch("https://corsproxy.io/?"+encodeURIComponent(xTRANSITO_URL));})
+        .catch(function(){return fetch("https://api.allorigins.win/raw?url="+encodeURIComponent(xTRANSITO_URL));})
+        .then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.text();})
+        .then(function(csv){
+          var lines=csv.trim().split("\n").filter(function(l){return l.trim();});
+          var hdrs=parseCsvLine(lines[0]).map(function(h){return h.trim();});
+          xTRANSITO={A07:0,A16:0,MOTO:0,total:0,cargado:true};
+          lines.slice(1).forEach(function(line){
+            var cols=parseCsvLine(line);
+            var row={};
+            hdrs.forEach(function(h,i){row[h]=(cols[i]||"").trim();});
+            var modelo=(row["Modelo de Equipo"]||"").toUpperCase();
+            var cant=parseInt(row["Cantidad en Tránsito"])||0;
+            if(modelo.indexOf("A07")!==-1) xTRANSITO.A07+=cant;
+            else if(modelo.indexOf("A16")!==-1) xTRANSITO.A16+=cant;
+            else if(modelo.indexOf("G06")!==-1||modelo.indexOf("MOTO")!==-1) xTRANSITO.MOTO+=cant;
+          });
+          xTRANSITO.total=xTRANSITO.A07+xTRANSITO.A16+xTRANSITO.MOTO;
+          renderStock();
+        })
+        .catch(function(){});
     })
     .catch(function(err){
       if(st)st.textContent="Error al conectar: "+err.message;
@@ -1581,6 +1614,8 @@ function getStockRango(){
 
 
 var xALMACEN_URL='https://docs.google.com/spreadsheets/d/e/2PACX-1vSOH1zrHykRFFAmqtnw2J_QMdDRXciuse5kdXGLJ_tSEFnGHR8hYMRYC7Wdp5xckGRUOgktsa2TDjLa/pub?gid=34176342&single=true&output=csv';
+var xTRANSITO_URL='https://docs.google.com/spreadsheets/d/e/2PACX-1vSOH1zrHykRFFAmqtnw2J_QMdDRXciuse5kdXGLJ_tSEFnGHR8hYMRYC7Wdp5xckGRUOgktsa2TDjLa/pub?gid=629609629&single=true&output=csv';
+var xTRANSITO={A07:0,A16:0,MOTO:0,total:0,cargado:false};
 var xALMACEN={A07:0,A16:0,MOTO:0}; // se llena desde Sheets
 
 function parseCsvLine(line){
