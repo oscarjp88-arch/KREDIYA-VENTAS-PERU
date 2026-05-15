@@ -2377,7 +2377,11 @@ var xPRECIOS_CARGADO = false;
 
 function parsePrecio(s){
   if(!s) return 0;
-  return parseFloat(String(s).replace(/[^0-9.]/g,"")) || 0;
+  // Eliminar todo excepto dígitos, coma y punto, luego quitar punto inicial de "S/."
+  var str = String(s).replace(/[^0-9.,]/g,"").replace(/^\./,"");
+  // Quitar comas de miles (ej: 11,070 → 11070)
+  str = str.replace(/,/g,"");
+  return parseFloat(str) || 0;
 }
 
 function parseFechaCompra(s){
