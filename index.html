@@ -1548,23 +1548,38 @@ function cargarStock(){
         }
       });
       
+      // Buscar nombres de columna de forma flexible (por si el form cambió el nombre exacto)
+      var sampleRow = rows[0] || {};
+      var allKeys = Object.keys(sampleRow);
+      function findKey(keywords){
+        return allKeys.find(function(k){
+          var ku=k.toUpperCase();
+          return keywords.every(function(kw){return ku.indexOf(kw.toUpperCase())!==-1;});
+        })||"";
+      }
+      var colA07  = findKey(["A07"]);
+      var colA16  = findKey(["A16"]);
+      var colMOTO = findKey(["G06"]) || findKey(["MOTO"]);
+
       var stock={};
       Object.entries(ultimo).forEach(function(e){
         var sede=normSede(e[0]);
+        var row=e[1];
         stock[sede]={
-          A07:parseInt(e[1]["STOCK ACTUAL EN SEDE [SAMSUNG A07]"])||0,
-          A16:parseInt(e[1]["STOCK ACTUAL EN SEDE [SAMSUNG A16]"])||0,
-          MOTO:parseInt(e[1]["STOCK ACTUAL EN SEDE [MOTOROLA G06]"])||0
+          A07 : parseInt(row[colA07 ])||0,
+          A16 : parseInt(row[colA16 ])||0,
+          MOTO: parseInt(row[colMOTO])||0
         };
       });
-      
+
       xSS(stock);
       renderStock();
-      // Mostrar fechas encontradas por sede
+      // Mostrar fechas + columnas detectadas en el status
       var fechasInfo=Object.entries(ultimo).map(function(e){
         return e[0].split(" ")[0]+":"+getFecha(e[1]).split(" ")[0];
       }).slice(0,3).join(" | ");
-      if(st)st.textContent="Actualizado: "+rows.length+" registros | Ultimas fechas: "+fechasInfo;
+      var colInfo="Cols: A07=["+(colA07||"??")+"] A16=["+(colA16||"??")+"] MOTO=["+(colMOTO||"??")+"]. ";
+      if(st)st.textContent=colInfo+"Sedes: "+rows.length+" reg | "+fechasInfo;
       if(btn){btn.textContent="Actualizar Sheets";btn.disabled=false;}
 
       // Cargar hoja tránsito en paralelo
