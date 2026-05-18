@@ -558,6 +558,13 @@ select.filter-sel:hover{border-color:var(--blue);}
     <button class="pill" onclick="setComSem(0,this)">Mes completo</button>
   </div>
 
+  <!-- Ordenar -->
+  <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px;">
+    <span style="font-size:11px;font-weight:700;color:var(--grey2);">Ordenar:</span>
+    <button class="pill active" id="com-sort-venta" onclick="setComSort('ventas',this)">⬇ Ventas</button>
+    <button class="pill" id="com-sort-pct" onclick="setComSort('pct',this)">⬇ Cumplimiento %</button>
+  </div>
+
   <!-- Tabla por sede -->
   <div class="sheet">
     <div class="sheet-hdr"><span class="sheet-hdr-title" id="com-titulo">Semana 1 — 4 al 8 de mayo</span></div>
@@ -1924,6 +1931,14 @@ document.addEventListener("DOMContentLoaded",function(){
 // COMISIONES MAYO 2026
 // ═══════════════════════════════════════════════════════
 var xCOM_SEM = 1; // semana activa
+var xCOM_SORT = 'ventas'; // 'ventas' o 'pct'
+
+function setComSort(tipo, btn){
+  xCOM_SORT = tipo;
+  document.querySelectorAll("#tab-comisiones .pill[id^='com-sort']").forEach(function(b){b.classList.remove("active");});
+  btn.classList.add("active");
+  renderComisiones();
+}
 
 // Metas por sede y semana
 var xMETAS_SEM = {
@@ -1985,6 +2000,22 @@ function renderComisiones(){
   var sedes = Object.keys(xMETAS_SEM);
   var semIdx = xCOM_SEM - 1;
   var esMes = xCOM_SEM === 0;
+
+  // Ordenar sedes según botón activo
+  sedes.sort(function(a,b){
+    var getVal = function(sede){
+      var metas = xMETAS_SEM[sede];
+      if(esMes){
+        var v=0; for(var s=0;s<4;s++){var sf2=xSEM_FECHAS[s];v+=getVentasSede(sede,sf2.desde,sf2.hasta);}
+        return xCOM_SORT==='pct' ? (metas[4]>0?v/metas[4]:0) : v;
+      } else {
+        var sf2=xSEM_FECHAS[semIdx];
+        var v=getVentasSede(sede,sf2.desde,sf2.hasta);
+        return xCOM_SORT==='pct' ? (metas[semIdx]>0?v/metas[semIdx]:0) : v;
+      }
+    };
+    return getVal(b)-getVal(a);
+  });
 
   // Titulo
   document.getElementById("com-titulo").textContent = esMes
