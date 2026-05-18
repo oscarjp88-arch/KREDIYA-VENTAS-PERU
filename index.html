@@ -1575,11 +1575,15 @@ function cargarStock(){
       xSS(stock);
       renderStock();
       // Mostrar fechas + columnas detectadas en el status
-      var fechasInfo=Object.entries(ultimo).map(function(e){
-        return e[0].split(" ")[0]+":"+getFecha(e[1]).split(" ")[0];
-      }).slice(0,3).join(" | ");
-      var colInfo="Cols: A07=["+(colA07||"??")+"] A16=["+(colA16||"??")+"] MOTO=["+(colMOTO||"??")+"]. ";
-      if(st)st.textContent=colInfo+"Sedes: "+rows.length+" reg | "+fechasInfo;
+      var debugLines=Object.entries(ultimo).map(function(e){
+        var sede=e[0]; var row=e[1];
+        var fecha=getFecha(row)||"sin fecha";
+        var a07=parseInt(row[colA07])||0;
+        var a16=parseInt(row[colA16])||0;
+        var moto=parseInt(row[colMOTO])||0;
+        return sede+": "+fecha+" → A07="+a07+" A16="+a16+" MOTO="+moto;
+      }).join(" | ");
+      if(st)st.textContent="[DEBUG] "+debugLines;
       if(btn){btn.textContent="Actualizar Sheets";btn.disabled=false;}
 
       // Cargar hoja tránsito en paralelo
