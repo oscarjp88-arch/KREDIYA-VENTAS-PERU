@@ -1535,12 +1535,28 @@ function cargarStock(){
         return u;
       }
       
-      // Google Forms siempre agrega al final → la última fila por sede es siempre la más reciente
+      // Agrupar filas por sede y elegir la de fecha más reciente
+      var sedeRows={};
       rows.forEach(function(r){
         var sRaw=(r["CASA YUYAC"]||"").trim();
         if(!sRaw) return;
         var s=normSede(sRaw);
-        ultimo[s]=r;
+        if(!sedeRows[s]) sedeRows[s]=[];
+        sedeRows[s].push(r);
+      });
+      Object.keys(sedeRows).forEach(function(s){
+        var arr=sedeRows[s];
+        var best=arr[0];
+        var bestTs=parseFechaSheet(getFecha(best));
+        for(var i=1;i<arr.length;i++){
+          var ts=parseFechaSheet(getFecha(arr[i]));
+          // Si la fecha es mayor, o si el registro actual no tiene fecha (ts=0) tomar el ultimo del CSV
+          if(ts > bestTs || (bestTs===0 && ts===0)){
+            best=arr[i];
+            bestTs=ts;
+          }
+        }
+        ultimo[s]=best;
       });
       
       // Buscar nombres de columna de forma flexible (por si el form cambió el nombre exacto)
