@@ -412,12 +412,19 @@ select.filter-sel:hover{border-color:var(--blue);}
       <span id="det-count" style="font-size:11px;color:var(--grey2);"></span>
     </div>
   </div>
+  <!-- Buscador -->
+  <div style="margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+    <input id="det-search" type="text" placeholder="🔍 Buscar por cliente, vendedor o tienda..." oninput="renderDetalle(FILTERED)"
+      style="flex:1;max-width:420px;padding:7px 12px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--fg);font-size:13px;outline:none;">
+    <button class="btn btn-outline" onclick="document.getElementById('det-search').value='';renderDetalle(FILTERED);" style="font-size:11px;">✕ Limpiar</button>
+  </div>
   <div class="sheet">
     <div class="tbl-scroll">
       <table class="tbl">
         <thead><tr>
           <th>#</th><th>Fecha</th><th>Cliente</th><th>Tienda</th><th>Vendedor</th>
-          <th>Producto</th><th class="r">Cuotas</th><th class="r">S/ Cuota</th><th>Estado</th>
+          <th>Producto</th><th class="r">Cuotas</th><th class="r">S/ Cuota</th>
+          <th>Estado contrato</th><th>Solicitud</th>
         </tr></thead>
         <tbody id="tbody-det"></tbody>
       </table>
@@ -1192,17 +1199,51 @@ function renderDetalle(rows){
   if(EST==='firmado')f=rows.filter(esFirmado);
   else if(EST==='iniciado')f=rows.filter(esIniciado);
   else if(EST==='cancelado')f=rows.filter(esCancelado);
-  document.getElementById('det-count').textContent=f.length+' registros';
-  var sorted=f.slice().sort(function(a,b){return(b['Fecha Venta']||'').localeCompare(a['Fecha Venta']||'');}).slice(0,300);
+
+  // Filtro buscador
+  var q=(document.getElementById('det-search')||{}).value||'';
+  q=q.trim().toLowerCase();
+  if(q){
+    f=f.filter(function(r){
+      return (r['Nombre Completo Cliente']||'').toLowerCase().indexOf(q)!==-1 ||
+             (r['Vendedor']||'').toLowerCase().indexOf(q)!==-1 ||
+             (r['Tienda Venta']||'').toLowerCase().indexOf(q)!==-1 ||
+             (r['Producto Vendido']||'').toLowerCase().indexOf(q)!==-1;
+    });
+  }
+
+  document.getElementById('det-count').textContent=f.length+' registros'+(q?' (filtrado)':'');
+  var sorted=f.slice().sort(function(a,b){return(b['Fecha Venta']||'').localeCompare(a['Fecha Venta']||'');}).slice(0,500);
   document.getElementById('tbody-det').innerHTML=sorted.map(function(r,i){
     var chip,lbl;
     if(esFirmado(r)){chip='green';lbl='✅ Firmado';}
     else if(esCancelado(r)){chip='red';lbl='❌ Cancelado';}
     else if(esIniciado(r)){chip='amber';lbl='🕐 Iniciado';}
     else{chip='grey';lbl=r['Estado Contrato']||'';}
+    var solicitud=r['Estado de la Solicitud']||'';
+    var solChip=solicitud.toLowerCase()==='aprobado'?'green':solicitud.toLowerCase().indexOf('proceso')!==-1?'amber':'grey';
     var prod=(r['Producto Vendido']||'').replace('SAMSUNG ','').replace(' 4 RAM','').trim();
     var fecha=(r['Fecha Venta']||'').split(',')[0];
-    return '<tr><td class="r" style="color:var(--grey2);">'+(i+1)+'</td><td style="white-space:nowrap;">'+fecha+'</td><td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+r['Nombre Completo Cliente']+'">'+r['Nombre Completo Cliente']+'</td><td>'+r['Tienda Venta']+'</td><td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+r['Vendedor']+'</td><td>'+prod+'</td><td class="r">'+r['Número de cuotas']+'</td><td class="r">S/'+r['Monto Cuota']+'</td><td><span class="chip '+chip+'">'+lbl+'</span></td></tr>';
+    var cliente=r['Nombre Completo Cliente']||'';
+    var vendedor=r['Vendedor']||'';
+    // Resaltar búsqueda
+    function hl(txt){
+      if(!q) return txt;
+      var re=new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi');
+      return txt.replace(re,'<mark style="background:#fef08a;color:#000;border-radius:2px;">$1</mark>');
+    }
+    return '<tr onmouseover="this.style.background=\'var(--sh)\'" onmouseout="this.style.background=\'\'">'
+      +'<td class="r" style="color:var(--grey2);">'+(i+1)+'</td>'
+      +'<td style="white-space:nowrap;">'+fecha+'</td>'
+      +'<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+cliente+'">'+hl(cliente)+'</td>'
+      +'<td>'+hl(r['Tienda Venta']||'')+'</td>'
+      +'<td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+vendedor+'">'+hl(vendedor)+'</td>'
+      +'<td>'+hl(prod)+'</td>'
+      +'<td class="r">'+(r['Numero de cuotas']||r['Número de cuotas']||'')+'</td>'
+      +'<td class="r">S/'+(r['Monto Cuota']||'')+'</td>'
+      +'<td><span class="chip '+chip+'">'+lbl+'</span></td>'
+      +'<td><span class="chip '+solChip+'">'+solicitud+'</span></td>'
+      +'</tr>';
   }).join('');
 }
 
