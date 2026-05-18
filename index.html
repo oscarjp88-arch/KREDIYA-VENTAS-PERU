@@ -1544,7 +1544,7 @@ function cargarStock(){
         } else {
           var fechaActual=parseFechaSheet(getFecha(r));
           var fechaUltima=parseFechaSheet(getFecha(ultimo[s]));
-          if(fechaActual>fechaUltima) ultimo[s]=r;
+          if(fechaActual>=fechaUltima) ultimo[s]=r;
         }
       });
       
