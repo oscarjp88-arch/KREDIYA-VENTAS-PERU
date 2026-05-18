@@ -1535,17 +1535,12 @@ function cargarStock(){
         return u;
       }
       
+      // Google Forms siempre agrega al final → la última fila por sede es siempre la más reciente
       rows.forEach(function(r){
         var sRaw=(r["CASA YUYAC"]||"").trim();
         if(!sRaw) return;
         var s=normSede(sRaw);
-        if(!ultimo[s]){
-          ultimo[s]=r;
-        } else {
-          var fechaActual=parseFechaSheet(getFecha(r));
-          var fechaUltima=parseFechaSheet(getFecha(ultimo[s]));
-          if(fechaActual>=fechaUltima) ultimo[s]=r;
-        }
+        ultimo[s]=r;
       });
       
       // Buscar nombres de columna de forma flexible (por si el form cambió el nombre exacto)
@@ -1575,14 +1570,10 @@ function cargarStock(){
       xSS(stock);
       renderStock();
       // Mostrar fechas + columnas detectadas en el status
-      // Mostrar todos los nombres de sede encontrados en el CSV (raw)
-      var sedeCount={};
-      rows.forEach(function(r){
-        var raw=(r["CASA YUYAC"]||"(vacio)").trim();
-        sedeCount[raw]=(sedeCount[raw]||0)+1;
-      });
-      var sedeList=Object.entries(sedeCount).map(function(e){return '"'+e[0]+'":'+e[1];}).join(" | ");
-      if(st)st.textContent="[SEDES RAW] "+sedeList;
+      var fechasInfo=Object.entries(ultimo).map(function(e){
+        return normSede(e[0]).split(" ")[0]+":"+getFecha(e[1]).split(" ")[0];
+      }).slice(0,3).join(" | ");
+      if(st)st.textContent="Actualizado: "+rows.length+" registros | Ultimas fechas: "+fechasInfo;
       if(btn){btn.textContent="Actualizar Sheets";btn.disabled=false;}
 
       // Cargar hoja tránsito en paralelo
