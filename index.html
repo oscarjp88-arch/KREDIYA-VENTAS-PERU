@@ -1586,10 +1586,16 @@ function cargarStock(){
       xSS(stock);
       renderStock();
       // Mostrar fechas + columnas detectadas en el status
-      var fechasInfo=Object.entries(ultimo).map(function(e){
-        return normSede(e[0]).split(" ")[0]+":"+getFecha(e[1]).split(" ")[0];
-      }).slice(0,3).join(" | ");
-      if(st)st.textContent="Actualizado: "+rows.length+" registros | Ultimas fechas: "+fechasInfo;
+      // Debug: mostrar todas las filas de Chiclayo y Trujillo
+      var debugSedes=["CHICLAYO","TRUJILLO"];
+      var debugTxt=debugSedes.map(function(ds){
+        var arr=(sedeRows[ds]||[]);
+        var detail=arr.map(function(r){
+          return getFecha(r)+"→"+( parseInt(r[colA07])||0)+","+(parseInt(r[colA16])||0)+","+(parseInt(r[colMOTO])||0);
+        }).join(" / ");
+        return ds+"("+arr.length+"): "+detail;
+      }).join(" || ");
+      if(st)st.textContent="[FILAS] "+debugTxt;
       if(btn){btn.textContent="Actualizar Sheets";btn.disabled=false;}
 
       // Cargar hoja tránsito en paralelo
