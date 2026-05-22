@@ -455,15 +455,19 @@ select.filter-sel:hover{border-color:var(--blue);}
             <th colspan="2" style="text-align:center;border-bottom:1px solid var(--border)">A07</th>
             <th colspan="2" style="text-align:center;border-bottom:1px solid var(--border)">A16</th>
             <th colspan="2" style="text-align:center;border-bottom:1px solid var(--border)">Moto</th>
+            <th colspan="2" style="text-align:center;border-bottom:1px solid var(--border)">Redmi</th>
             <th rowspan="2" style="text-align:center">Total Hoy</th>
             <th rowspan="2" style="text-align:center;color:#2e7d32">Total + 🚚</th>
             <th rowspan="2" style="text-align:center">Estado</th>
             <th rowspan="2" style="text-align:center">Desp. A07</th>
             <th rowspan="2" style="text-align:center">Desp. A16</th>
             <th rowspan="2" style="text-align:center">Desp. Moto</th>
+            <th rowspan="2" style="text-align:center">Desp. Redmi</th>
             <th rowspan="2" style="text-align:center">Plan despacho</th>
           </tr>
           <tr>
+            <th style="text-align:center;font-size:11px;color:var(--grey2)">Hoy</th>
+            <th style="text-align:center;font-size:11px;color:#2e7d32">🚚</th>
             <th style="text-align:center;font-size:11px;color:var(--grey2)">Hoy</th>
             <th style="text-align:center;font-size:11px;color:#2e7d32">🚚</th>
             <th style="text-align:center;font-size:11px;color:var(--grey2)">Hoy</th>
@@ -531,6 +535,7 @@ select.filter-sel:hover{border-color:var(--blue);}
           <th style="text-align:center;">Samsung A07</th>
           <th style="text-align:center;">Samsung A16</th>
           <th style="text-align:center;">Motorola G06</th>
+          <th style="text-align:center;">Redmi 15C</th>
           <th style="text-align:center;">TOTAL</th>
         </tr></thead>
         <tbody id="ubicacion-tbody"></tbody>
@@ -1285,13 +1290,14 @@ var xSK="krd_sk_v9";
 var xSU="https://docs.google.com/spreadsheets/d/e/2PACX-1vSOH1zrHykRFFAmqtnw2J_QMdDRXciuse5kdXGLJ_tSEFnGHR8hYMRYC7Wdp5xckGRUOgktsa2TDjLa/pub?gid=201762189&single=true&output=csv";
 var xMAX=15;
 var xIDEAL={"INDEPENDENCIA": {"A07": 3, "A16": 5, "MOTO": 2}, "MIRAFLORES": {"A07": 3, "A16": 4, "MOTO": 3}, "CERCADO DE LIMA": {"A07": 2, "A16": 4, "MOTO": 2}, "SAN JUAN DE MIRAFLORES": {"A07": 3, "A16": 3, "MOTO": 2}, "SAN JUAN DE LURIGANCHO": {"A07": 2, "A16": 3, "MOTO": 2}, "TRUJILLO": {"A07": 3, "A16": 5, "MOTO": 2}, "CHICLAYO": {"A07": 3, "A16": 5, "MOTO": 2}, "PIURA": {"A07": 2, "A16": 3, "MOTO": 2}, "AREQUIPA": {"A07": 2, "A16": 2, "MOTO": 2}, "ICA": {"A07": 3, "A16": 3, "MOTO": 2}};
-var xMIN={"INDEPENDENCIA": {"A07": 3, "A16": 5, "MOTO": 2}, "MIRAFLORES": {"A07": 3, "A16": 4, "MOTO": 3}, "CERCADO DE LIMA": {"A07": 2, "A16": 4, "MOTO": 2}, "SAN JUAN DE MIRAFLORES": {"A07": 3, "A16": 3, "MOTO": 2}, "SAN JUAN DE LURIGANCHO": {"A07": 2, "A16": 3, "MOTO": 2}, "TRUJILLO": {"A07": 3, "A16": 5, "MOTO": 2}, "CHICLAYO": {"A07": 3, "A16": 5, "MOTO": 2}, "PIURA": {"A07": 2, "A16": 3, "MOTO": 2}, "AREQUIPA": {"A07": 2, "A16": 2, "MOTO": 2}, "ICA": {"A07": 3, "A16": 3, "MOTO": 2}};
+var xMIN={"INDEPENDENCIA": {"A07": 3, "A16": 5, "MOTO": 2, "REDMI": 2}, "MIRAFLORES": {"A07": 3, "A16": 4, "MOTO": 3, "REDMI": 2}, "CERCADO DE LIMA": {"A07": 2, "A16": 4, "MOTO": 2, "REDMI": 2}, "SAN JUAN DE MIRAFLORES": {"A07": 3, "A16": 3, "MOTO": 2, "REDMI": 2}, "SAN JUAN DE LURIGANCHO": {"A07": 2, "A16": 3, "MOTO": 2, "REDMI": 2}, "TRUJILLO": {"A07": 3, "A16": 5, "MOTO": 2, "REDMI": 2}, "CHICLAYO": {"A07": 3, "A16": 5, "MOTO": 2, "REDMI": 2}, "PIURA": {"A07": 2, "A16": 3, "MOTO": 2, "REDMI": 2}, "AREQUIPA": {"A07": 2, "A16": 2, "MOTO": 2, "REDMI": 2}, "ICA": {"A07": 3, "A16": 3, "MOTO": 2, "REDMI": 2}};
 
 function xGP(p){
   var u=(p||"").toUpperCase();
   if(u.indexOf("A07")>-1)return"A07";
   if(u.indexOf("A16")>-1)return"A16";
   if(u.indexOf("MOTOR")>-1||u.indexOf("MOTO")>-1)return"MOTO";
+  if(u.indexOf("REDMI")>-1||u.indexOf("15C")>-1)return"REDMI";
   return"OTRO";
 }
 function xGS(){try{return JSON.parse(localStorage.getItem(xSK))||{};}catch(e){return{};}}
@@ -1299,7 +1305,7 @@ function xSS(s){try{localStorage.setItem(xSK,JSON.stringify(s));}catch(e){}}
 
 function xGV(){
   var v={};
-  xSEDES.forEach(function(s){v[s]={A07:0,A16:0,MOTO:0,total:0};});
+  xSEDES.forEach(function(s){v[s]={A07:0,A16:0,MOTO:0,REDMI:0,total:0};});
   if(!ALL||!ALL.length)return v;
   var rango=getStockRango();
   ALL.filter(function(r){
@@ -1331,7 +1337,7 @@ function renderCasas(){
   });
   
   var dt={};
-  xSEDES.forEach(function(s){dt[s]={A07:0,A16:0,MOTO:0,t:0};});
+  xSEDES.forEach(function(s){dt[s]={A07:0,A16:0,MOTO:0,REDMI:0,t:0};});
   
   fin.forEach(function(r){
     var s=r["Tienda Venta"]||"",p=xGP(r["Producto Vendido"]);
@@ -1348,7 +1354,8 @@ function renderCasas(){
     "<div class=\"kpi-card blue\"><div class=\"kpi-label\">Total firmado</div><div class=\"kpi-val\">"+fin.length+"</div><div class=\"kpi-sub\">ventas periodo</div></div>"+
     "<div class=\"kpi-card blue\"><div class=\"kpi-label\">Samsung A07</div><div class=\"kpi-val\">"+tA07+"</div><div class=\"kpi-sub\">unidades</div></div>"+
     "<div class=\"kpi-card green\"><div class=\"kpi-label\">Samsung A16</div><div class=\"kpi-val\">"+tA16+"</div><div class=\"kpi-sub\">unidades</div></div>"+
-    "<div class=\"kpi-card amber\"><div class=\"kpi-label\">Motorola</div><div class=\"kpi-val\">"+tMoto+"</div><div class=\"kpi-sub\">unidades</div></div>";
+    "<div class=\"kpi-card amber\"><div class=\"kpi-label\">Motorola</div><div class=\"kpi-val\">"+tMoto+"</div><div class=\"kpi-sub\">unidades</div></div>"+
+    "<div class=\"kpi-card blue\"><div class=\"kpi-label\">Redmi 15C</div><div class=\"kpi-val\">"+(srt.reduce(function(s,e){return s+(e[1].REDMI||0);},0))+"</div><div class=\"kpi-sub\">unidades</div></div>";
   
   document.getElementById("casas-thead").innerHTML=
     "<tr><th style=\"text-align:left;min-width:180px\">CASA / SEDE</th>"+
@@ -1403,35 +1410,36 @@ function renderCasas(){
 
 function renderStock(){
   var st=xGS(),vd=xGV();
-  var tHoy=0,tDesp=0,nUrg=0,nOk=0,tA07=0,tA16=0,tMOTO=0;
-  
+  var tHoy=0,tDesp=0,nUrg=0,nOk=0,tA07=0,tA16=0,tMOTO=0,tREDMI=0;
+
   document.getElementById("stock-tbody").innerHTML=xSEDES.map(function(sd){
-    var s=st[sd]||{A07:0,A16:0,MOTO:0};
-    var v=vd[sd]||{A07:0,A16:0,MOTO:0,total:0};
-    var hasData=(s.A07||0)+(s.A16||0)+(s.MOTO||0)>0;
-    
-    var hoy7=s.A07||0, hoy6=s.A16||0, hoyM=s.MOTO||0;
-    var hoyTotal=hoy7+hoy6+hoyM;
+    var s=st[sd]||{A07:0,A16:0,MOTO:0,REDMI:0};
+    var v=vd[sd]||{A07:0,A16:0,MOTO:0,REDMI:0,total:0};
+    var hasData=(s.A07||0)+(s.A16||0)+(s.MOTO||0)+(s.REDMI||0)>0;
+
+    var hoy7=s.A07||0, hoy6=s.A16||0, hoyM=s.MOTO||0, hoyR=s.REDMI||0;
+    var hoyTotal=hoy7+hoy6+hoyM+hoyR;
     var vendCSV=v.total||0;
-    
+
     // Minimos por referencia segun rotacion historica
     var min7=(xMIN[sd]&&xMIN[sd].A07)||0;
     var min6=(xMIN[sd]&&xMIN[sd].A16)||0;
     var minM=(xMIN[sd]&&xMIN[sd].MOTO)||0;
-    var stockRec=min7+min6+minM;
+    var minR=(xMIN[sd]&&xMIN[sd].REDMI)||0;
     // Despacho por referencia = max(0, minimo - stock actual)
     var desp7=hasData?Math.max(0,min7-hoy7):0;
     var desp6=hasData?Math.max(0,min6-hoy6):0;
     var despM=hasData?Math.max(0,minM-hoyM):0;
-    var despTotal=desp7+desp6+despM;
+    var despR=hasData?Math.max(0,minR-hoyR):0;
+    var despTotal=desp7+desp6+despM+despR;
     
     tHoy+=hoyTotal;
     tDesp+=despTotal;
-    tA07+=hoy7; tA16+=hoy6; tMOTO+=hoyM;
+    tA07+=hoy7; tA16+=hoy6; tMOTO+=hoyM; tREDMI+=hoyR;
     
     // Estado del stock
     // Estado basado en cuantas refs tienen stock 0
-    var refsEnCero=[hoy7===0,hoy6===0,hoyM===0].filter(Boolean).length;
+    var refsEnCero=[hoy7===0,hoy6===0,hoyM===0,hoyR===0].filter(Boolean).length;
     var bg,bc;
     if(!hasData){bg="Sin datos";bc="nd";}
     else if(hoyTotal>=xMAX){bg="Maximo";bc="warn";nOk++;}
@@ -1454,9 +1462,10 @@ function renderStock(){
     var c7=hoy7<=3?"color:#d93025":hoy7<=7?"color:#f29900":"color:#188038";
     var c6=hoy6<=3?"color:#d93025":hoy6<=7?"color:#f29900":"color:#188038";
     
-    var tr=xTRANSITO.porSede[sd]||{A07:0,A16:0,MOTO:0};
-    var trTotal=(tr.A07||0)+(tr.A16||0)+(tr.MOTO||0);
+    var tr=xTRANSITO.porSede[sd]||{A07:0,A16:0,MOTO:0,REDMI:0};
+    var trTotal=(tr.A07||0)+(tr.A16||0)+(tr.MOTO||0)+(tr.REDMI||0);
     var tStyle="text-align:center;font-family:var(--mono);color:#2e7d32;font-weight:600";
+    var cR=hoyR<=3?"color:#d93025":hoyR<=7?"color:#f29900":"color:#188038";
     return"<tr onmouseover=\"this.style.background='var(--sh)'\" onmouseout=\"this.style.background=''\">"+
       "<td style=\"font-weight:500;font-size:12px\">"+sd+"</td>"+
       "<td style=\"text-align:center\">"+tipo+"</td>"+
@@ -1466,17 +1475,20 @@ function renderStock(){
       "<td style=\""+tStyle+"\">"+(tr.A16||"—")+"</td>"+
       "<td style=\"text-align:center;font-family:var(--mono)\">"+hoyM+"</td>"+
       "<td style=\""+tStyle+"\">"+(tr.MOTO||"—")+"</td>"+
+      "<td style=\"text-align:center;font-weight:700;font-family:var(--mono);"+cR+"\">"+hoyR+"</td>"+
+      "<td style=\""+tStyle+"\">"+(tr.REDMI||"—")+"</td>"+
       "<td style=\"text-align:center;font-weight:700;font-family:var(--mono)\">"+hoyTotal+"</td>"+
       "<td style=\"text-align:center;font-weight:700;font-family:var(--mono);color:#2e7d32\">"+(xTRANSITO.cargado?hoyTotal+trTotal:"—")+"</td>"+
       "<td style=\"text-align:center\"><span class=\"sbadge "+bc+"\">"+bg+"</span></td>"+
       "<td class=\"desp "+(hoy7===0&&min7>0?"crit":desp7>0?"warn":"ok")+"\" title=\"Ideal: "+min7+" uds\">"+(!hasData?"—":hoy7===0&&min7>0?"🔴 +"+desp7:desp7>0?"+"+desp7:"✅")+"</td>"+
       "<td class=\"desp "+(hoy6===0&&min6>0?"crit":desp6>0?"warn":"ok")+"\" title=\"Ideal: "+min6+" uds\">"+(!hasData?"—":hoy6===0&&min6>0?"🔴 +"+desp6:desp6>0?"+"+desp6:"✅")+"</td>"+
       "<td class=\"desp "+(hoyM===0&&minM>0?"crit":despM>0?"warn":"ok")+"\" title=\"Ideal: "+minM+" uds\">"+(!hasData?"—":hoyM===0&&minM>0?"🔴 +"+despM:despM>0?"+"+despM:"✅")+"</td>"+
+      "<td class=\"desp "+(hoyR===0&&minR>0?"crit":despR>0?"warn":"ok")+"\" title=\"Ideal: "+minR+" uds\">"+(!hasData?"—":hoyR===0&&minR>0?"🔴 +"+despR:despR>0?"+"+despR:"✅")+"</td>"+
       "<td style=\"text-align:center\"><span class=\"sbadge "+urgCls+"\">"+urg+"</span></td>"+
     "</tr>";
   }).join("");
   
-  // Columnas: CASA(1) Tipo(2) A07(3) T-A07(4) A16(5) T-A16(6) Moto(7) T-Moto(8) Total(9) Estado(10) DesA07(11) DesA16(12) DesMoto(13) Plan(14)
+  // Columnas: CASA(1) Tipo(2) A07(3) T-A07(4) A16(5) T-A16(6) Moto(7) T-Moto(8) Redmi(9) T-Redmi(10) Total(11) T+Trans(12) Estado(13) DesA07(14) DesA16(15) DesMoto(16) DesRedmi(17) Plan(18)
   var tTs="text-align:center;font-family:var(--mono);color:#2e7d32;font-weight:600";
   var tNs="text-align:center;font-family:var(--mono);font-weight:700";
   document.getElementById("stock-tfoot").innerHTML=
@@ -1488,10 +1500,12 @@ function renderStock(){
     "<td style=\""+tTs+"\">"+(xTRANSITO.cargado?xTRANSITO.A16:"—")+"</td>"+
     "<td style=\""+tNs+"\">"+tMOTO+"</td>"+
     "<td style=\""+tTs+"\">"+(xTRANSITO.cargado?xTRANSITO.MOTO:"—")+"</td>"+
+    "<td style=\""+tNs+"\">"+tREDMI+"</td>"+
+    "<td style=\""+tTs+"\">"+(xTRANSITO.cargado?(xTRANSITO.REDMI||0):"—")+"</td>"+
     "<td style=\""+tNs+";color:var(--blue)\">"+tHoy+"</td>"+
     "<td style=\""+tNs+";color:#2e7d32\">"+(xTRANSITO.cargado?tHoy+xTRANSITO.total:"—")+"</td>"+
     "<td></td>"+
-    "<td colspan=\"3\" style=\"text-align:center;color:var(--red);font-family:var(--mono)\">Despacho total: "+tDesp+" uds</td>"+
+    "<td colspan=\"4\" style=\"text-align:center;color:var(--red);font-family:var(--mono)\">Despacho total: "+tDesp+" uds</td>"+
     "<td></td></tr>";
   
   document.getElementById("stock-kpis").innerHTML=
@@ -1612,15 +1626,17 @@ function cargarStock(){
       var colA07  = findKey(["A07"]);
       var colA16  = findKey(["A16"]);
       var colMOTO = findKey(["G06"]) || findKey(["MOTO"]);
+      var colREDMI= findKey(["REDMI"]) || findKey(["15C"]);
 
       var stock={};
       Object.entries(ultimo).forEach(function(e){
         var sede=normSede(e[0]);
         var row=e[1];
         stock[sede]={
-          A07 : parseInt(row[colA07 ])||0,
-          A16 : parseInt(row[colA16 ])||0,
-          MOTO: parseInt(row[colMOTO])||0
+          A07  : parseInt(row[colA07  ])||0,
+          A16  : parseInt(row[colA16  ])||0,
+          MOTO : parseInt(row[colMOTO ])||0,
+          REDMI: parseInt(row[colREDMI])||0
         };
       });
 
@@ -1640,7 +1656,7 @@ function cargarStock(){
         .then(function(csv){
           var lines=csv.trim().split("\n").filter(function(l){return l.trim();});
           var hdrs=parseCsvLine(lines[0]).map(function(h){return h.trim();});
-          xTRANSITO={A07:0,A16:0,MOTO:0,total:0,cargado:true,porSede:{}};
+          xTRANSITO={A07:0,A16:0,MOTO:0,REDMI:0,total:0,cargado:true,porSede:{}};
           // Saltar filas vacías iniciales para encontrar los encabezados reales
           var hdrIdx=0;
           while(hdrIdx<lines.length && lines[hdrIdx].replace(/,/g,"").trim()==="") hdrIdx++;
@@ -1653,14 +1669,15 @@ function cargarStock(){
             var modelo=(row["Modelo de Equipo"]||"").toUpperCase();
             var cant=parseInt(row["Cantidad en Tránsito"]||row["Cantidad en Transito"]||row["cantidad en tránsito"]||row["CANTIDAD EN TRÁNSITO"]||0);
             if(!cant) return;
-            if(!xTRANSITO.porSede[sede]) xTRANSITO.porSede[sede]={A07:0,A16:0,MOTO:0};
+            if(!xTRANSITO.porSede[sede]) xTRANSITO.porSede[sede]={A07:0,A16:0,MOTO:0,REDMI:0};
             var ref;
             if(modelo.indexOf("A07")!==-1)      ref="A07";
             else if(modelo.indexOf("A16")!==-1) ref="A16";
             else if(modelo.indexOf("G06")!==-1||modelo.indexOf("MOTO")!==-1) ref="MOTO";
+            else if(modelo.indexOf("REDMI")!==-1||modelo.indexOf("15C")!==-1) ref="REDMI";
             if(ref){ xTRANSITO.porSede[sede][ref]+=cant; xTRANSITO[ref]+=cant; }
           });
-          xTRANSITO.total=xTRANSITO.A07+xTRANSITO.A16+xTRANSITO.MOTO;
+          xTRANSITO.total=xTRANSITO.A07+xTRANSITO.A16+xTRANSITO.MOTO+(xTRANSITO.REDMI||0);
           renderStock();
         })
         .catch(function(){});
@@ -1716,8 +1733,8 @@ function getStockRango(){
 
 var xALMACEN_URL='https://docs.google.com/spreadsheets/d/e/2PACX-1vSOH1zrHykRFFAmqtnw2J_QMdDRXciuse5kdXGLJ_tSEFnGHR8hYMRYC7Wdp5xckGRUOgktsa2TDjLa/pub?gid=34176342&single=true&output=csv';
 var xTRANSITO_URL='https://docs.google.com/spreadsheets/d/e/2PACX-1vSOH1zrHykRFFAmqtnw2J_QMdDRXciuse5kdXGLJ_tSEFnGHR8hYMRYC7Wdp5xckGRUOgktsa2TDjLa/pub?gid=629609629&single=true&output=csv';
-var xTRANSITO={A07:0,A16:0,MOTO:0,total:0,cargado:false,porSede:{}};
-var xALMACEN={A07:0,A16:0,MOTO:0}; // se llena desde Sheets
+var xTRANSITO={A07:0,A16:0,MOTO:0,REDMI:0,total:0,cargado:false,porSede:{}};
+var xALMACEN={A07:0,A16:0,MOTO:0,REDMI:0}; // se llena desde Sheets
 
 function parseCsvLine(line){
   // Parser robusto que maneja campos con comas dentro de comillas
@@ -1737,11 +1754,12 @@ function procesarAlmacenCSV(csv){
   if(lines.length<2) return;
   
   var hdrs=parseCsvLine(lines[0]).map(function(h){return h.toUpperCase();});
-  var iA07=-1,iA16=-1,iMOTO=-1;
+  var iA07=-1,iA16=-1,iMOTO=-1,iREDMI=-1;
   hdrs.forEach(function(h,i){
     if(h.indexOf("A07")>-1) iA07=i;
     else if(h.indexOf("A16")>-1) iA16=i;
     else if(h.indexOf("MOTOROLA")>-1||h.indexOf("G06")>-1) iMOTO=i;
+    else if(h.indexOf("REDMI")>-1||h.indexOf("15C")>-1) iREDMI=i;
   });
   
   // Tomar la ultima fila con datos numericos validos
@@ -1779,9 +1797,10 @@ function procesarAlmacenCSV(csv){
   var ultima=allRows[0]; // la mas reciente
   
   if(!ultima) return;
-  if(iA07>-1) xALMACEN.A07=parseInt(ultima[iA07])||0;
-  if(iA16>-1) xALMACEN.A16=parseInt(ultima[iA16])||0;
-  if(iMOTO>-1) xALMACEN.MOTO=parseInt(ultima[iMOTO])||0;
+  if(iA07>-1)   xALMACEN.A07  =parseInt(ultima[iA07  ])||0;
+  if(iA16>-1)   xALMACEN.A16  =parseInt(ultima[iA16  ])||0;
+  if(iMOTO>-1)  xALMACEN.MOTO =parseInt(ultima[iMOTO ])||0;
+  if(iREDMI>-1) xALMACEN.REDMI=parseInt(ultima[iREDMI])||0;
 }
 
 function cargarCompras(){
@@ -1799,7 +1818,7 @@ function cargarCompras(){
       var lines=csv.trim().split("\n").filter(function(l){return l.trim();});
       // Fila 2 = headers (MODELO, TOTAL, ENTREGADO, SALDO)
       // Filas 3-5 = datos
-      xALMACEN={A07:0,A16:0,MOTO:0};
+      xALMACEN={A07:0,A16:0,MOTO:0,REDMI:0};
       procesarAlmacenCSV(csv);
       renderCompras();
       if(st)st.textContent="Almacen actualizado: A07="+xALMACEN.A07+" A16="+xALMACEN.A16+" Moto="+xALMACEN.MOTO;
@@ -1860,19 +1879,20 @@ function getStockCasas(ref){
 
 function renderCompras(){
   var refs=[
-    {key:"A16",nombre:"Samsung A16 128GB"},
-    {key:"A07",nombre:"Samsung A07 64GB"},
-    {key:"MOTO",nombre:"Motorola G06 256GB"},
+    {key:"A16",  nombre:"Samsung A16 128GB"},
+    {key:"A07",  nombre:"Samsung A07 64GB"},
+    {key:"MOTO", nombre:"Motorola G06 256GB"},
+    {key:"REDMI",nombre:"Redmi 15C 4RAM 256GB"},
   ];
-  
-  var totalAlm=xALMACEN.A07+xALMACEN.A16+xALMACEN.MOTO;
-  var totalCasas=getStockCasas("A07")+getStockCasas("A16")+getStockCasas("MOTO");
+
+  var totalAlm=xALMACEN.A07+xALMACEN.A16+xALMACEN.MOTO+(xALMACEN.REDMI||0);
+  var totalCasas=getStockCasas("A07")+getStockCasas("A16")+getStockCasas("MOTO")+getStockCasas("REDMI");
   var totalTrans=xTRANSITO.cargado?xTRANSITO.total:0;
   var totalDisp=totalAlm+totalCasas+totalTrans;
-  
+
   // Ventas semana actual total
-  var ventaSemTotal=getVentaSemana("A07")+getVentaSemana("A16")+getVentaSemana("MOTO");
-  var promSemTotal=getPromedioSemanal("A07")+getPromedioSemanal("A16")+getPromedioSemanal("MOTO");
+  var ventaSemTotal=getVentaSemana("A07")+getVentaSemana("A16")+getVentaSemana("MOTO")+getVentaSemana("REDMI");
+  var promSemTotal=getPromedioSemanal("A07")+getPromedioSemanal("A16")+getPromedioSemanal("MOTO")+getPromedioSemanal("REDMI");
   
   document.getElementById("compras-kpis").innerHTML=
     "<div class=\"kpi-card blue\"><div class=\"kpi-label\">Total en almacen</div><div class=\"kpi-val\">"+totalAlm+"</div><div class=\"kpi-sub\">saldo disponible</div></div>"+
@@ -1943,31 +1963,33 @@ function renderCompras(){
   // Tabla detalle por ubicacion
   var st=xGS();
   var ubRows="";
-  var totA07=0,totA16=0,totMOTO=0;
-  
+  var totA07=0,totA16=0,totMOTO=0,totREDMI=0;
+
   // Almacen primero
   ubRows+="<tr style=\"background:#f8f9fa\">"+
     "<td style=\"font-weight:600\">&#127968; Almacen central</td>"+
     "<td style=\"text-align:center;font-weight:700;font-family:var(--mono)\">"+xALMACEN.A07+"</td>"+
     "<td style=\"text-align:center;font-weight:700;font-family:var(--mono)\">"+xALMACEN.A16+"</td>"+
     "<td style=\"text-align:center;font-weight:700;font-family:var(--mono)\">"+xALMACEN.MOTO+"</td>"+
-    "<td style=\"text-align:center;font-weight:700;font-family:var(--mono)\">"+( xALMACEN.A07+xALMACEN.A16+xALMACEN.MOTO)+"</td></tr>";
-  totA07+=xALMACEN.A07;totA16+=xALMACEN.A16;totMOTO+=xALMACEN.MOTO;
-  
+    "<td style=\"text-align:center;font-weight:700;font-family:var(--mono)\">"+(xALMACEN.REDMI||0)+"</td>"+
+    "<td style=\"text-align:center;font-weight:700;font-family:var(--mono)\">"+(xALMACEN.A07+xALMACEN.A16+xALMACEN.MOTO+(xALMACEN.REDMI||0))+"</td></tr>";
+  totA07+=xALMACEN.A07;totA16+=xALMACEN.A16;totMOTO+=xALMACEN.MOTO;totREDMI+=(xALMACEN.REDMI||0);
+
   // Casas
   xSEDES.forEach(function(sd){
-    var s=st[sd]||{A07:0,A16:0,MOTO:0};
+    var s=st[sd]||{A07:0,A16:0,MOTO:0,REDMI:0};
     var tipo=xSEDES_CFG[sd]==="lima"?"&#127960;":"&#127968;";
-    var tot=(s.A07||0)+(s.A16||0)+(s.MOTO||0);
-    totA07+=(s.A07||0);totA16+=(s.A16||0);totMOTO+=(s.MOTO||0);
+    var tot=(s.A07||0)+(s.A16||0)+(s.MOTO||0)+(s.REDMI||0);
+    totA07+=(s.A07||0);totA16+=(s.A16||0);totMOTO+=(s.MOTO||0);totREDMI+=(s.REDMI||0);
     ubRows+="<tr onmouseover=\"this.style.background='var(--sh)'\" onmouseout=\"this.style.background=''\">"+
       "<td>"+tipo+" "+sd+"</td>"+
       "<td style=\"text-align:center;font-family:var(--mono)\">"+(s.A07||0)+"</td>"+
       "<td style=\"text-align:center;font-family:var(--mono)\">"+(s.A16||0)+"</td>"+
       "<td style=\"text-align:center;font-family:var(--mono)\">"+(s.MOTO||0)+"</td>"+
+      "<td style=\"text-align:center;font-family:var(--mono)\">"+(s.REDMI||0)+"</td>"+
       "<td style=\"text-align:center;font-family:var(--mono);font-weight:600\">"+tot+"</td></tr>";
   });
-  
+
   // Fila tránsito en detalle ubicacion
   if(xTRANSITO.cargado && xTRANSITO.total>0){
     ubRows+="<tr style=\"background:#e8f5e9;\">"+
@@ -1975,8 +1997,9 @@ function renderCompras(){
       "<td style=\"text-align:center;font-family:var(--mono);color:#2e7d32;font-weight:700\">"+xTRANSITO.A07+"</td>"+
       "<td style=\"text-align:center;font-family:var(--mono);color:#2e7d32;font-weight:700\">"+xTRANSITO.A16+"</td>"+
       "<td style=\"text-align:center;font-family:var(--mono);color:#2e7d32;font-weight:700\">"+xTRANSITO.MOTO+"</td>"+
+      "<td style=\"text-align:center;font-family:var(--mono);color:#2e7d32;font-weight:700\">"+(xTRANSITO.REDMI||0)+"</td>"+
       "<td style=\"text-align:center;font-family:var(--mono);color:#2e7d32;font-weight:700\">"+xTRANSITO.total+"</td></tr>";
-    totA07+=xTRANSITO.A07; totA16+=xTRANSITO.A16; totMOTO+=xTRANSITO.MOTO;
+    totA07+=xTRANSITO.A07; totA16+=xTRANSITO.A16; totMOTO+=xTRANSITO.MOTO; totREDMI+=(xTRANSITO.REDMI||0);
   }
 
   document.getElementById("ubicacion-tbody").innerHTML=ubRows;
@@ -1986,7 +2009,8 @@ function renderCompras(){
     "<td style=\"text-align:center;font-family:var(--mono);color:var(--blue)\">"+totA07+"</td>"+
     "<td style=\"text-align:center;font-family:var(--mono);color:var(--blue)\">"+totA16+"</td>"+
     "<td style=\"text-align:center;font-family:var(--mono);color:var(--blue)\">"+totMOTO+"</td>"+
-    "<td style=\"text-align:center;font-family:var(--mono);color:var(--blue);font-weight:700\">"+(totA07+totA16+totMOTO)+"</td></tr>";
+    "<td style=\"text-align:center;font-family:var(--mono);color:var(--blue)\">"+totREDMI+"</td>"+
+    "<td style=\"text-align:center;font-family:var(--mono);color:var(--blue);font-weight:700\">"+(totA07+totA16+totMOTO+totREDMI)+"</td></tr>";
 }
 
 // Auto-cargar al abrir compras
@@ -2243,7 +2267,7 @@ function renderComisiones(){
 // Para agregar nueva referencia, agregar objeto en xREFS:
 // { key: "A36", nombre: "Samsung A36", color: "#9c27b0" }
 // ══════════════════════════════════════════════════════════════
-var xREFS = [{"key": "A07", "nombre": "Samsung A07", "color": "#1a73e8"}, {"key": "A16", "nombre": "Samsung A16", "color": "#34a853"}, {"key": "MOTO", "nombre": "Motorola G06", "color": "#fa7b17"}];
+var xREFS = [{"key": "A07", "nombre": "Samsung A07", "color": "#1a73e8"}, {"key": "A16", "nombre": "Samsung A16", "color": "#34a853"}, {"key": "MOTO", "nombre": "Motorola G06", "color": "#fa7b17"}, {"key": "REDMI", "nombre": "Redmi 15C", "color": "#9c27b0"}];
 var xSEDES_CFG2 = {"INDEPENDENCIA": "lima", "MIRAFLORES": "lima", "CERCADO DE LIMA": "lima", "SAN JUAN DE MIRAFLORES": "lima", "SAN JUAN DE LURIGANCHO": "lima", "TRUJILLO": "provincia", "CHICLAYO": "provincia", "PIURA": "provincia", "AREQUIPA": "provincia", "ICA": "provincia"};
 var xSEDE_PERIOD = "semact";
 var xSEDE_SORT = "ventas";
