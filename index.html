@@ -291,12 +291,10 @@ select.filter-sel:hover{border-color:var(--blue);}
       <button class="pill active" id="sort-ventas" onclick="setMetasSort('ventas',this)">↓ Ventas</button>
       <button class="pill" id="sort-cumpl" onclick="setMetasSort('cumplimiento',this)">↓ Cumplimiento</button>
       <button class="pill" id="sort-sede" onclick="setMetasSort('sede',this)">A-Z Sede</button>
-      <button class="mes-tab" onclick="setMetasMes('2026-04',this)">
-        <span class="dot dot-green"></span> Abril 2026 (histórico)
-      </button>
-      <button class="mes-tab active" onclick="setMetasMes('2026-05',this)">
-        <span class="dot dot-blue"></span> Mayo 2026 ← HOY
-      </button>
+      <select class="filter-sel" id="metas-mes-sel" onchange="setMetasMes(this.value)" style="font-size:12px;">
+        <option value="2026-04">Abril 2026</option>
+        <option value="2026-05" selected>Mayo 2026</option>
+      </select>
     </div>
   </div>
 
@@ -567,13 +565,13 @@ select.filter-sel:hover{border-color:var(--blue);}
   <div class="kpi-grid" id="com-kpis" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px;"></div>
 
   <!-- Selector semana -->
-  <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px;">
+  <div id="com-sem-pills" style="display:flex;align-items:center;gap:6px;margin-bottom:14px;">
     <span style="font-size:11px;font-weight:700;color:var(--grey2);">Ver semana:</span>
-    <button class="pill active" onclick="setComSem(1,this)">Sem 1 (4-8 may)</button>
-    <button class="pill" onclick="setComSem(2,this)">Sem 2 (11-15 may)</button>
-    <button class="pill" onclick="setComSem(3,this)">Sem 3 (18-22 may)</button>
-    <button class="pill" onclick="setComSem(4,this)">Sem 4 (25-29 may)</button>
-    <button class="pill" onclick="setComSem(0,this)">Mes completo</button>
+    <button class="pill active" data-sem="1" onclick="setComSem(1,this)">Sem 1 (4-8 may)</button>
+    <button class="pill" data-sem="2" onclick="setComSem(2,this)">Sem 2 (11-15 may)</button>
+    <button class="pill" data-sem="3" onclick="setComSem(3,this)">Sem 3 (18-22 may)</button>
+    <button class="pill" data-sem="4" onclick="setComSem(4,this)">Sem 4 (25-29 may)</button>
+    <button class="pill" data-sem="0" onclick="setComSem(0,this)">Mes completo</button>
   </div>
 
   <!-- Ordenar -->
@@ -1000,10 +998,8 @@ function setVista(v,btn){
 // ═══════════════════════════════════════════════════════
 // METAS VS REAL — LÓGICA PRINCIPAL
 // ═══════════════════════════════════════════════════════
-function setMetasMes(mes,btn){
+function setMetasMes(mes){
   MES_METAS=mes;
-  document.querySelectorAll('.mes-tab').forEach(function(b){b.classList.remove('active');});
-  btn.classList.add('active');
   renderMetas();
 }
 
@@ -2086,13 +2082,27 @@ function setComMes(mk){
   // Actualizar título principal
   var t=document.getElementById("com-main-titulo");
   if(t) t.textContent="Liquidacion de Comisiones — "+mesLabel(mk);
-  // Forzar vista "Mes completo" para meses históricos
   var yr=parseInt(mk.split("-")[0]), mo=parseInt(mk.split("-")[1])-1;
   var hoy=new Date();
   var esActual=(yr===hoy.getFullYear()&&mo===hoy.getMonth());
   if(!esActual){
+    // Mes histórico → forzar vista mes completo, ocultar pills de semana
     xCOM_SEM=0;
-    document.querySelectorAll("#tab-comisiones .pill[data-sem]").forEach(function(b){b.classList.remove("active");});
+    document.getElementById("com-sem-pills").style.display="none";
+  } else {
+    // Mes actual → mostrar pills y detectar semana activa
+    document.getElementById("com-sem-pills").style.display="flex";
+    // Detectar qué semana estamos hoy
+    var hoyIso=hoy.getFullYear()+"-"+String(hoy.getMonth()+1).padStart(2,"0")+"-"+String(hoy.getDate()).padStart(2,"0");
+    var semActual=0;
+    for(var i=0;i<xSEM_FECHAS.length;i++){
+      if(hoyIso>=xSEM_FECHAS[i].desde&&hoyIso<=xSEM_FECHAS[i].hasta){semActual=i+1;break;}
+    }
+    xCOM_SEM = semActual>0 ? semActual : 1;
+    // Actualizar active en pills
+    document.querySelectorAll("#com-sem-pills .pill").forEach(function(b,i){
+      b.classList.toggle("active", parseInt(b.dataset.sem||0)===xCOM_SEM);
+    });
   }
   renderComisiones();
 }
