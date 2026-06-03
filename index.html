@@ -855,6 +855,8 @@ function initData(rows,fname){
   buildSelects();
   applyFilters();
   renderMetas();
+  // Inicializar comisiones después de renderAll, sin bloquear
+  try{ if(xCOM_MES_KEY) setComMes(xCOM_MES_KEY); } catch(e){}
 }
 
 // ═══════════════════════════════════════════════════════
@@ -887,8 +889,9 @@ function buildMesPills(){
   if(comSel){
     comSel.innerHTML='<option value="">-- selecciona --</option>';
     meses.forEach(function(k){comSel.innerHTML+='<option value="'+k+'">'+mesLabel(k)+'</option>';});
-    if(comSel.options.length>1) comSel.value=meses[meses.length-1]; // mes más reciente por default
-    setComMes(comSel.value);
+    if(comSel.options.length>1) comSel.value=meses[meses.length-1];
+    // Solo actualizar key, NO renderizar aquí (evita bloquear initData)
+    xCOM_MES_KEY=comSel.value;
   }
 }
 function buildSelects(){
