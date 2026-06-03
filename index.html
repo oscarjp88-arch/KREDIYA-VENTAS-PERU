@@ -1306,7 +1306,7 @@ function showTab(id,btn){
   if(id==='casas') renderCasas();
   if(id==='stock') cargarStock();
   if(id==='compras'){ cargarCompras(); }
-  if(id==='comisiones') renderComisiones();
+  if(id==='comisiones'){ cargarPresupuesto(); renderComisiones(); }
   if(id==='precios') cargarPrecios();
 }
 
@@ -1320,6 +1320,7 @@ function cyZoom(){ZI=(ZI+1)%ZS.length;document.body.style.zoom=ZS[ZI]+'%';docume
 // INIT
 // ═══════════════════════════════════════════════════════
 window.addEventListener('DOMContentLoaded',function(){
+  cargarPresupuesto();
   // Renderizar metas aunque no haya datos (muestra la estructura)
   renderMetas();
   document.getElementById('ib-records').textContent='📂 Carga el CSV de Krediya Perú para comenzar';
@@ -2121,7 +2122,77 @@ var xSEM_FECHAS_MES = {
 };
 var xSEM_FECHAS = xSEM_FECHAS_MES["2026-06"];
 
-var xCOM_MES_KEY = ""; // "2026-05" u otro mes
+var xCOM_MES_KEY = "";
+var xPRESUPUESTO_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSdQtTIWxFGi_l_84W1XI6d88N8SALN2mT74itaq41x_MG738VVnXb-8JLwM0EI836IEXDRClfZR2XW/pub?gid=1984199625&single=true&output=csv";
+
+function cargarPresupuesto(){
+  fetch(xPRESUPUESTO_URL + "&t=" + Date.now(), {cache:"no-store"})
+    .then(function(r){ return r.ok ? r.text() : Promise.reject(); })
+    .then(function(csv){
+      var lines = csv.trim().split("\n");
+      var newMetas = {}, newFechas = {};
+      lines.forEach(function(line){
+        var cols = line.split(",").map(function(c){return c.replace(/^"|"$/g,"").trim();});
+        var mes = cols[0];
+        if(!/^\d{4}-\d{2}$/.test(mes)) return;
+        var sede = cols[1]; if(!sede) return;
+        if(!newMetas[mes]) newMetas[mes] = {};
+        if(!newFechas[mes]){
+          newFechas[mes]=[
+            {label:"Semana 1 — "+cols[2]+" al "+cols[3], desde:cols[2], hasta:cols[3]},
+            {label:"Semana 2 — "+cols[5]+" al "+cols[6], desde:cols[5], hasta:cols[6]},
+            {label:"Semana 3 — "+cols[8]+" al "+cols[9], desde:cols[8], hasta:cols[9]},
+            {label:"Semana 4 — "+cols[11]+" al "+cols[12],desde:cols[11],hasta:cols[12]},
+          ];
+        }
+        newMetas[mes][sede]=[
+          parseInt(cols[4])||0, parseInt(cols[7])||0,
+          parseInt(cols[10])||0,parseInt(cols[13])||0,
+          parseInt(cols[14])||0
+        ];
+      });
+      // Fusionar con los históricos ya cargados (Mayo, Abril)
+      Object.keys(newMetas).forEach(function(mk){ xMETAS_HIST[mk]=newMetas[mk]; });
+      Object.keys(newFechas).forEach(function(mk){ xSEM_FECHAS_MES[mk]=newFechas[mk]; });
+      // Actualizar al mes más reciente
+      var meses=Object.keys(xMETAS_HIST).sort();
+      var mkActual=meses[meses.length-1];
+      xMETAS_SEM=xMETAS_HIST[mkActual];
+      xSEM_FECHAS=xSEM_FECHAS_MES[mkActual]||xSEM_FECHAS;
+      // Actualizar dropdowns de comisiones y metas
+      _actualizarDropdownComisiones(meses, mkActual);
+      _actualizarDropdownMetas(meses, mkActual);
+    })
+    .catch(function(){ /* usar datos hardcodeados si falla */ });
+}
+
+function _actualizarDropdownComisiones(meses, mkActual){
+  var sel=document.getElementById("com-mes-sel"); if(!sel) return;
+  var prev=sel.value||mkActual;
+  sel.innerHTML='<option value="">-- selecciona --</option>';
+  meses.forEach(function(mk){
+    sel.innerHTML+='<option value="'+mk+'">'+mesLabel(mk)+'</option>';
+  });
+  sel.value=prev&&xMETAS_HIST[prev]?prev:mkActual;
+  setComMes(sel.value);
+}
+
+function _actualizarDropdownMetas(meses, mkActual){
+  var sel=document.getElementById("metas-mes-sel"); if(!sel) return;
+  var prev=sel.value||mkActual;
+  // Solo mostrar meses que tengan datos de META (hardcodeados)
+  var mesesConMeta=meses.filter(function(mk){
+    return mk==="2026-04"||mk==="2026-05"||mk==="2026-06";
+  });
+  sel.innerHTML="";
+  mesesConMeta.forEach(function(mk){
+    var opt=document.createElement("option");
+    opt.value=mk; opt.textContent=mesLabel(mk);
+    if(mk===prev) opt.selected=true;
+    sel.appendChild(opt);
+  });
+  if(!sel.value) sel.value=mkActual;
+}
 
 function getSemanasDelMes(yr, mo){
   // Devuelve las 4 semanas laborales (lun-vie) del mes dado
