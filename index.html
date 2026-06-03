@@ -431,7 +431,6 @@ select.filter-sel:hover{border-color:var(--blue);}
   <div class="sec-hdr">
     <div class="sec-title">Stock y Plan de Reposicion por Casa</div>
     <div class="sec-actions">
-      <span id="stock-status" style="font-size:11px;color:var(--grey2);margin-right:8px;"></span>
       <button class="btn btn-outline" onclick="cargarStock()" id="btn-stock" style="font-size:11px;">&#128260; Actualizar Sheets</button>
     </div>
   </div>
@@ -1564,7 +1563,6 @@ function renderStock(){
 function cargarStock(){
   var btn=document.getElementById("btn-stock"),st=document.getElementById("stock-status");
   if(btn){btn.textContent="Cargando...";btn.disabled=true;}
-  if(st)st.textContent="Conectando con Sheets...";
   var _t="&t="+Date.now();
   fetch(xSU+_t, {cache:"no-store"})
     .catch(function(){return fetch("https://corsproxy.io/?"+encodeURIComponent(xSU+_t));})
@@ -1690,7 +1688,7 @@ function cargarStock(){
       var fechasInfo=Object.entries(ultimo).map(function(e){
         return normSede(e[0]).split(" ")[0]+":"+getFecha(e[1]).split(" ")[0];
       }).slice(0,3).join(" | ");
-      if(st)st.textContent="Actualizado: "+rows.length+" registros | Ultimas fechas: "+fechasInfo;
+      
       if(btn){btn.textContent="Actualizar Sheets";btn.disabled=false;}
 
       // Cargar hoja tránsito en paralelo
@@ -1728,7 +1726,6 @@ function cargarStock(){
         .catch(function(){});
     })
     .catch(function(err){
-      if(st)st.textContent="Error al conectar: "+err.message;
       if(btn){btn.textContent="Actualizar Sheets";btn.disabled=false;}
     });
 }
