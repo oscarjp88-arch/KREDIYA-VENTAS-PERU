@@ -2076,34 +2076,54 @@ var xSEM_FECHAS = [
 
 var xCOM_MES_KEY = ""; // "2026-05" u otro mes
 
+function getSemanasDelMes(yr, mo){
+  // Devuelve las 4 semanas laborales (lun-vie) del mes dado
+  var semanas=[];
+  var d=new Date(yr, mo, 1);
+  // Avanzar al primer lunes del mes
+  while(d.getDay()!==1) d.setDate(d.getDate()+1);
+  for(var i=0;i<4;i++){
+    var lun=new Date(d); lun.setDate(d.getDate()+i*7);
+    var vie=new Date(lun); vie.setDate(lun.getDate()+4);
+    var fmt=function(dt){return dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")+"-"+String(dt.getDate()).padStart(2,"0");};
+    semanas.push({label:"Semana "+(i+1)+" — "+lun.getDate()+" al "+vie.getDate(), desde:fmt(lun), hasta:fmt(vie)});
+  }
+  return semanas;
+}
+
 function setComMes(mk){
   if(!mk) return;
   xCOM_MES_KEY = mk;
-  // Actualizar título principal
   var t=document.getElementById("com-main-titulo");
   if(t) t.textContent="Liquidacion de Comisiones — "+mesLabel(mk);
+
   var yr=parseInt(mk.split("-")[0]), mo=parseInt(mk.split("-")[1])-1;
   var hoy=new Date();
   var esActual=(yr===hoy.getFullYear()&&mo===hoy.getMonth());
-  if(!esActual){
-    // Mes histórico → forzar vista mes completo, ocultar pills de semana
-    xCOM_SEM=0;
-    document.getElementById("com-sem-pills").style.display="none";
-  } else {
-    // Mes actual → mostrar pills y detectar semana activa
-    document.getElementById("com-sem-pills").style.display="flex";
-    // Detectar qué semana estamos hoy
+
+  // Actualizar labels de los pills con las fechas del mes seleccionado
+  var sems=esActual ? xSEM_FECHAS : getSemanasDelMes(yr,mo);
+  var pills=document.querySelectorAll("#com-sem-pills .pill[data-sem]");
+  pills.forEach(function(b){
+    var s=parseInt(b.dataset.sem);
+    if(s>=1&&s<=4&&sems[s-1]) b.textContent="Sem "+s+" ("+sems[s-1].desde.slice(5).replace("-","/")+")";
+    if(s===0) b.textContent="Mes completo";
+  });
+
+  if(esActual){
+    // Detectar semana actual y activarla
     var hoyIso=hoy.getFullYear()+"-"+String(hoy.getMonth()+1).padStart(2,"0")+"-"+String(hoy.getDate()).padStart(2,"0");
-    var semActual=0;
+    var semActual=1;
     for(var i=0;i<xSEM_FECHAS.length;i++){
       if(hoyIso>=xSEM_FECHAS[i].desde&&hoyIso<=xSEM_FECHAS[i].hasta){semActual=i+1;break;}
     }
-    xCOM_SEM = semActual>0 ? semActual : 1;
-    // Actualizar active en pills
-    document.querySelectorAll("#com-sem-pills .pill").forEach(function(b,i){
-      b.classList.toggle("active", parseInt(b.dataset.sem||0)===xCOM_SEM);
-    });
+    xCOM_SEM=semActual;
   }
+  // No cambiar xCOM_SEM para histórico: el usuario elige
+
+  document.querySelectorAll("#com-sem-pills .pill[data-sem]").forEach(function(b){
+    b.classList.toggle("active", parseInt(b.dataset.sem||0)===xCOM_SEM);
+  });
   renderComisiones();
 }
 
@@ -2153,9 +2173,8 @@ function renderComisiones(){
   var mesDesde=mk+"-01";
   var mesHasta=mk+"-"+String(new Date(mkYr,mkMo+1,0).getDate()).padStart(2,"0");
   var mesNombre=mesLabel(mk);
-
-  // Para meses históricos forzar vista mes completo
-  if(!esActual) esMes=true;
+  // Semanas del mes seleccionado (usar xSEM_FECHAS si es actual, calculadas si es histórico)
+  var semsActivas=esActual ? xSEM_FECHAS : getSemanasDelMes(mkYr,mkMo);
 
   // Ordenar sedes según botón activo
   sedes.sort(function(a,b){
@@ -2163,11 +2182,10 @@ function renderComisiones(){
       var metas = xMETAS_SEM[sede];
       if(esMes){
         var v=0;
-        if(esActual){for(var s=0;s<4;s++){var sf2=xSEM_FECHAS[s];v+=getVentasSede(sede,sf2.desde,sf2.hasta);}}
-        else{v=getVentasSede(sede,mesDesde,mesHasta);}
+        for(var s=0;s<4;s++){var sf2=semsActivas[s];v+=getVentasSede(sede,sf2.desde,sf2.hasta);}
         return xCOM_SORT==='pct' ? (metas[4]>0?v/metas[4]:0) : v;
       } else {
-        var sf2=xSEM_FECHAS[semIdx];
+        var sf2=semsActivas[semIdx];
         var v=getVentasSede(sede,sf2.desde,sf2.hasta);
         return xCOM_SORT==='pct' ? (metas[semIdx]>0?v/metas[semIdx]:0) : v;
       }
@@ -2178,7 +2196,7 @@ function renderComisiones(){
   // Titulo
   document.getElementById("com-titulo").textContent = esMes
     ? "Acumulado mes — "+mesNombre
-    : xSEM_FECHAS[semIdx].label;
+    : semsActivas[semIdx].label;
 
   // Headers
   if(esMes){
@@ -2214,23 +2232,14 @@ function renderComisiones(){
     if(esMes){
       // Mes completo
       var ventasMes=0, semasOk=0, comAsesorMes=0, comSupMes=0;
-      if(esActual){
-        // Mes actual: usar semanas definidas
-        for(var s=0;s<4;s++){
-          var sf=xSEM_FECHAS[s];
+      for(var s=0;s<4;s++){
+          var sf=semsActivas[s];
           var v=getVentasSede(sede,sf.desde,sf.hasta);
           var m=metas[s];
           var com=getComisionAsesor(v,m);
           ventasMes+=v;
           if(com.rate>0){semasOk++;comAsesorMes+=v*com.rate;comSupMes+=v*0.50;}
         }
-      } else {
-        // Mes histórico: usar rango completo del mes
-        ventasMes=getVentasSede(sede,mesDesde,mesHasta);
-        var comH=getComisionAsesor(ventasMes,metas[4]);
-        if(comH.rate>0){comAsesorMes=ventasMes*comH.rate;comSupMes=ventasMes*0.50;}
-        semasOk=comH.rate>0?1:0; // simplificado para histórico
-      }
       var metaMes=metas[4];
       var pctMes=metaMes>0?Math.round(ventasMes/metaMes*100):0;
       var bono=pctMes>=100?"Si S/250":"No";
@@ -2249,7 +2258,7 @@ function renderComisiones(){
       "</tr>";
     } else {
       // Semana individual
-      var sf=xSEM_FECHAS[semIdx];
+      var sf=semsActivas[semIdx];
       var ventas=getVentasSede(sede,sf.desde,sf.hasta);
       var meta=metas[semIdx];
       var pct=meta>0?Math.round(ventas/meta*100):0;
@@ -2305,7 +2314,7 @@ function renderComisiones(){
   // KPIs
   var sedesOk=rankData.length>0?rankData.filter(function(r){return r.pct>=80;}).length:
     Object.keys(xMETAS_SEM).filter(function(sede){
-      var sf=xSEM_FECHAS[semIdx]||{};
+      var sf=semsActivas[semIdx]||{};
       var v=esMes?0:getVentasSede(sede,sf.desde,sf.hasta);
       var m=esMes?xMETAS_SEM[sede][4]:xMETAS_SEM[sede][semIdx];
       return m>0&&v/m>=0.8;
