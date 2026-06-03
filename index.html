@@ -2174,13 +2174,13 @@ function _actualizarDropdownComisiones(meses, mkActual){
     sel.innerHTML+='<option value="'+mk+'">'+mesLabel(mk)+'</option>';
   });
   sel.value=prev&&xMETAS_HIST[prev]?prev:mkActual;
-  setComMes(sel.value);
+  // Solo actualizar key, NO llamar renderComisiones aquí para evitar conflictos
+  xCOM_MES_KEY=sel.value;
 }
 
 function _actualizarDropdownMetas(meses, mkActual){
   var sel=document.getElementById("metas-mes-sel"); if(!sel) return;
   var prev=sel.value||mkActual;
-  // Solo mostrar meses que tengan datos de META (hardcodeados)
   var mesesConMeta=meses.filter(function(mk){
     return mk==="2026-04"||mk==="2026-05"||mk==="2026-06";
   });
@@ -2188,10 +2188,11 @@ function _actualizarDropdownMetas(meses, mkActual){
   mesesConMeta.forEach(function(mk){
     var opt=document.createElement("option");
     opt.value=mk; opt.textContent=mesLabel(mk);
-    if(mk===prev) opt.selected=true;
+    if(mk===prev||(!sel.value&&mk===mkActual)) opt.selected=true;
     sel.appendChild(opt);
   });
-  if(!sel.value) sel.value=mkActual;
+  // Solo actualizar MES_METAS, NO llamar renderMetas aquí
+  MES_METAS=sel.value||mkActual;
 }
 
 function getSemanasDelMes(yr, mo){
