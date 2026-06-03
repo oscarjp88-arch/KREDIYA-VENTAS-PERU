@@ -2180,7 +2180,6 @@ function cargarPresupuesto(){
       xSEM_FECHAS=xSEM_FECHAS_MES[mkActual]||xSEM_FECHAS;
       // Actualizar dropdowns de comisiones y metas
       _actualizarDropdownComisiones(meses, mkActual);
-      _actualizarDropdownMetas(meses, mkActual);
     })
     .catch(function(){ /* usar datos hardcodeados si falla */ });
 }
@@ -2197,22 +2196,6 @@ function _actualizarDropdownComisiones(meses, mkActual){
   xCOM_MES_KEY=sel.value;
 }
 
-function _actualizarDropdownMetas(meses, mkActual){
-  var sel=document.getElementById("metas-mes-sel"); if(!sel) return;
-  var prev=sel.value||mkActual;
-  var mesesConMeta=meses.filter(function(mk){
-    return mk==="2026-04"||mk==="2026-05"||mk==="2026-06";
-  });
-  sel.innerHTML="";
-  mesesConMeta.forEach(function(mk){
-    var opt=document.createElement("option");
-    opt.value=mk; opt.textContent=mesLabel(mk);
-    if(mk===prev||(!sel.value&&mk===mkActual)) opt.selected=true;
-    sel.appendChild(opt);
-  });
-  // Solo actualizar MES_METAS, NO llamar renderMetas aquí
-  MES_METAS=sel.value||mkActual;
-}
 
 function getSemanasDelMes(yr, mo){
   // Devuelve las 4 semanas laborales (lun-vie) del mes dado
