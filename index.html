@@ -1077,7 +1077,7 @@ function renderMetas(){
   document.getElementById('kpi-metas').innerHTML=[
     {l:'Meta del mes',v:metaTotalMes,c:'grey',s:mesLabelStr+' · '+dhTotal+' días hábiles'},
     {l:'Meta acum. hoy',v:Math.round(metaAcumTotal),c:'blue',s:'Día '+dhMostrado+' de '+dhTotal},
-    {l:'Real acumulado',v:realTotal,c:realTotal>=metaAcumTotal?'green':realTotal>=metaAcumTotal*.8?'amber':'red',s:'Ventas firmadas '+mesLabelStrStr},
+    {l:'Real acumulado',v:realTotal,c:realTotal>=metaAcumTotal?'green':realTotal>=metaAcumTotal*.8?'amber':'red',s:'Ventas firmadas '+mesLabelStr},
     {l:'Cumplimiento',v:pctTotal+'%',c:pctTotal>=100?'green':pctTotal>=80?'amber':'red',s:'vs. meta acumulada hoy'},
   ].map(function(k){
     return '<div class="kpi '+k.c+'"><div class="kpi-lbl">'+k.l+'</div><div class="kpi-val '+k.c+'">'+k.v+'</div><div class="kpi-sub">'+k.s+'</div></div>';
@@ -1089,12 +1089,12 @@ function renderMetas(){
   document.getElementById('prog-real-bar').style.width=pctRealBar.toFixed(1)+'%';
   document.getElementById('prog-real-bar').style.background=realTotal>=metaAcumTotal?'var(--green)':realTotal>=metaAcumTotal*.8?'var(--amber)':'var(--red)';
   document.getElementById('prog-meta-bar').style.width=pctMetaBar.toFixed(1)+'%';
-  document.getElementById('prog-left-label').textContent='Día '+dhMostrado+' de '+dhTotal+' hábiles ('+mesLabelStrStrStr+')';
+  document.getElementById('prog-left-label').textContent='Día '+dhMostrado+' de '+dhTotal+' hábiles ('+mesLabelStr+')';
   document.getElementById('prog-right-label').textContent=realTotal+' ventas reales / '+Math.round(metaAcumTotal)+' meta hoy / '+metaTotalMes+' meta mes';
-  document.getElementById('mes-prog-title').textContent='Progreso '+mesLabelStrStr;
+  document.getElementById('mes-prog-title').textContent='Progreso '+mesLabelStr;
 
   // ── TABLA POR TIENDA ──
-  document.getElementById('tabla-metas-title').textContent='Detalle por tienda — '+mesLabelStrStr;
+  document.getElementById('tabla-metas-title').textContent='Detalle por tienda — '+mesLabelStr;
   document.getElementById('tabla-metas-sub').textContent='Meta/día = Meta÷'+dhTotal+' días hábiles · Meta acum. = Meta/día × '+dhMostrado+' días';
 
   var tiendas=Object.keys(META).filter(function(t){return META[t].mes>0||porTienda[t]>0;});
@@ -1166,7 +1166,7 @@ function renderMetas(){
 
   // ── CHART METAS ──
   var tiend2=tiendas.filter(function(t){return META[t]&&META[t].mes>0;});
-  document.getElementById('chart-metas-title').textContent='Real vs. Meta acumulada (día '+dhMostrado+'/'+dhTotal+') — '+mesLabelStrStr;
+  document.getElementById('chart-metas-title').textContent='Real vs. Meta acumulada (día '+dhMostrado+'/'+dhTotal+') — '+mesLabelStr;
   mkChart('c-metas','bar',{
     labels:tiend2,
     datasets:[
