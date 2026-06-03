@@ -293,7 +293,8 @@ select.filter-sel:hover{border-color:var(--blue);}
       <button class="pill" id="sort-sede" onclick="setMetasSort('sede',this)">A-Z Sede</button>
       <select class="filter-sel" id="metas-mes-sel" onchange="setMetasMes(this.value)" style="font-size:12px;">
         <option value="2026-04">Abril 2026</option>
-        <option value="2026-05" selected>Mayo 2026</option>
+        <option value="2026-05">Mayo 2026</option>
+        <option value="2026-06" selected>Junio 2026</option>
       </select>
     </div>
   </div>
@@ -744,7 +745,33 @@ var META_MAY = {
 
 // Hoy
 var HOY=(function(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})();
-var MES_METAS = '2026-05'; // pestaña activa por defecto: MAYO
+// ── JUNIO 2026 ──────────────────────────────────────
+// 22 días hábiles (29 jun = San Pedro y San Pablo, feriado)
+var BDAYS_JUN = (function(){
+  var days=[]; var d=new Date(2026,5,1);
+  while(d.getMonth()===5){
+    var dow=d.getDay();
+    var iso=d.toISOString().slice(0,10);
+    if(dow>=1&&dow<=5&&iso!=='2026-06-29') days.push(iso);
+    d.setDate(d.getDate()+1);
+  }
+  return days;
+})();
+
+var META_JUN = {
+  'INDEPENDENCIA':          {mes:50, dh:22},
+  'MIRAFLORES':             {mes:40, dh:22},
+  'TRUJILLO':               {mes:40, dh:22},
+  'CERCADO DE LIMA':        {mes:40, dh:22},
+  'CHICLAYO':               {mes:40, dh:22},
+  'SAN JUAN DE MIRAFLORES': {mes:30, dh:22},
+  'ICA':                    {mes:20, dh:22},
+  'SAN JUAN DE LURIGANCHO': {mes:30, dh:22},
+  'PIURA':                  {mes:20, dh:22},
+  'AREQUIPA':               {mes:40, dh:22},
+};
+
+var MES_METAS = '2026-06'; // mes activo por defecto
 
 // ═══════════════════════════════════════════════════════
 // ESTADO
@@ -1004,10 +1031,10 @@ function setMetasMes(mes){
 }
 
 function renderMetas(){
-  var isAbr=MES_METAS==='2026-04';
-  var META=isAbr?META_ABR:META_MAY;
-  var BDAYS=isAbr?BDAYS_ABR:BDAYS_MAYO;
-  var mesLabel=isAbr?'Abril 2026':'Mayo 2026';
+  var META  = MES_METAS==='2026-04'?META_ABR  : MES_METAS==='2026-05'?META_MAY  : META_JUN;
+  var BDAYS = MES_METAS==='2026-04'?BDAYS_ABR : MES_METAS==='2026-05'?BDAYS_MAYO: BDAYS_JUN;
+  var mesLabelStr = MES_METAS==='2026-04'?'Abril 2026': MES_METAS==='2026-05'?'Mayo 2026':'Junio 2026';
+  var isAbr = MES_METAS==='2026-04'; // para compatibilidad (abril = mes cerrado)
   var dhTotal=diasHabilesTotales(BDAYS);
   var dhHoy=isAbr?dhTotal:diasHabilesHastaHoy(BDAYS); // abril = fin de mes
   // Para abril siempre mostrar el total (ya cerró)
@@ -1033,9 +1060,9 @@ function renderMetas(){
 
   // ── KPIs ──
   document.getElementById('kpi-metas').innerHTML=[
-    {l:'Meta del mes',v:metaTotalMes,c:'grey',s:mesLabel+' · '+dhTotal+' días hábiles'},
+    {l:'Meta del mes',v:metaTotalMes,c:'grey',s:mesLabelStr+' · '+dhTotal+' días hábiles'},
     {l:'Meta acum. hoy',v:Math.round(metaAcumTotal),c:'blue',s:'Día '+dhMostrado+' de '+dhTotal},
-    {l:'Real acumulado',v:realTotal,c:realTotal>=metaAcumTotal?'green':realTotal>=metaAcumTotal*.8?'amber':'red',s:'Ventas firmadas '+mesLabel},
+    {l:'Real acumulado',v:realTotal,c:realTotal>=metaAcumTotal?'green':realTotal>=metaAcumTotal*.8?'amber':'red',s:'Ventas firmadas '+mesLabelStrStr},
     {l:'Cumplimiento',v:pctTotal+'%',c:pctTotal>=100?'green':pctTotal>=80?'amber':'red',s:'vs. meta acumulada hoy'},
   ].map(function(k){
     return '<div class="kpi '+k.c+'"><div class="kpi-lbl">'+k.l+'</div><div class="kpi-val '+k.c+'">'+k.v+'</div><div class="kpi-sub">'+k.s+'</div></div>';
@@ -1047,12 +1074,12 @@ function renderMetas(){
   document.getElementById('prog-real-bar').style.width=pctRealBar.toFixed(1)+'%';
   document.getElementById('prog-real-bar').style.background=realTotal>=metaAcumTotal?'var(--green)':realTotal>=metaAcumTotal*.8?'var(--amber)':'var(--red)';
   document.getElementById('prog-meta-bar').style.width=pctMetaBar.toFixed(1)+'%';
-  document.getElementById('prog-left-label').textContent='Día '+dhMostrado+' de '+dhTotal+' hábiles ('+mesLabel+')';
+  document.getElementById('prog-left-label').textContent='Día '+dhMostrado+' de '+dhTotal+' hábiles ('+mesLabelStrStrStr+')';
   document.getElementById('prog-right-label').textContent=realTotal+' ventas reales / '+Math.round(metaAcumTotal)+' meta hoy / '+metaTotalMes+' meta mes';
-  document.getElementById('mes-prog-title').textContent='Progreso '+mesLabel;
+  document.getElementById('mes-prog-title').textContent='Progreso '+mesLabelStrStr;
 
   // ── TABLA POR TIENDA ──
-  document.getElementById('tabla-metas-title').textContent='Detalle por tienda — '+mesLabel;
+  document.getElementById('tabla-metas-title').textContent='Detalle por tienda — '+mesLabelStrStr;
   document.getElementById('tabla-metas-sub').textContent='Meta/día = Meta÷'+dhTotal+' días hábiles · Meta acum. = Meta/día × '+dhMostrado+' días';
 
   var tiendas=Object.keys(META).filter(function(t){return META[t].mes>0||porTienda[t]>0;});
@@ -1124,7 +1151,7 @@ function renderMetas(){
 
   // ── CHART METAS ──
   var tiend2=tiendas.filter(function(t){return META[t]&&META[t].mes>0;});
-  document.getElementById('chart-metas-title').textContent='Real vs. Meta acumulada (día '+dhMostrado+'/'+dhTotal+') — '+mesLabel;
+  document.getElementById('chart-metas-title').textContent='Real vs. Meta acumulada (día '+dhMostrado+'/'+dhTotal+') — '+mesLabelStrStr;
   mkChart('c-metas','bar',{
     labels:tiend2,
     datasets:[
@@ -2053,26 +2080,53 @@ function setComSort(tipo, btn){
 }
 
 // Metas por sede y semana
-var xMETAS_SEM = {
-  "INDEPENDENCIA":          [13,14,14,14,55],
-  "MIRAFLORES":             [14,14,13,14,55],
-  "CHICLAYO":               [13,13,12,12,50],
-  "TRUJILLO":               [14,13,14,14,55],
-  "CERCADO DE LIMA":        [11,11,12,11,45],
-  "SAN JUAN DE MIRAFLORES": [10,10,10,10,40],
-  "ICA":                    [6, 6, 7, 6, 25],
-  "SAN JUAN DE LURIGANCHO": [8, 9, 9, 9, 35],
-  "PIURA":                  [6, 6, 6, 7, 25],
-  "AREQUIPA":               [7, 6, 6, 6, 25],
+// ── Metas de comisión por mes ──────────────────────────────
+// Formato: [sem1, sem2, sem3, sem4, meta_mensual]
+var xMETAS_HIST = {
+  "2026-05": {
+    "INDEPENDENCIA":          [13,14,14,14,55],
+    "MIRAFLORES":             [14,14,13,14,55],
+    "CHICLAYO":               [13,13,12,12,50],
+    "TRUJILLO":               [14,13,14,14,55],
+    "CERCADO DE LIMA":        [11,11,12,11,45],
+    "SAN JUAN DE MIRAFLORES": [10,10,10,10,40],
+    "ICA":                    [6, 6, 7, 6, 25],
+    "SAN JUAN DE LURIGANCHO": [8, 9, 9, 9, 35],
+    "PIURA":                  [6, 6, 6, 7, 25],
+    "AREQUIPA":               [7, 6, 6, 6, 25],
+  },
+  "2026-06": {
+    "INDEPENDENCIA":          [10,15,12,13,50],
+    "MIRAFLORES":             [7, 13, 8, 12,40],
+    "CHICLAYO":               [7, 13, 8, 12,40],
+    "TRUJILLO":               [7, 13, 8, 12,40],
+    "CERCADO DE LIMA":        [7, 13, 8, 12,40],
+    "SAN JUAN DE MIRAFLORES": [5, 10, 6,  9,30],
+    "ICA":                    [4,  7, 4,  5,20],
+    "SAN JUAN DE LURIGANCHO": [5, 10, 6,  9,30],
+    "PIURA":                  [4,  7, 4,  5,20],
+    "AREQUIPA":               [7, 13, 8, 12,40],
+  }
 };
+// Mes actual de comisiones
+var xMETAS_SEM = xMETAS_HIST["2026-06"];
 
-// Fechas de cada semana (lunes-viernes)
-var xSEM_FECHAS = [
-  {label:"Semana 1 - 4 al 8 mayo",   desde:"2026-05-04", hasta:"2026-05-08"},
-  {label:"Semana 2 - 11 al 15 mayo",  desde:"2026-05-11", hasta:"2026-05-15"},
-  {label:"Semana 3 - 18 al 22 mayo",  desde:"2026-05-18", hasta:"2026-05-22"},
-  {label:"Semana 4 - 25 al 29 mayo",  desde:"2026-05-25", hasta:"2026-05-29"},
-];
+// ── Fechas de semanas por mes ──────────────────────────────
+var xSEM_FECHAS_MES = {
+  "2026-05": [
+    {label:"Semana 1 - 4 al 8 mayo",   desde:"2026-05-04", hasta:"2026-05-08"},
+    {label:"Semana 2 - 11 al 15 mayo",  desde:"2026-05-11", hasta:"2026-05-15"},
+    {label:"Semana 3 - 18 al 22 mayo",  desde:"2026-05-18", hasta:"2026-05-22"},
+    {label:"Semana 4 - 25 al 29 mayo",  desde:"2026-05-25", hasta:"2026-05-29"},
+  ],
+  "2026-06": [
+    {label:"Semana 1 - 1 al 5 jun",    desde:"2026-06-01", hasta:"2026-06-05"},
+    {label:"Semana 2 - 8 al 12 jun",   desde:"2026-06-08", hasta:"2026-06-12"},
+    {label:"Semana 3 - 15 al 19 jun",  desde:"2026-06-15", hasta:"2026-06-19"},
+    {label:"Semana 4 - 22 al 30 jun",  desde:"2026-06-22", hasta:"2026-06-30"},
+  ]
+};
+var xSEM_FECHAS = xSEM_FECHAS_MES["2026-06"];
 
 var xCOM_MES_KEY = ""; // "2026-05" u otro mes
 
@@ -2162,24 +2216,26 @@ function renderComisiones(){
     return;
   }
 
-  var sedes = Object.keys(xMETAS_SEM);
   var semIdx = xCOM_SEM - 1;
   var esMes = xCOM_SEM === 0;
 
   // Calcular rango del mes seleccionado
-  var mk = xCOM_MES_KEY || "2026-05";
+  var mk = xCOM_MES_KEY || "2026-06";
   var mkYr=parseInt(mk.split("-")[0]), mkMo=parseInt(mk.split("-")[1])-1;
   var mkHoy=new Date(); var esActual=(mkYr===mkHoy.getFullYear()&&mkMo===mkHoy.getMonth());
   var mesDesde=mk+"-01";
   var mesHasta=mk+"-"+String(new Date(mkYr,mkMo+1,0).getDate()).padStart(2,"0");
   var mesNombre=mesLabel(mk);
-  // Semanas del mes seleccionado (usar xSEM_FECHAS si es actual, calculadas si es histórico)
-  var semsActivas=esActual ? xSEM_FECHAS : getSemanasDelMes(mkYr,mkMo);
+  // Semanas: usar las definidas si existen, sino calcular
+  var semsActivas=xSEM_FECHAS_MES[mk] || getSemanasDelMes(mkYr,mkMo);
+  // Metas: usar las del mes correspondiente si existen, sino usar mes actual
+  var xMETAS_MK=xMETAS_HIST[mk] || xMETAS_SEM;
+  var sedes=Object.keys(xMETAS_MK);
 
   // Ordenar sedes según botón activo
   sedes.sort(function(a,b){
     var getVal = function(sede){
-      var metas = xMETAS_SEM[sede];
+      var metas = xMETAS_MK[sede];
       if(esMes){
         var v=0;
         for(var s=0;s<4;s++){var sf2=semsActivas[s];v+=getVentasSede(sede,sf2.desde,sf2.hasta);}
@@ -2227,7 +2283,7 @@ function renderComisiones(){
   var rankData=[];
 
   var tbodyHTML = sedes.map(function(sede){
-    var metas = xMETAS_SEM[sede];
+    var metas = xMETAS_MK[sede];
 
     if(esMes){
       // Mes completo
@@ -2316,7 +2372,7 @@ function renderComisiones(){
     Object.keys(xMETAS_SEM).filter(function(sede){
       var sf=semsActivas[semIdx]||{};
       var v=esMes?0:getVentasSede(sede,sf.desde,sf.hasta);
-      var m=esMes?xMETAS_SEM[sede][4]:xMETAS_SEM[sede][semIdx];
+      var m=esMes?xMETAS_MK[sede][4]:xMETAS_MK[sede][semIdx];
       return m>0&&v/m>=0.8;
     }).length;
   var totalCom=(totalComAsesor+totalComSup).toFixed(0);
