@@ -924,15 +924,19 @@ function applyFilters(){
 // ═══════════════════════════════════════════════════════
 function renderAll(){
   var rows=FILTERED;
-  renderKPIs(rows);
-  renderRanking(rows);
-  renderDetalle(rows);
-  // Gráficos con pequeño delay para que el browser calcule dimensiones CSS primero
+  try{renderKPIs(rows);}catch(e){console.error('KPIs:',e);}
+  try{renderRanking(rows);}catch(e){
+    console.error('Ranking error:',e);
+    var w=document.getElementById('ranking-wrap');
+    if(w) w.innerHTML='<p style="color:red;padding:8px;font-size:11px">Error ranking: '+e.message+'</p>';
+  }
+  try{renderDetalle(rows);}catch(e){console.error('Detalle:',e);}
+  // Gráficos con delay para que el browser calcule dimensiones CSS
   setTimeout(function(){
     try{renderChartDias(rows);}catch(e){console.error('chartDias:',e);}
     try{renderChartProd(rows);}catch(e){console.error('chartProd:',e);}
-    try{renderTiendas(rows);}catch(e){}
-    try{renderTendencia(rows);}catch(e){}
+    try{renderTiendas(rows);}catch(e){console.error('Tiendas:',e);}
+    try{renderTendencia(rows);}catch(e){console.error('Tendencia:',e);}
   }, 80);
 }
 
@@ -1014,6 +1018,7 @@ function renderRanking(rows){
   var mx=ent[0]?ent[0][1]:1;
   var COLS=['#1a73e8','#34a853','#fbbc04','#ea4335','#9334e6','#00bcd4','#ff5722'];
   var wrap=document.getElementById('ranking-wrap');
+  if(!wrap){console.warn('ranking-wrap no encontrado');return;}
   if(!ent.length){wrap.innerHTML='<div class="empty">Sin datos — carga tu CSV</div>';return;}
   wrap.innerHTML='<table class="tbl"><thead><tr><th>Tienda</th><th>Distribución</th><th class="r">Ventas</th><th class="r">%</th></tr></thead><tbody>'+
     ent.map(function(e,i){
