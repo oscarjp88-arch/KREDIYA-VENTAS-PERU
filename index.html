@@ -924,16 +924,16 @@ function applyFilters(){
 // ═══════════════════════════════════════════════════════
 function renderAll(){
   var rows=FILTERED;
-  // DEBUG TEMPORAL
-  var rw=document.getElementById('ranking-wrap');
-  if(rw) rw.innerHTML='<p style="color:blue;font-size:11px;padding:8px">renderAll ejecutado. rows='+rows.length+' | Chart.js='+(typeof Chart)+'</p>';
   renderKPIs(rows);
-  try{renderChartDias(rows);}catch(e){console.error('renderChartDias:',e); var rw2=document.getElementById('ranking-wrap'); if(rw2) rw2.innerHTML+='<p style="color:red;font-size:10px">ERROR chartDias: '+e.message+'</p>';}
-  try{renderChartProd(rows);}catch(e){console.error('renderChartProd:',e);}
-  try{renderRanking(rows);}catch(e){console.error('renderRanking:',e); var w=document.getElementById('ranking-wrap'); if(w)w.innerHTML='<p style="color:red;font-size:11px">Error ranking: '+e.message+'</p>';}
-  try{renderTiendas(rows);}catch(e){console.error('renderTiendas:',e);}
-  try{renderTendencia(rows);}catch(e){console.error('renderTendencia:',e);}
+  renderRanking(rows);
   renderDetalle(rows);
+  // Gráficos con pequeño delay para que el browser calcule dimensiones CSS primero
+  setTimeout(function(){
+    try{renderChartDias(rows);}catch(e){console.error('chartDias:',e);}
+    try{renderChartProd(rows);}catch(e){console.error('chartProd:',e);}
+    try{renderTiendas(rows);}catch(e){}
+    try{renderTendencia(rows);}catch(e){}
+  }, 80);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -984,14 +984,6 @@ function renderChartDias(rows){
   var bd={};
   fin.forEach(function(r){var d=parseFecha(r['Fecha Venta']);if(d){var k=toISO(d);bd[k]=(bd[k]||0)+1;}});
   var ent=Object.entries(bd).sort(function(a,b){return a[0].localeCompare(b[0]);});
-  // Debug temporal
-  var box=document.getElementById('c-dias');
-  if(box&&box.parentNode){
-    var dbg=document.createElement('div');
-    dbg.style.cssText='font-size:10px;color:#888;padding:4px;';
-    dbg.textContent='Chart.js: '+(typeof Chart)+' | Registros firmados: '+fin.length+' | Puntos: '+ent.length;
-    box.parentNode.insertBefore(dbg,box);
-  }
   if(!ent.length) return;
   mkChart('c-dias','bar',{
     labels:ent.map(function(e){return e[0].slice(5);}),
