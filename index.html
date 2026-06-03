@@ -924,8 +924,11 @@ function applyFilters(){
 // ═══════════════════════════════════════════════════════
 function renderAll(){
   var rows=FILTERED;
+  // DEBUG TEMPORAL
+  var rw=document.getElementById('ranking-wrap');
+  if(rw) rw.innerHTML='<p style="color:blue;font-size:11px;padding:8px">renderAll ejecutado. rows='+rows.length+' | Chart.js='+(typeof Chart)+'</p>';
   renderKPIs(rows);
-  try{renderChartDias(rows);}catch(e){console.error('renderChartDias:',e);}
+  try{renderChartDias(rows);}catch(e){console.error('renderChartDias:',e); var rw2=document.getElementById('ranking-wrap'); if(rw2) rw2.innerHTML+='<p style="color:red;font-size:10px">ERROR chartDias: '+e.message+'</p>';}
   try{renderChartProd(rows);}catch(e){console.error('renderChartProd:',e);}
   try{renderRanking(rows);}catch(e){console.error('renderRanking:',e); var w=document.getElementById('ranking-wrap'); if(w)w.innerHTML='<p style="color:red;font-size:11px">Error ranking: '+e.message+'</p>';}
   try{renderTiendas(rows);}catch(e){console.error('renderTiendas:',e);}
