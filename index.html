@@ -981,6 +981,15 @@ function renderChartDias(rows){
   var bd={};
   fin.forEach(function(r){var d=parseFecha(r['Fecha Venta']);if(d){var k=toISO(d);bd[k]=(bd[k]||0)+1;}});
   var ent=Object.entries(bd).sort(function(a,b){return a[0].localeCompare(b[0]);});
+  // Debug temporal
+  var box=document.getElementById('c-dias');
+  if(box&&box.parentNode){
+    var dbg=document.createElement('div');
+    dbg.style.cssText='font-size:10px;color:#888;padding:4px;';
+    dbg.textContent='Chart.js: '+(typeof Chart)+' | Registros firmados: '+fin.length+' | Puntos: '+ent.length;
+    box.parentNode.insertBefore(dbg,box);
+  }
+  if(!ent.length) return;
   mkChart('c-dias','bar',{
     labels:ent.map(function(e){return e[0].slice(5);}),
     datasets:[{label:'Firmadas',data:ent.map(function(e){return e[1];}),backgroundColor:'rgba(26,115,232,.7)',borderColor:'#1a73e8',borderWidth:1,borderRadius:2}]
