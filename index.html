@@ -925,11 +925,11 @@ function applyFilters(){
 function renderAll(){
   var rows=FILTERED;
   renderKPIs(rows);
-  renderChartDias(rows);
-  renderChartProd(rows);
-  renderRanking(rows);
-  renderTiendas(rows);
-  renderTendencia(rows);
+  try{renderChartDias(rows);}catch(e){console.error('renderChartDias:',e);}
+  try{renderChartProd(rows);}catch(e){console.error('renderChartProd:',e);}
+  try{renderRanking(rows);}catch(e){console.error('renderRanking:',e); var w=document.getElementById('ranking-wrap'); if(w)w.innerHTML='<p style="color:red;font-size:11px">Error ranking: '+e.message+'</p>';}
+  try{renderTiendas(rows);}catch(e){console.error('renderTiendas:',e);}
+  try{renderTendencia(rows);}catch(e){console.error('renderTendencia:',e);}
   renderDetalle(rows);
 }
 
@@ -964,9 +964,17 @@ function renderKPIs(rows){
 // CHARTS
 // ═══════════════════════════════════════════════════════
 function mkChart(id,type,data,opts){
-  if(CHARTS[id])CHARTS[id].destroy();
-  var ctx=document.getElementById(id);if(!ctx)return;
-  CHARTS[id]=new Chart(ctx,{type:type,data:data,options:Object.assign({responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},color:'#5f6368'},opts||{})});
+  try{
+    if(CHARTS[id]){try{CHARTS[id].destroy();}catch(e){}}
+    var ctx=document.getElementById(id);
+    if(!ctx){console.warn('mkChart: canvas no encontrado: '+id);return;}
+    var config={type:type,data:data,options:Object.assign({responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}},opts||{})};
+    CHARTS[id]=new Chart(ctx,config);
+  }catch(err){
+    console.error('mkChart error en '+id+':',err);
+    var box=document.getElementById(id);
+    if(box&&box.parentNode){box.parentNode.innerHTML='<div style="color:#d93025;font-size:11px;padding:8px;">Error: '+err.message+'</div>';}
+  }
 }
 function renderChartDias(rows){
   var fin=rows.filter(esFirmado);
