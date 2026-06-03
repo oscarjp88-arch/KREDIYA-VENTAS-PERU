@@ -853,7 +853,17 @@ function initData(rows,fname){
   buildMesPills();
   buildSelects();
   applyFilters();
-  renderMetas();
+  // Detectar mes más reciente del CSV y asignarlo a MES_METAS
+  var _mesesCSV={};
+  ALL.forEach(function(r){var d=parseFecha(r['Fecha Venta']);if(d)_mesesCSV[toMesKey(d)]=true;});
+  var _mesesOrden=Object.keys(_mesesCSV).sort();
+  if(_mesesOrden.length){
+    var _mesReciente=_mesesOrden[_mesesOrden.length-1];
+    if(_mesReciente==='2026-04'||_mesReciente==='2026-05'||_mesReciente==='2026-06') MES_METAS=_mesReciente;
+    var _sel=document.getElementById('metas-mes-sel');
+    if(_sel) _sel.value=MES_METAS;
+  }
+  try{renderMetas();}catch(e){console.error('renderMetas error:',e);}
   // Inicializar comisiones después de renderAll, sin bloquear
   try{ if(xCOM_MES_KEY) setComMes(xCOM_MES_KEY); } catch(e){}
 }
