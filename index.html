@@ -216,6 +216,7 @@ select.filter-sel:hover{border-color:var(--blue);}
   <div class="tab" onclick="showTab('stock',this)">📦 Stock</div>
   <div class="tab" onclick="showTab('compras',this)">🛒 Compras</div>
   <div class="tab" onclick="showTab('comisiones',this)">💰 Comisiones</div>
+  <div class="tab" onclick="showTab('ventasdiarias',this)">📅 Ventas Diarias</div>
   <div class="tab" onclick="showTab('precios',this)">🏷️ Histórico Precios</div>
 </div>
 
@@ -580,10 +581,10 @@ select.filter-sel:hover{border-color:var(--blue);}
 
   <!-- Ranking mensual -->
   <div class="sheet" style="margin-top:14px;">
-    <div class="sheet-hdr"><span class="sheet-hdr-title">Ranking mensual acumulado</span></div>
+    <div class="sheet-hdr"><span class="sheet-hdr-title" id="com-ranking-title">Ranking mensual acumulado</span></div>
     <div style="overflow-x:auto;">
       <table class="tbl">
-        <thead><tr>
+        <thead id="com-ranking-thead-wrap"><tr id="com-ranking-thead">
           <th>#</th>
           <th style="text-align:left">SEDE</th>
           <th style="text-align:center">Ventas mes</th>
@@ -594,6 +595,30 @@ select.filter-sel:hover{border-color:var(--blue);}
           <th style="text-align:center">Premio ranking</th>
         </tr></thead>
         <tbody id="com-ranking"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ VENTAS DIARIAS POR CASA ═══════════════════════════════ -->
+<div id="tab-ventasdiarias" class="panel">
+  <div class="sec-hdr">
+    <div class="sec-title">Ventas finalizadas por día y por sede</div>
+    <div class="sec-actions" style="display:flex;align-items:center;gap:8px;">
+      <span style="font-size:11px;font-weight:700;color:var(--grey2);">Mes:</span>
+      <select class="filter-sel" id="vd-mes-sel" onchange="setVDMes(this.value)" style="font-size:11px;"></select>
+    </div>
+  </div>
+
+  <div class="kpi-grid" id="vd-kpis" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px;"></div>
+
+  <div class="sheet">
+    <div class="sheet-hdr"><span class="sheet-hdr-title" id="vd-titulo">Detalle diario por sede</span></div>
+    <div style="overflow-x:auto;max-height:560px;">
+      <table class="tbl">
+        <thead id="vd-thead"></thead>
+        <tbody id="vd-tbody"></tbody>
+        <tfoot id="vd-tfoot"></tfoot>
       </table>
     </div>
   </div>
@@ -1317,6 +1342,96 @@ function renderDetalle(rows){
 // ═══════════════════════════════════════════════════════
 // TABS
 // ═══════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
+// VENTAS DIARIAS POR CASA
+// ══════════════════════════════════════════════════════════════
+var xVD_MES = "";
+
+function buildVDMesSelect(){
+  var set={};
+  ALL.forEach(function(r){var d=parseFecha(r['Fecha Venta']);if(d)set[toMesKey(d)]=true;});
+  var meses=Object.keys(set).sort();
+  var sel=document.getElementById('vd-mes-sel');
+  if(!sel) return;
+  var prev=xVD_MES;
+  sel.innerHTML='';
+  meses.forEach(function(k){sel.innerHTML+='<option value="'+k+'">'+mesLabel(k)+'</option>';});
+  xVD_MES = (prev&&meses.indexOf(prev)>=0) ? prev : (meses.length?meses[meses.length-1]:"");
+  sel.value=xVD_MES;
+}
+function setVDMes(mk){
+  xVD_MES=mk;
+  renderVentasDiarias();
+}
+function renderVentasDiarias(){
+  if(!ALL||!ALL.length||!xVD_MES){
+    document.getElementById('vd-tbody').innerHTML="<tr><td style=\"text-align:center;padding:20px;color:var(--grey2)\">Carga el CSV primero</td></tr>";
+    return;
+  }
+  var yr=parseInt(xVD_MES.split("-")[0]), mo=parseInt(xVD_MES.split("-")[1])-1;
+  var diasEnMes=new Date(yr,mo+1,0).getDate();
+
+  // Ventas finalizadas del mes, agrupadas por día y por sede
+  var sedesSet={};
+  var porDia={}; // {iso: {sede: count, __total: n}}
+  ALL.forEach(function(r){
+    if(!esFirmado(r)) return;
+    var d=parseFecha(r["Fecha Venta"]); if(!d) return;
+    if(toMesKey(d)!==xVD_MES) return;
+    var iso=toISO(d);
+    var sede=r["Tienda Venta"]||"—";
+    sedesSet[sede]=true;
+    if(!porDia[iso]) porDia[iso]={__total:0};
+    porDia[iso][sede]=(porDia[iso][sede]||0)+1;
+    porDia[iso].__total++;
+  });
+  var sedes=Object.keys(sedesSet).sort();
+
+  // Encabezado: Fecha + una columna por sede + Total
+  var thead="<tr><th style=\"text-align:left;min-width:110px\">FECHA</th>";
+  sedes.forEach(function(s){thead+="<th style=\"text-align:center;min-width:70px\">"+s+"</th>";});
+  thead+="<th style=\"text-align:center;font-weight:800\">TOTAL</th></tr>";
+  document.getElementById('vd-thead').innerHTML=thead;
+
+  // Filas: todos los días con al menos una venta, ordenados descendente (más reciente primero)
+  var diasConVentas=Object.keys(porDia).sort().reverse();
+  var totalesSede={}; sedes.forEach(function(s){totalesSede[s]=0;});
+  var totalMes=0;
+
+  var tbody=diasConVentas.map(function(iso){
+    var d=new Date(iso+"T00:00:00");
+    var diaLabel=d.toLocaleDateString('es-PE',{weekday:'short',day:'2-digit',month:'short'});
+    var fila="<tr onmouseover=\"this.style.background='var(--sh)'\" onmouseout=\"this.style.background=''\">"+
+      "<td style=\"font-weight:500\">"+diaLabel+"</td>";
+    sedes.forEach(function(s){
+      var v=porDia[iso][s]||0;
+      totalesSede[s]+=v;
+      fila+="<td style=\"text-align:center;font-family:var(--mono);"+(v>0?"font-weight:700":"color:var(--grey2)")+"\">"+(v>0?v:"—")+"</td>";
+    });
+    var tot=porDia[iso].__total;
+    totalMes+=tot;
+    fila+="<td style=\"text-align:center;font-weight:800;font-family:var(--mono);color:var(--blue)\">"+tot+"</td></tr>";
+    return fila;
+  }).join("");
+  document.getElementById('vd-tbody').innerHTML = tbody || "<tr><td colspan=\""+(sedes.length+2)+"\" style=\"text-align:center;padding:16px;color:var(--grey2)\">Sin ventas finalizadas este mes</td></tr>";
+
+  var tfoot="<tr style=\"background:var(--sh);font-weight:700\"><td>TOTAL MES</td>";
+  sedes.forEach(function(s){tfoot+="<td style=\"text-align:center;font-family:var(--mono)\">"+totalesSede[s]+"</td>";});
+  tfoot+="<td style=\"text-align:center;font-family:var(--mono);color:var(--blue)\">"+totalMes+"</td></tr>";
+  document.getElementById('vd-tfoot').innerHTML=tfoot;
+
+  // KPIs
+  var diasConVentasN=diasConVentas.length;
+  var promDia=diasConVentasN>0?(totalMes/diasConVentasN).toFixed(1):0;
+  var mejorDia=diasConVentas.reduce(function(best,iso){return (!best||porDia[iso].__total>porDia[best].__total)?iso:best;},null);
+  var mejorSede=sedes.reduce(function(best,s){return (!best||totalesSede[s]>totalesSede[best])?s:best;},null);
+  document.getElementById('vd-kpis').innerHTML=
+    "<div class=\"kpi blue\"><div class=\"kpi-lbl\">Ventas finalizadas mes</div><div class=\"kpi-val blue\">"+totalMes+"</div><div class=\"kpi-sub\">"+mesLabel(xVD_MES)+"</div></div>"+
+    "<div class=\"kpi green\"><div class=\"kpi-lbl\">Promedio diario</div><div class=\"kpi-val green\">"+promDia+"</div><div class=\"kpi-sub\">"+diasConVentasN+" días con venta</div></div>"+
+    "<div class=\"kpi amber\"><div class=\"kpi-lbl\">Mejor día</div><div class=\"kpi-val amber\">"+(mejorDia?porDia[mejorDia].__total:0)+"</div><div class=\"kpi-sub\">"+(mejorDia?new Date(mejorDia+"T00:00:00").toLocaleDateString('es-PE',{day:'2-digit',month:'short'}):"—")+"</div></div>"+
+    "<div class=\"kpi grey\"><div class=\"kpi-lbl\">Sede líder del mes</div><div class=\"kpi-val\" style=\"font-size:16px\">"+(mejorSede||"—")+"</div><div class=\"kpi-sub\">"+(mejorSede?totalesSede[mejorSede]+" ventas":"")+"</div></div>";
+}
+
 function showTab(id,btn){
   document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});
   document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
@@ -1328,6 +1443,7 @@ function showTab(id,btn){
   if(id==='stock') cargarStock();
   if(id==='compras'){ cargarCompras(); }
   if(id==='comisiones'){ cargarPresupuesto(); renderComisiones(); }
+  if(id==='ventasdiarias'){ buildVDMesSelect(); renderVentasDiarias(); }
   if(id==='precios') cargarPrecios();
 }
 
@@ -2141,6 +2257,94 @@ var xSEM_FECHAS_MES = {
 };
 var xSEM_FECHAS = xSEM_FECHAS_MES["2026-06"];
 
+// ══════════════════════════════════════════════════════════════
+// MOTOR DE COMISIONES JULIO 2026 — política nueva, por EMBAJADOR
+// Aislado del motor histórico (mayo/junio) que sigue igual arriba.
+// Fuente: Plan_Comisiones_Presupuesto_JulioKrediYa.docx
+// ══════════════════════════════════════════════════════════════
+var xJUL_MES_KEY = "2026-07";
+
+// Periodo comercial de julio (5 semanas, fechas exactas del documento)
+var xJUL_SEM_FECHAS = [
+  {label:"Semana 1 — 1 al 3 jul",   desde:"2026-07-01", hasta:"2026-07-03", dias:3},
+  {label:"Semana 2 — 6 al 10 jul",  desde:"2026-07-06", hasta:"2026-07-10", dias:5},
+  {label:"Semana 3 — 13 al 17 jul", desde:"2026-07-13", hasta:"2026-07-17", dias:5},
+  {label:"Semana 4 — 20 al 24 jul", desde:"2026-07-20", hasta:"2026-07-24", dias:5},
+  {label:"Semana 5 — 27 al 31 jul", desde:"2026-07-27", hasta:"2026-07-31", dias:5},
+];
+
+// Meta mensual por sede — PROVISIONAL: repartida proporcional al cierre
+// real de mayo 2026 (Presupuesto_Integral_Krediya2026.xlsx). Total = 350.
+// Editar estos valores cuando Oscar suba su propia distribución oficial.
+var xJUL_META_SEDE_TOTAL = {
+  "INDEPENDENCIA":          61,
+  "CHICLAYO":               57,
+  "CERCADO DE LIMA":        38,
+  "MIRAFLORES":             33,
+  "SAN JUAN DE LURIGANCHO": 33,
+  "TRUJILLO":               33,
+  "SAN JUAN DE MIRAFLORES": 27,
+  "AREQUIPA":               27,
+  "PIURA":                  24,
+  "ICA":                    17,
+};
+
+// Reparte la meta mensual de cada sede entre las 5 semanas, ponderado
+// por días hábiles de cada semana (3,5,5,5,5=23). Ajusta el residuo en
+// la última semana para que la suma siempre cuadre con el total mensual.
+function calcMetasSemanalesJulio(){
+  var out={};
+  var diasArr=xJUL_SEM_FECHAS.map(function(s){return s.dias;});
+  var diasTotal=diasArr.reduce(function(a,b){return a+b;},0);
+  Object.keys(xJUL_META_SEDE_TOTAL).forEach(function(sede){
+    var total=xJUL_META_SEDE_TOTAL[sede];
+    var arr=diasArr.map(function(d){return Math.floor(total*d/diasTotal);});
+    var suma=arr.reduce(function(a,b){return a+b;},0);
+    arr[arr.length-1]+=(total-suma);
+    out[sede]=arr;
+  });
+  return out;
+}
+var xJUL_METAS_SEM = calcMetasSemanalesJulio();
+
+// Tramos progresivos para embajadores: 1-5→S/5, 6-10→S/8, 11-15→S/10, 16+→S/12
+function calcTramosJulio(ventas){
+  var v=ventas, total=0, detalle=[];
+  var tramos=[{n:5,rate:5},{n:5,rate:8},{n:5,rate:10},{n:Infinity,rate:12}];
+  tramos.forEach(function(t){
+    if(v<=0) return;
+    var cant=Math.min(v,t.n);
+    total+=cant*t.rate;
+    if(cant>0) detalle.push(cant+"×S/"+t.rate);
+    v-=cant;
+  });
+  return {comision:total, detalle:detalle.join(" + ")};
+}
+
+// Bono por semanas cumplidas (sede llega a 100% de su meta semanal).
+// NOTA: el documento original solo tabula hasta 4 semanas; julio tiene 5.
+// Se aplica el mismo tope de S/100 a la 5ta semana — validar con Oscar.
+var xJUL_BONO_CUMPL = {0:0,1:30,2:50,3:80,4:100,5:100};
+
+function getEmbajadoresJulio(){
+  // Lista única de vendedores con al menos una venta finalizada en julio
+  var set={};
+  ALL.forEach(function(r){
+    if(!esFirmado(r)) return;
+    var d=parseFecha(r["Fecha Venta"]);
+    if(!d||toMesKey(d)!==xJUL_MES_KEY) return;
+    var v=r["Vendedor"]; if(!v) return;
+    if(!set[v]) set[v]={sedes:{}};
+    var sede=r["Tienda Venta"]||"—";
+    set[v].sedes[sede]=(set[v].sedes[sede]||0)+1;
+  });
+  return Object.keys(set).map(function(v){
+    var sedes=set[v].sedes;
+    var sedePrincipal=Object.keys(sedes).sort(function(a,b){return sedes[b]-sedes[a];})[0];
+    return {vendedor:v, sede:sedePrincipal};
+  });
+}
+
 var xCOM_MES_KEY = "";
 var xPRESUPUESTO_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSdQtTIWxFGi_l_84W1XI6d88N8SALN2mT74itaq41x_MG738VVnXb-8JLwM0EI836IEXDRClfZR2XW/pub?gid=1984199625&single=true&output=csv";
 
@@ -2212,35 +2416,59 @@ function getSemanasDelMes(yr, mo){
   return semanas;
 }
 
+// Encabezado por defecto de la tabla "ranking" (mayo/junio y meses históricos)
+var xCOM_RANKING_THEAD_DEFAULT =
+  "<th>#</th><th style=\"text-align:left\">SEDE</th>"+
+  "<th style=\"text-align:center\">Ventas mes</th><th style=\"text-align:center\">Meta mes</th>"+
+  "<th style=\"text-align:center\">% Mes</th><th style=\"text-align:center\">Semanas OK</th>"+
+  "<th style=\"text-align:center\">Bono S/250</th><th style=\"text-align:center\">Premio ranking</th>";
+
 function setComMes(mk){
   if(!mk) return;
   xCOM_MES_KEY = mk;
   var t=document.getElementById("com-main-titulo");
-  if(t) t.textContent="Liquidacion de Comisiones — "+mesLabel(mk);
+  var esJulio = (mk===xJUL_MES_KEY);
 
-  var yr=parseInt(mk.split("-")[0]), mo=parseInt(mk.split("-")[1])-1;
-  var hoy=new Date();
-  var esActual=(yr===hoy.getFullYear()&&mo===hoy.getMonth());
+  if(esJulio){
+    // ── Julio: 5 semanas comerciales con fechas fijas del documento ──
+    var pillsHTML='<span style="font-size:11px;font-weight:700;color:var(--grey2);">Ver semana:</span>';
+    xJUL_SEM_FECHAS.forEach(function(sf,i){
+      pillsHTML+='<button class="pill" data-sem="'+(i+1)+'" onclick="setComSem('+(i+1)+',this)">Sem '+(i+1)+' ('+sf.desde.slice(8)+'-'+sf.hasta.slice(8)+' jul)</button>';
+    });
+    pillsHTML+='<button class="pill active" data-sem="0" onclick="setComSem(0,this)">Mes completo</button>';
+    document.getElementById("com-sem-pills").innerHTML=pillsHTML;
+    xCOM_SEM=0; // por defecto, vista mes completo (más útil dado que hay 5 semanas)
+  } else {
+    // ── Meses históricos: restaurar estructura original de 4 semanas ──
+    if(t) t.textContent="Liquidacion de Comisiones — "+mesLabel(mk);
+    var rthead=document.getElementById("com-ranking-thead");
+    if(rthead) rthead.innerHTML = xCOM_RANKING_THEAD_DEFAULT;
+    var rtitle=document.getElementById("com-ranking-title");
+    if(rtitle) rtitle.textContent="Ranking mensual acumulado";
 
-  // Actualizar labels de los pills con las fechas del mes seleccionado
-  var sems=esActual ? xSEM_FECHAS : getSemanasDelMes(yr,mo);
-  var pills=document.querySelectorAll("#com-sem-pills .pill[data-sem]");
-  pills.forEach(function(b){
-    var s=parseInt(b.dataset.sem);
-    if(s>=1&&s<=4&&sems[s-1]) b.textContent="Sem "+s+" ("+sems[s-1].desde.slice(5).replace("-","/")+")";
-    if(s===0) b.textContent="Mes completo";
-  });
+    var yr=parseInt(mk.split("-")[0]), mo=parseInt(mk.split("-")[1])-1;
+    var hoy=new Date();
+    var esActual=(yr===hoy.getFullYear()&&mo===hoy.getMonth());
+    var sems=esActual ? xSEM_FECHAS : getSemanasDelMes(yr,mo);
 
-  if(esActual){
-    // Detectar semana actual y activarla
-    var hoyIso=hoy.getFullYear()+"-"+String(hoy.getMonth()+1).padStart(2,"0")+"-"+String(hoy.getDate()).padStart(2,"0");
-    var semActual=1;
-    for(var i=0;i<xSEM_FECHAS.length;i++){
-      if(hoyIso>=xSEM_FECHAS[i].desde&&hoyIso<=xSEM_FECHAS[i].hasta){semActual=i+1;break;}
+    var pillsHTML='<span style="font-size:11px;font-weight:700;color:var(--grey2);">Ver semana:</span>';
+    for(var s=1;s<=4;s++){
+      var lbl="Sem "+s+(sems[s-1]?" ("+sems[s-1].desde.slice(5).replace("-","/")+")":"");
+      pillsHTML+='<button class="pill" data-sem="'+s+'" onclick="setComSem('+s+',this)">'+lbl+'</button>';
     }
-    xCOM_SEM=semActual;
+    pillsHTML+='<button class="pill" data-sem="0" onclick="setComSem(0,this)">Mes completo</button>';
+    document.getElementById("com-sem-pills").innerHTML=pillsHTML;
+
+    if(esActual){
+      var hoyIso=hoy.getFullYear()+"-"+String(hoy.getMonth()+1).padStart(2,"0")+"-"+String(hoy.getDate()).padStart(2,"0");
+      var semActual=1;
+      for(var i=0;i<xSEM_FECHAS.length;i++){
+        if(hoyIso>=xSEM_FECHAS[i].desde&&hoyIso<=xSEM_FECHAS[i].hasta){semActual=i+1;break;}
+      }
+      xCOM_SEM=semActual;
+    }
+    // No cambiar xCOM_SEM para histórico: el usuario elige
   }
-  // No cambiar xCOM_SEM para histórico: el usuario elige
 
   document.querySelectorAll("#com-sem-pills .pill[data-sem]").forEach(function(b){
     b.classList.toggle("active", parseInt(b.dataset.sem||0)===xCOM_SEM);
@@ -2276,7 +2504,144 @@ function getComisionAsesor(ventas, meta){
   return {rate:0, label:"<80%", cls:"com-no"};
 }
 
+// ── Helpers julio: ventas por vendedor / por sede en un rango ──────
+function getVentasVendedor(vendedor, desde, hasta){
+  return ALL.filter(function(r){
+    if(!esFirmado(r)) return false;
+    if(r["Vendedor"]!==vendedor) return false;
+    var d=parseFecha(r["Fecha Venta"]); if(!d) return false;
+    var iso=toISO(d);
+    if(desde&&iso<desde) return false;
+    if(hasta&&iso>hasta) return false;
+    return true;
+  }).length;
+}
+function getVentasSedeJulio(sede, desde, hasta){
+  return getVentasSede(sede, desde, hasta); // misma lógica, reutilizada
+}
+
+// ══════════════════════════════════════════════════════════════
+// RENDER — Comisiones Julio (motor nuevo, aislado)
+// ══════════════════════════════════════════════════════════════
+function renderComisionesJulio(){
+  if(!ALL||!ALL.length){
+    document.getElementById("com-tbody").innerHTML=
+      "<tr><td colspan=\"5\" style=\"text-align:center;padding:20px;color:var(--grey2)\">Carga el CSV primero</td></tr>";
+    return;
+  }
+  var esMes = xCOM_SEM===0;
+  var sedes=Object.keys(xJUL_META_SEDE_TOTAL);
+  var embajadores=getEmbajadoresJulio();
+
+  // ── Tabla 1: EMBAJADORES ──
+  document.getElementById("com-thead").innerHTML =
+    "<tr><th style=\"text-align:left;min-width:170px\">EMBAJADOR</th>"+
+    "<th style=\"text-align:left;min-width:160px\">SEDE</th>"+
+    (esMes?
+      "<th style=\"text-align:center\">Ventas mes</th><th style=\"text-align:center\">Comisión mes</th>"
+      :
+      "<th style=\"text-align:center\">Ventas semana</th><th style=\"text-align:left\">Tramos aplicados</th><th style=\"text-align:center\">Comisión semana</th>"
+    )+"</tr>";
+
+  var totalComEmb=0, totalVentasEmb=0;
+  var embRows=embajadores.map(function(e){
+    if(esMes){
+      var vMes=0, cMes=0;
+      xJUL_SEM_FECHAS.forEach(function(sf){
+        var v=getVentasVendedor(e.vendedor, sf.desde, sf.hasta);
+        vMes+=v; cMes+=calcTramosJulio(v).comision;
+      });
+      totalVentasEmb+=vMes; totalComEmb+=cMes;
+      return "<tr><td style=\"font-weight:500\">"+e.vendedor+"</td><td>"+e.sede+"</td>"+
+        "<td style=\"text-align:center;font-weight:700;font-family:var(--mono)\">"+vMes+"</td>"+
+        "<td style=\"text-align:center;font-weight:700;font-family:var(--mono);color:var(--blue)\">S/ "+cMes+"</td></tr>";
+    } else {
+      var sf=xJUL_SEM_FECHAS[xCOM_SEM-1];
+      var v=getVentasVendedor(e.vendedor, sf.desde, sf.hasta);
+      var r=calcTramosJulio(v);
+      totalVentasEmb+=v; totalComEmb+=r.comision;
+      return "<tr><td style=\"font-weight:500\">"+e.vendedor+"</td><td>"+e.sede+"</td>"+
+        "<td style=\"text-align:center;font-weight:700;font-family:var(--mono)\">"+v+"</td>"+
+        "<td style=\"font-family:var(--mono);color:var(--grey2);font-size:11px\">"+(r.detalle||"—")+"</td>"+
+        "<td style=\"text-align:center;font-weight:700;font-family:var(--mono);color:var(--blue)\">S/ "+r.comision+"</td></tr>";
+    }
+  }).sort(function(a,b){return 0;}).join("");
+  document.getElementById("com-tbody").innerHTML = embRows || "<tr><td colspan=\"5\" style=\"text-align:center;padding:16px;color:var(--grey2)\">Sin ventas registradas en este periodo</td></tr>";
+  document.getElementById("com-tfoot").innerHTML =
+    "<tr style=\"background:var(--sh);font-weight:700\"><td colspan=\"2\">TOTAL</td>"+
+    (esMes?
+      "<td style=\"text-align:center;font-family:var(--mono)\">"+totalVentasEmb+"</td><td style=\"text-align:center;font-family:var(--mono);color:var(--blue)\">S/ "+totalComEmb+"</td>"
+      :
+      "<td style=\"text-align:center;font-family:var(--mono)\">"+totalVentasEmb+"</td><td></td><td style=\"text-align:center;font-family:var(--mono);color:var(--blue)\">S/ "+totalComEmb+"</td>"
+    )+"</tr>";
+
+  // ── Tabla 2: SEDES / SUPERVISOR (reutiliza el bloque "ranking") ──
+  var rtitle=document.getElementById("com-ranking-title");
+  if(rtitle) rtitle.textContent = esMes ? "Sedes — cumplimiento y comisión de supervisor (julio)" : "Sedes — periodo seleccionado (julio)";
+  var rthead=document.getElementById("com-ranking-thead");
+  if(rthead) rthead.innerHTML = esMes?
+    "<th style=\"text-align:left\">SEDE</th><th style=\"text-align:center\">Meta mes</th><th style=\"text-align:center\">Ventas mes</th>"+
+    "<th style=\"text-align:center\">% Mes</th><th style=\"text-align:center\">Semanas cumplidas</th>"+
+    "<th style=\"text-align:center\">Bono cumplimiento</th><th style=\"text-align:center\">Com. supervisor (S/2×venta)</th>"
+    :
+    "<th style=\"text-align:left\">SEDE</th><th style=\"text-align:center\">Meta semana</th><th style=\"text-align:center\">Ventas</th>"+
+    "<th style=\"text-align:center\">%</th><th style=\"text-align:center\">Estado</th><th style=\"text-align:center\">Com. supervisor (S/2×venta)</th><th></th>";
+
+  var totalVentasPais=0, totalMetaPais=0, totalBono=0, totalComSup=0;
+  var sedeRows=sedes.map(function(sede){
+    if(esMes){
+      var vMes=0, semCump=0;
+      for(var i=0;i<5;i++){
+        var sf=xJUL_SEM_FECHAS[i];
+        var m=xJUL_METAS_SEM[sede][i];
+        var v=getVentasSedeJulio(sede, sf.desde, sf.hasta);
+        vMes+=v;
+        if(m>0 && v/m>=1.0) semCump++;
+      }
+      var metaMes=xJUL_META_SEDE_TOTAL[sede];
+      var pct=metaMes>0?Math.round(vMes/metaMes*100):0;
+      var bono=xJUL_BONO_CUMPL[semCump]||0;
+      var comSup=vMes*2;
+      totalVentasPais+=vMes; totalMetaPais+=metaMes; totalBono+=bono; totalComSup+=comSup;
+      return "<tr><td style=\"font-weight:500\">"+sede+"</td>"+
+        "<td style=\"text-align:center;font-family:var(--mono)\">"+metaMes+"</td>"+
+        "<td style=\"text-align:center;font-weight:700;font-family:var(--mono)\">"+vMes+"</td>"+
+        "<td style=\"text-align:center;font-weight:700;font-family:var(--mono);color:"+(pct>=100?"var(--blue)":pct>=80?"var(--green)":"var(--red)")+"\">"+pct+"%</td>"+
+        "<td style=\"text-align:center\">"+semCump+"/5</td>"+
+        "<td style=\"text-align:center;font-family:var(--mono)\">"+(bono>0?"S/ "+bono:"—")+"</td>"+
+        "<td style=\"text-align:center;font-weight:700;font-family:var(--mono);color:var(--blue)\">S/ "+comSup+"</td></tr>";
+    } else {
+      var sf=xJUL_SEM_FECHAS[xCOM_SEM-1];
+      var m=xJUL_METAS_SEM[sede][xCOM_SEM-1];
+      var v=getVentasSedeJulio(sede, sf.desde, sf.hasta);
+      var pct=m>0?Math.round(v/m*100):0;
+      var comSup=v*2;
+      totalVentasPais+=v; totalMetaPais+=m; totalComSup+=comSup;
+      return "<tr><td style=\"font-weight:500\">"+sede+"</td>"+
+        "<td style=\"text-align:center;font-family:var(--mono)\">"+m+"</td>"+
+        "<td style=\"text-align:center;font-weight:700;font-family:var(--mono)\">"+v+"</td>"+
+        "<td style=\"text-align:center;font-weight:700;font-family:var(--mono);color:"+(pct>=100?"var(--blue)":pct>=80?"var(--green)":"var(--red)")+"\">"+pct+"%</td>"+
+        "<td style=\"text-align:center\"><span class=\"sbadge "+(pct>=100?"com-100":pct>=80?"com-ok":"com-no")+"\">"+(pct>=100?"Cumplida":pct>=80?"Parcial":"No cumplida")+"</span></td>"+
+        "<td style=\"text-align:center;font-weight:700;font-family:var(--mono);color:var(--blue)\">S/ "+comSup+"</td><td></td></tr>";
+    }
+  }).join("");
+  document.getElementById("com-ranking").innerHTML = sedeRows;
+
+  // ── KPIs ──
+  var pctPais=totalMetaPais>0?Math.round(totalVentasPais/totalMetaPais*100):0;
+  document.getElementById("com-kpis").innerHTML=
+    "<div class=\"kpi-card blue\"><div class=\"kpi-label\">Ventas periodo</div><div class=\"kpi-val\">"+totalVentasPais+"</div><div class=\"kpi-sub\">meta: "+totalMetaPais+"</div></div>"+
+    "<div class=\"kpi-card "+(pctPais>=100?"blue":pctPais>=80?"green":"red")+"\"><div class=\"kpi-label\">Cumplimiento</div><div class=\"kpi-val\">"+pctPais+"%</div><div class=\"kpi-sub\">vs meta periodo (350 mes)</div></div>"+
+    "<div class=\"kpi-card amber\"><div class=\"kpi-label\">Com. embajadores</div><div class=\"kpi-val\">S/ "+totalComEmb+"</div><div class=\"kpi-sub\">"+embajadores.length+" embajadores activos</div></div>"+
+    "<div class=\"kpi-card green\"><div class=\"kpi-label\">Com. supervisores</div><div class=\"kpi-val\">S/ "+totalComSup+"</div><div class=\"kpi-sub\">"+(esMes?"+ bono cumpl. S/ "+totalBono:"S/2 × venta efectiva")+"</div></div>";
+
+  // Nota de alcance visible (afiliaciones supervisor y bono pensionista excluidos por decisión de Oscar)
+  var titEl=document.getElementById("com-main-titulo");
+  if(titEl) titEl.innerHTML = "Liquidacion de Comisiones — Julio 2026 <span style=\"font-size:10px;font-weight:400;color:var(--grey2)\">(bono afiliaciones supervisor y bono pensionista: gestión manual, fuera de este cálculo)</span>";
+}
+
 function renderComisiones(){
+  if(xCOM_MES_KEY===xJUL_MES_KEY){ renderComisionesJulio(); return; }
   if(!ALL||!ALL.length){
     document.getElementById("com-tbody").innerHTML=
       "<tr><td colspan=\"10\" style=\"text-align:center;padding:20px;color:var(--grey2)\">Carga el CSV primero</td></tr>";
