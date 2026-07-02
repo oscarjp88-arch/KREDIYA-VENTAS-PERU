@@ -218,6 +218,7 @@ select.filter-sel:hover{border-color:var(--blue);}
   <div class="tab" onclick="showTab('comisiones',this)">💰 Comisiones</div>
   <div class="tab" onclick="showTab('ventasdiarias',this)">📅 Ventas Diarias</div>
   <div class="tab" onclick="showTab('precios',this)">🏷️ Histórico Precios</div>
+  <div class="tab" onclick="showTab('ventas',this)">📅 Ventas Diarias</div>
 </div>
 
 <div class="content">
@@ -288,7 +289,8 @@ select.filter-sel:hover{border-color:var(--blue);}
       <select class="filter-sel" id="metas-mes-sel" onchange="setMetasMes(this.value)" style="font-size:12px;">
         <option value="2026-04">Abril 2026</option>
         <option value="2026-05">Mayo 2026</option>
-        <option value="2026-06" selected>Junio 2026</option>
+        <option value="2026-06">Junio 2026</option>
+        <option value="2026-07" selected>Julio 2026</option>
       </select>
     </div>
   </div>
@@ -685,6 +687,52 @@ select.filter-sel:hover{border-color:var(--blue);}
   </div>
 </div>
 
+<!-- ═══ VENTAS DIARIAS ═══════════════════════════════ -->
+<div id="tab-ventas" class="panel">
+  <div class="sec-hdr">
+    <div class="sec-title">Ventas por día</div>
+    <div class="sec-actions" style="display:flex;gap:6px;align-items:center;">
+      <select class="filter-sel" id="vd-mes-sel" onchange="renderVentasDiarias()" style="font-size:12px;">
+        <option value="">Todos los meses</option>
+      </select>
+      <select class="filter-sel" id="vd-tienda-sel" onchange="renderVentasDiarias()" style="font-size:12px;">
+        <option value="">Todas las tiendas</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="kpi-grid" id="vd-kpis" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px;"></div>
+
+  <div class="chart-card" style="margin-bottom:14px;">
+    <div class="chart-title">Firmadas por día</div>
+    <div style="position:relative;height:200px;"><canvas id="c-vd"></canvas></div>
+  </div>
+
+  <div class="sheet">
+    <div class="sheet-hdr">
+      <span class="sheet-hdr-title">Detalle diario</span>
+      <span style="font-size:11px;color:var(--grey2);" id="vd-sub"></span>
+    </div>
+    <div class="tbl-scroll">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Día</th>
+            <th class="r">Firmadas</th>
+            <th class="r">Iniciadas</th>
+            <th class="r">Total</th>
+            <th>Top tienda</th>
+            <th>Top vendedor</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-vd"></tbody>
+        <tfoot id="tfoot-vd"></tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+
 </div><!-- /content -->
 
 <!-- INFO BAR -->
@@ -780,7 +828,34 @@ var META_JUN = {
   'AREQUIPA':               {mes:40, dh:22},
 };
 
-var MES_METAS = '2026-06'; // mes activo por defecto
+// ── JULIO 2026 ──────────────────────────────────────
+// 21 días hábiles (feriados: 28 y 29 julio = Fiestas Patrias)
+var BDAYS_JUL = (function(){
+  var days=[]; var d=new Date(2026,6,1);
+  var fer=['2026-07-28','2026-07-29'];
+  while(d.getMonth()===6){
+    var dow=d.getDay();
+    var iso=d.toISOString().slice(0,10);
+    if(dow>=1&&dow<=5&&fer.indexOf(iso)<0) days.push(iso);
+    d.setDate(d.getDate()+1);
+  }
+  return days;
+})();
+
+var META_JUL = {
+  'INDEPENDENCIA':          {mes:50, dh:21},
+  'MIRAFLORES':             {mes:40, dh:21},
+  'TRUJILLO':               {mes:40, dh:21},
+  'CERCADO DE LIMA':        {mes:40, dh:21},
+  'CHICLAYO':               {mes:40, dh:21},
+  'SAN JUAN DE MIRAFLORES': {mes:30, dh:21},
+  'ICA':                    {mes:20, dh:21},
+  'SAN JUAN DE LURIGANCHO': {mes:30, dh:21},
+  'PIURA':                  {mes:20, dh:21},
+  'AREQUIPA':               {mes:40, dh:21},
+};
+
+var MES_METAS = '2026-07'; // mes activo por defecto
 
 // ═══════════════════════════════════════════════════════
 // ESTADO
@@ -876,7 +951,7 @@ function initData(rows,fname){
   var _mesesOrden=Object.keys(_mesesCSV).sort();
   if(_mesesOrden.length){
     var _mesReciente=_mesesOrden[_mesesOrden.length-1];
-    if(_mesReciente==='2026-04'||_mesReciente==='2026-05'||_mesReciente==='2026-06') MES_METAS=_mesReciente;
+    if(_mesReciente==='2026-04'||_mesReciente==='2026-05'||_mesReciente==='2026-06'||_mesReciente==='2026-07') MES_METAS=_mesReciente;
     var _sel=document.getElementById('metas-mes-sel');
     if(_sel) _sel.value=MES_METAS;
   }
@@ -1070,9 +1145,9 @@ function setMetasMes(mes){
 }
 
 function renderMetas(){
-  var META  = MES_METAS==='2026-04'?META_ABR  : MES_METAS==='2026-05'?META_MAY  : META_JUN;
-  var BDAYS = MES_METAS==='2026-04'?BDAYS_ABR : MES_METAS==='2026-05'?BDAYS_MAYO: BDAYS_JUN;
-  var mesLabelStr = MES_METAS==='2026-04'?'Abril 2026': MES_METAS==='2026-05'?'Mayo 2026':'Junio 2026';
+  var META  = MES_METAS==='2026-04'?META_ABR  : MES_METAS==='2026-05'?META_MAY  : MES_METAS==='2026-07'?META_JUL  : META_JUN;
+  var BDAYS = MES_METAS==='2026-04'?BDAYS_ABR : MES_METAS==='2026-05'?BDAYS_MAYO: MES_METAS==='2026-07'?BDAYS_JUL : BDAYS_JUN;
+  var mesLabelStr = MES_METAS==='2026-04'?'Abril 2026': MES_METAS==='2026-05'?'Mayo 2026': MES_METAS==='2026-07'?'Julio 2026':'Junio 2026';
   var isAbr = MES_METAS==='2026-04'; // para compatibilidad (abril = mes cerrado)
   var dhTotal=diasHabilesTotales(BDAYS);
   var dhHoy=isAbr?dhTotal:diasHabilesHastaHoy(BDAYS); // abril = fin de mes
@@ -1445,6 +1520,7 @@ function showTab(id,btn){
   if(id==='comisiones'){ cargarPresupuesto(); renderComisiones(); }
   if(id==='ventasdiarias'){ buildVDMesSelect(); renderVentasDiarias(); }
   if(id==='precios') cargarPrecios();
+  if(id==='ventas') setTimeout(function(){ try{renderVentasDiarias();}catch(e){console.error('ventasDiarias:',e);} },80);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -2235,10 +2311,22 @@ var xMETAS_HIST = {
     "SAN JUAN DE LURIGANCHO": [5, 10, 6,  9,30],
     "PIURA":                  [4,  7, 4,  5,20],
     "AREQUIPA":               [7, 13, 8, 12,40],
+  },
+  "2026-07": {
+    "INDEPENDENCIA":          [12,15,13,10,50],
+    "MIRAFLORES":             [8, 12,10, 10,40],
+    "CHICLAYO":               [8, 12,10, 10,40],
+    "TRUJILLO":               [8, 12,10, 10,40],
+    "CERCADO DE LIMA":        [8, 12,10, 10,40],
+    "SAN JUAN DE MIRAFLORES": [5,  8, 8,  9,30],
+    "ICA":                    [3,  6, 6,  5,20],
+    "SAN JUAN DE LURIGANCHO": [5,  8, 8,  9,30],
+    "PIURA":                  [3,  6, 6,  5,20],
+    "AREQUIPA":               [8, 12,10, 10,40],
   }
 };
 // Mes actual de comisiones
-var xMETAS_SEM = xMETAS_HIST["2026-06"];
+var xMETAS_SEM = xMETAS_HIST["2026-07"];
 
 // ── Fechas de semanas por mes ──────────────────────────────
 var xSEM_FECHAS_MES = {
@@ -2253,9 +2341,15 @@ var xSEM_FECHAS_MES = {
     {label:"Semana 2 - 8 al 12 jun",   desde:"2026-06-08", hasta:"2026-06-12"},
     {label:"Semana 3 - 15 al 19 jun",  desde:"2026-06-15", hasta:"2026-06-19"},
     {label:"Semana 4 - 22 al 30 jun",  desde:"2026-06-22", hasta:"2026-06-30"},
+  ],
+  "2026-07": [
+    {label:"Semana 1 - 1 al 4 jul",    desde:"2026-07-01", hasta:"2026-07-04"},
+    {label:"Semana 2 - 7 al 11 jul",   desde:"2026-07-07", hasta:"2026-07-11"},
+    {label:"Semana 3 - 14 al 18 jul",  desde:"2026-07-14", hasta:"2026-07-18"},
+    {label:"Semana 4 - 21 al 31 jul",  desde:"2026-07-21", hasta:"2026-07-31"},
   ]
 };
-var xSEM_FECHAS = xSEM_FECHAS_MES["2026-06"];
+var xSEM_FECHAS = xSEM_FECHAS_MES["2026-07"];
 
 // ══════════════════════════════════════════════════════════════
 // MOTOR DE COMISIONES JULIO 2026 — política nueva, por EMBAJADOR
@@ -3220,6 +3314,120 @@ function cargarPrecios(){
       btn.textContent = "↺ Actualizar";
       st.textContent  = "Error: "+e.message;
     });
+}
+
+// ── VENTAS DIARIAS ──────────────────────────────────
+var _vdChart = null;
+function renderVentasDiarias(){
+  var mesSel = (document.getElementById('vd-mes-sel')||{}).value||'';
+  var tiendaSel = (document.getElementById('vd-tienda-sel')||{}).value||'';
+
+  // Poblar selector de mes si está vacío
+  var selMes = document.getElementById('vd-mes-sel');
+  if(selMes && selMes.options.length<=1){
+    var mesesSet={};
+    ALL.forEach(function(r){var d=parseFecha(r['Fecha Venta']);if(d)mesesSet[toMesKey(d)]=true;});
+    Object.keys(mesesSet).sort().forEach(function(mk){
+      var o=document.createElement('option');
+      o.value=mk;
+      var p=mk.split('-');
+      var nombres=['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+      o.textContent=nombres[parseInt(p[1])]+' '+p[0];
+      selMes.appendChild(o);
+    });
+    // Seleccionar el mes más reciente por defecto
+    var mks=Object.keys(mesesSet).sort();
+    if(mks.length&&!mesSel){selMes.value=mks[mks.length-1];mesSel=selMes.value;}
+  }
+
+  // Poblar selector de tienda si está vacío
+  var selTienda = document.getElementById('vd-tienda-sel');
+  if(selTienda && selTienda.options.length<=1){
+    var tSet={};
+    ALL.forEach(function(r){if(r['Tienda Venta'])tSet[r['Tienda Venta']]=true;});
+    Object.keys(tSet).sort().forEach(function(t){
+      var o=document.createElement('option');o.value=t;o.textContent=t;selTienda.appendChild(o);
+    });
+  }
+
+  // Filtrar datos
+  var rows=ALL.filter(function(r){
+    var d=parseFecha(r['Fecha Venta']);
+    if(!d) return false;
+    if(mesSel && toMesKey(d)!==mesSel) return false;
+    if(tiendaSel && r['Tienda Venta']!==tiendaSel) return false;
+    return true;
+  });
+
+  // Agrupar por fecha
+  var byDay={};
+  var DIAS=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  rows.forEach(function(r){
+    var d=parseFecha(r['Fecha Venta']);
+    if(!d) return;
+    var iso=toMesKey(d)+'-'+String(d.getDate()).padStart(2,'0');
+    if(!byDay[iso]) byDay[iso]={iso:iso,dow:DIAS[d.getDay()],firm:0,inic:0,total:0,tiendas:{},vendedores:{}};
+    var es=esFirmado(r);
+    if(es) byDay[iso].firm++;
+    else byDay[iso].inic++;
+    byDay[iso].total++;
+    var t=r['Tienda Venta']||'—';
+    byDay[iso].tiendas[t]=(byDay[iso].tiendas[t]||0)+(es?1:0);
+    var v=r['Vendedor']||'—';
+    byDay[iso].vendedores[v]=(byDay[iso].vendedores[v]||0)+(es?1:0);
+  });
+
+  var dias=Object.keys(byDay).sort();
+
+  // KPIs
+  var totFirm=dias.reduce(function(s,k){return s+byDay[k].firm;},0);
+  var totInic=dias.reduce(function(s,k){return s+byDay[k].inic;},0);
+  var maxDia=dias.reduce(function(mx,k){return byDay[k].firm>mx.v?{v:byDay[k].firm,d:byDay[k].iso}:mx;},{v:0,d:'—'});
+  var promDia=dias.length?Math.round(totFirm/dias.length*10)/10:0;
+
+  var kEl=document.getElementById('vd-kpis');
+  if(kEl) kEl.innerHTML=
+    '<div class="kpi green"><div class="kpi-lbl">Firmadas</div><div class="kpi-val green">'+totFirm+'</div><div class="kpi-sub">contratos firmados</div></div>'+
+    '<div class="kpi amber"><div class="kpi-lbl">Iniciadas</div><div class="kpi-val amber">'+totInic+'</div><div class="kpi-sub">en proceso</div></div>'+
+    '<div class="kpi blue"><div class="kpi-lbl">Mejor día</div><div class="kpi-val blue">'+maxDia.v+'</div><div class="kpi-sub">'+maxDia.d+'</div></div>'+
+    '<div class="kpi grey"><div class="kpi-lbl">Promedio/día</div><div class="kpi-val">'+promDia+'</div><div class="kpi-sub">firmadas por día hábil</div></div>';
+
+  var sub=document.getElementById('vd-sub');
+  if(sub) sub.textContent=dias.length+' días con ventas';
+
+  // Tabla
+  var tbody=document.getElementById('tbody-vd');
+  if(tbody){
+    tbody.innerHTML='';
+    dias.forEach(function(k,i){
+      var d=byDay[k];
+      var topT=Object.keys(d.tiendas).reduce(function(mx,t){return d.tiendas[t]>mx.v?{v:d.tiendas[t],n:t}:mx;},{v:0,n:'—'});
+      var topV=Object.keys(d.vendedores).reduce(function(mx,v){return d.vendedores[v]>mx.v?{v:d.vendedores[v],n:v}:mx;},{v:0,n:'—'});
+      var tr=document.createElement('tr');
+      tr.innerHTML='<td>'+d.iso+'</td><td>'+d.dow+'</td>'+
+        '<td class="r bld" style="color:var(--green)">'+d.firm+'</td>'+
+        '<td class="r" style="color:var(--amber)">'+d.inic+'</td>'+
+        '<td class="r">'+d.total+'</td>'+
+        '<td style="font-size:11px;">'+topT.n+(topT.v?'<span style="color:var(--grey2);margin-left:4px;">('+topT.v+')</span>':'')+'</td>'+
+        '<td style="font-size:11px;">'+topV.n+(topV.v?'<span style="color:var(--grey2);margin-left:4px;">('+topV.v+')</span>':'')+'</td>';
+      tbody.appendChild(tr);
+    });
+  }
+
+  var tfoot=document.getElementById('tfoot-vd');
+  if(tfoot) tfoot.innerHTML='<tr class="total"><td colspan="2">TOTAL</td><td class="r">'+totFirm+'</td><td class="r">'+totInic+'</td><td class="r">'+(totFirm+totInic)+'</td><td colspan="2"></td></tr>';
+
+  // Gráfico
+  var ctx=(document.getElementById('c-vd')||{}).getContext;
+  if(!ctx) return;
+  var labels=dias;
+  var data=dias.map(function(k){return byDay[k].firm;});
+  if(_vdChart){try{_vdChart.destroy();}catch(e){}}
+  _vdChart=new Chart(document.getElementById('c-vd').getContext('2d'),{
+    type:'bar',
+    data:{labels:labels,datasets:[{label:'Firmadas',data:data,backgroundColor:'rgba(24,128,56,.7)',borderColor:'#188038',borderWidth:1,borderRadius:3}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}}
+  });
 }
 
 function renderPrecios(){
