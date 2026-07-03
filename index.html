@@ -611,7 +611,7 @@ select.filter-sel:hover{border-color:var(--blue);}
     </div>
   </div>
 
-  <div class="kpi-grid" id="vd-kpis" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px;"></div>
+  <div class="kpi-grid" id="vd-kpis" style="grid-template-columns:repeat(5,1fr);margin-bottom:16px;"></div>
 
   <div class="sheet" style="margin-bottom:14px;">
     <div class="sheet-hdr">
@@ -619,7 +619,6 @@ select.filter-sel:hover{border-color:var(--blue);}
       <div style="display:flex;align-items:center;gap:10px;">
         <span style="font-size:11px;font-weight:700;color:var(--grey2);">Día:</span>
         <select class="filter-sel" id="vd-dia-sel" onchange="setVDDia(this.value)" style="font-size:11px;"></select>
-        <span id="vd-dia-total-badge" style="font-size:11px;font-weight:800;color:var(--blue);background:var(--sh);border-radius:6px;padding:3px 8px;white-space:nowrap;"></span>
       </div>
     </div>
     <div style="overflow-x:auto;">
@@ -1447,18 +1446,14 @@ function renderVDRanking(porDia){
   }).join("");
   document.getElementById('vd-ranking-tbody').innerHTML = rows;
 
-  var tfootRow = "<tr style=\"background:var(--sh);font-weight:800;\">"+
-    "<td></td><td>TOTAL DÍA</td>"+
-    "<td style=\"text-align:center;font-family:var(--mono);color:var(--blue);\">"+totalDia+"</td>"+
-    "<td style=\"text-align:center;font-family:var(--mono);color:var(--grey2);\">100%</td>"+
+  var diaLbl = xVD_DIA ? new Date(xVD_DIA+"T00:00:00").toLocaleDateString('es-PE',{weekday:'short',day:'2-digit',month:'short'}) : "—";
+  var tfootRow = "<tr style=\"background:var(--blue);\">"+
+    "<td></td>"+
+    "<td style=\"color:#fff;font-weight:800;font-size:13px;padding:10px 12px;\">TOTAL DÍA ("+diaLbl+")</td>"+
+    "<td style=\"text-align:center;font-family:var(--mono);color:#fff;font-weight:900;font-size:18px;\">"+totalDia+"</td>"+
+    "<td style=\"text-align:center;font-family:var(--mono);color:#fff;font-weight:700;\">100%</td>"+
     "<td></td><td></td></tr>";
   document.getElementById('vd-ranking-tfoot').innerHTML = tfootRow;
-
-  var badgeEl = document.getElementById('vd-dia-total-badge');
-  if(badgeEl){
-    var diaLbl = xVD_DIA ? new Date(xVD_DIA+"T00:00:00").toLocaleDateString('es-PE',{weekday:'short',day:'2-digit',month:'short'}) : "—";
-    badgeEl.textContent = "Total "+diaLbl+": "+totalDia+" venta"+(totalDia===1?"":"s");
-  }
 }
 
 function renderVentasDiarias(){
@@ -1526,11 +1521,14 @@ function renderVentasDiarias(){
   var promDia=diasConVentasN>0?(totalMes/diasConVentasN).toFixed(1):0;
   var mejorDia=diasConVentas.reduce(function(best,iso){return (!best||porDia[iso].__total>porDia[best].__total)?iso:best;},null);
   var mejorSede=sedes.reduce(function(best,s){return (!best||totalesSede[s]>totalesSede[best])?s:best;},null);
+  var totalDiaSel = (xVD_DIA && porDia[xVD_DIA]) ? porDia[xVD_DIA].__total : 0;
+  var diaSelLbl = xVD_DIA ? new Date(xVD_DIA+"T00:00:00").toLocaleDateString('es-PE',{weekday:'short',day:'2-digit',month:'short'}) : "—";
   document.getElementById('vd-kpis').innerHTML=
     "<div class=\"kpi blue\"><div class=\"kpi-lbl\">Ventas finalizadas mes</div><div class=\"kpi-val blue\">"+totalMes+"</div><div class=\"kpi-sub\">"+mesLabel(xVD_MES)+"</div></div>"+
     "<div class=\"kpi green\"><div class=\"kpi-lbl\">Promedio diario</div><div class=\"kpi-val green\">"+promDia+"</div><div class=\"kpi-sub\">"+diasConVentasN+" días con venta</div></div>"+
     "<div class=\"kpi amber\"><div class=\"kpi-lbl\">Mejor día</div><div class=\"kpi-val amber\">"+(mejorDia?porDia[mejorDia].__total:0)+"</div><div class=\"kpi-sub\">"+(mejorDia?new Date(mejorDia+"T00:00:00").toLocaleDateString('es-PE',{day:'2-digit',month:'short'}):"—")+"</div></div>"+
-    "<div class=\"kpi grey\"><div class=\"kpi-lbl\">Sede líder del mes</div><div class=\"kpi-val\" style=\"font-size:16px\">"+(mejorSede||"—")+"</div><div class=\"kpi-sub\">"+(mejorSede?totalesSede[mejorSede]+" ventas":"")+"</div></div>";
+    "<div class=\"kpi grey\"><div class=\"kpi-lbl\">Sede líder del mes</div><div class=\"kpi-val\" style=\"font-size:16px\">"+(mejorSede||"—")+"</div><div class=\"kpi-sub\">"+(mejorSede?totalesSede[mejorSede]+" ventas":"")+"</div></div>"+
+    "<div class=\"kpi blue\" style=\"border-color:var(--blue);\"><div class=\"kpi-lbl\">Total del día</div><div class=\"kpi-val blue\">"+totalDiaSel+"</div><div class=\"kpi-sub\">"+diaSelLbl+" (filtro Día:)</div></div>";
 }
 
 function showTab(id,btn){
