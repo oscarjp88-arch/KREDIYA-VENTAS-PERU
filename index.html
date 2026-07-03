@@ -616,9 +616,10 @@ select.filter-sel:hover{border-color:var(--blue);}
   <div class="sheet" style="margin-bottom:14px;">
     <div class="sheet-hdr">
       <span class="sheet-hdr-title">Ranking de casas por ventas finalizadas</span>
-      <div style="display:flex;align-items:center;gap:6px;">
+      <div style="display:flex;align-items:center;gap:10px;">
         <span style="font-size:11px;font-weight:700;color:var(--grey2);">Día:</span>
         <select class="filter-sel" id="vd-dia-sel" onchange="setVDDia(this.value)" style="font-size:11px;"></select>
+        <span id="vd-dia-total-badge" style="font-size:11px;font-weight:800;color:var(--blue);background:var(--sh);border-radius:6px;padding:3px 8px;white-space:nowrap;"></span>
       </div>
     </div>
     <div style="overflow-x:auto;">
@@ -632,6 +633,7 @@ select.filter-sel:hover{border-color:var(--blue);}
           <th style="text-align:center;">ESTADO</th>
         </tr></thead>
         <tbody id="vd-ranking-tbody"></tbody>
+        <tfoot id="vd-ranking-tfoot"></tfoot>
       </table>
     </div>
   </div>
@@ -1444,6 +1446,19 @@ function renderVDRanking(porDia){
       "<td style=\"text-align:center;\">"+estadoHTML+"</td></tr>";
   }).join("");
   document.getElementById('vd-ranking-tbody').innerHTML = rows;
+
+  var tfootRow = "<tr style=\"background:var(--sh);font-weight:800;\">"+
+    "<td></td><td>TOTAL DÍA</td>"+
+    "<td style=\"text-align:center;font-family:var(--mono);color:var(--blue);\">"+totalDia+"</td>"+
+    "<td style=\"text-align:center;font-family:var(--mono);color:var(--grey2);\">100%</td>"+
+    "<td></td><td></td></tr>";
+  document.getElementById('vd-ranking-tfoot').innerHTML = tfootRow;
+
+  var badgeEl = document.getElementById('vd-dia-total-badge');
+  if(badgeEl){
+    var diaLbl = xVD_DIA ? new Date(xVD_DIA+"T00:00:00").toLocaleDateString('es-PE',{weekday:'short',day:'2-digit',month:'short'}) : "—";
+    badgeEl.textContent = "Total "+diaLbl+": "+totalDia+" venta"+(totalDia===1?"":"s");
+  }
 }
 
 function renderVentasDiarias(){
@@ -2359,39 +2374,37 @@ var xJUL_SEM_FECHAS = [
   {label:"Semana 5 — 27 al 31 jul", desde:"2026-07-27", hasta:"2026-07-31", dias:5},
 ];
 
-// Meta mensual por sede — PROVISIONAL: repartida proporcional al cierre
-// real de mayo 2026 (Presupuesto_Integral_Krediya2026.xlsx). Total = 350.
-// Editar estos valores cuando Oscar suba su propia distribución oficial.
+// Meta mensual por sede — OFICIAL. Distribución definida por Oscar en el
+// Google Sheet "PRESUPUESTOS POR SEMANA KREDIYA PERU" (bloque JULIO 2026,
+// actualizado el 03-jul-2026). Total = 350.
 var xJUL_META_SEDE_TOTAL = {
-  "INDEPENDENCIA":          61,
-  "CHICLAYO":               57,
-  "CERCADO DE LIMA":        38,
-  "MIRAFLORES":             33,
-  "SAN JUAN DE LURIGANCHO": 33,
-  "TRUJILLO":               33,
-  "SAN JUAN DE MIRAFLORES": 27,
-  "AREQUIPA":               27,
-  "PIURA":                  24,
-  "ICA":                    17,
+  "INDEPENDENCIA":          50,
+  "MIRAFLORES":             35,
+  "CERCADO DE LIMA":        45,
+  "SAN JUAN DE MIRAFLORES": 30,
+  "SAN JUAN DE LURIGANCHO": 30,
+  "TRUJILLO":               40,
+  "CHICLAYO":               40,
+  "PIURA":                  20,
+  "AREQUIPA":               40,
+  "ICA":                    20,
 };
 
-// Reparte la meta mensual de cada sede entre las 5 semanas, ponderado
-// por días hábiles de cada semana (3,5,5,5,5=23). Ajusta el residuo en
-// la última semana para que la suma siempre cuadre con el total mensual.
-function calcMetasSemanalesJulio(){
-  var out={};
-  var diasArr=xJUL_SEM_FECHAS.map(function(s){return s.dias;});
-  var diasTotal=diasArr.reduce(function(a,b){return a+b;},0);
-  Object.keys(xJUL_META_SEDE_TOTAL).forEach(function(sede){
-    var total=xJUL_META_SEDE_TOTAL[sede];
-    var arr=diasArr.map(function(d){return Math.floor(total*d/diasTotal);});
-    var suma=arr.reduce(function(a,b){return a+b;},0);
-    arr[arr.length-1]+=(total-suma);
-    out[sede]=arr;
-  });
-  return out;
-}
-var xJUL_METAS_SEM = calcMetasSemanalesJulio();
+// Distribución semanal OFICIAL por sede [Sem1,Sem2,Sem3,Sem4,Sem5], tal
+// como la definió Oscar en el Sheet. Reemplaza el reparto proporcional
+// por días hábiles usado antes de tener la distribución real.
+var xJUL_METAS_SEM = {
+  "INDEPENDENCIA":          [6, 16, 12, 11, 5],
+  "MIRAFLORES":             [4, 11, 8,  8,  4],
+  "CERCADO DE LIMA":        [5, 14, 10, 11, 5],
+  "SAN JUAN DE MIRAFLORES": [4, 10, 7,  6,  3],
+  "SAN JUAN DE LURIGANCHO": [4, 10, 7,  6,  3],
+  "TRUJILLO":               [5, 13, 9,  9,  4],
+  "CHICLAYO":               [5, 13, 9,  9,  4],
+  "PIURA":                  [2, 7,  5,  4,  2],
+  "AREQUIPA":               [5, 13, 9,  9,  4],
+  "ICA":                    [2, 7,  5,  4,  2],
+};
 
 // META_JUL / BDAYS_JUL — para la pestaña "Metas vs Ventas" (mismo total que en Comisiones)
 var BDAYS_JUL = (function(){
