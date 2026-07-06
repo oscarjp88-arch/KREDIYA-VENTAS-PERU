@@ -2664,117 +2664,133 @@ function getVentasSedeJulio(sede, desde, hasta){
 function renderComisionesJulio(){
   if(!ALL||!ALL.length){
     document.getElementById("com-tbody").innerHTML=
-      "<tr><td colspan=\"5\" style=\"text-align:center;padding:20px;color:var(--grey2)\">Carga el CSV primero</td></tr>";
+      "<tr><td colspan=\"8\" style=\"text-align:center;padding:20px;color:var(--grey2)\">Carga el CSV primero</td></tr>";
     return;
   }
   var esMes = xCOM_SEM===0;
   var sedes=Object.keys(xJUL_META_SEDE_TOTAL);
   var embajadores=getEmbajadoresJulio();
 
-  // Julio usa UNA sola tabla (embajador + supervisor por sede, intercalados).
-  // Se oculta la tabla "Ranking mensual" (esa es solo para meses históricos
-  // como mayo/junio, donde no hay desglose por embajador individual).
+  // Julio se ve IGUAL que los meses históricos (may/jun): una sola tabla,
+  // una fila por SEDE (no por embajador individual). El monto de "Com.
+  // asesor" sí se calcula con la política real de julio (tarifa única por
+  // rango semanal, ver calcTramosJulio), sumando lo que le corresponde a
+  // cada embajador de esa sede — solo que aquí se muestra ya sumado, no
+  // desglosado persona por persona. Se oculta la tabla "Ranking mensual"
+  // (esa es específica del formato may/jun con bono S/250 fijo).
   var rsheet=document.getElementById("com-ranking-sheet");
   if(rsheet) rsheet.style.display="none";
 
-  // ── Encabezado ──
-  document.getElementById("com-thead").innerHTML =
-    "<tr><th style=\"text-align:left;min-width:170px\">EMBAJADOR / SEDE</th><th></th>"+
-    (esMes?
-      "<th style=\"text-align:center\">Ventas mes</th><th style=\"text-align:center\">Comisión mes</th>"
-      :
-      "<th style=\"text-align:center\">Ventas semana</th><th style=\"text-align:left\">Tarifa aplicada</th><th style=\"text-align:center\">Comisión semana</th>"
-    )+"</tr>";
+  var ct=document.getElementById("com-titulo");
+  if(ct) ct.textContent = esMes ? "Acumulado mes — Julio 2026" : xJUL_SEM_FECHAS[xCOM_SEM-1].label;
 
-  var totalComEmb=0, totalVentasEmb=0;
-  var totalVentasPais=0, totalMetaPais=0, totalBono=0, totalComSup=0;
+  // ── Encabezado (mismas columnas que may/jun, con el bono de julio) ──
+  document.getElementById("com-thead").innerHTML = esMes?
+    "<tr><th style=\"text-align:left;min-width:200px\">SEDE</th>"+
+    "<th style=\"text-align:center\">Ventas mes</th>"+
+    "<th style=\"text-align:center\">Meta mes</th>"+
+    "<th style=\"text-align:center\">% Mes</th>"+
+    "<th style=\"text-align:center\">Sem OK</th>"+
+    "<th style=\"text-align:center\">Com. asesor</th>"+
+    "<th style=\"text-align:center\">Com. supervisor</th>"+
+    "<th style=\"text-align:center\">Bono cumplimiento</th></tr>"
+    :
+    "<tr><th style=\"text-align:left;min-width:200px\">SEDE</th>"+
+    "<th style=\"text-align:center\">Ventas</th>"+
+    "<th style=\"text-align:center\">Meta</th>"+
+    "<th style=\"text-align:center\">%</th>"+
+    "<th style=\"text-align:center\">Estado</th>"+
+    "<th style=\"text-align:center\">Com. asesor</th>"+
+    "<th style=\"text-align:center\">Com. supervisor</th>"+
+    "<th style=\"text-align:center\">Total sede</th></tr>";
 
-  var bloques = sedes.map(function(sede){
+  var totalVentas=0, totalMeta=0, totalComAsesor=0, totalComSup=0, totalBono=0;
+
+  var tbodyHTML = sedes.map(function(sede){
     var embSede = embajadores.filter(function(e){ return e.sede===sede; });
 
-    // Filas de embajadores de esta sede
-    var filasEmb = embSede.map(function(e){
-      if(esMes){
-        var vMes=0, cMes=0;
-        xJUL_SEM_FECHAS.forEach(function(sf){
-          var v=getVentasVendedor(e.vendedor, sf.desde, sf.hasta);
-          vMes+=v; cMes+=calcTramosJulio(v).comision;
-        });
-        totalVentasEmb+=vMes; totalComEmb+=cMes;
-        return "<tr><td style=\"font-weight:500;padding-left:22px;\">"+e.vendedor+"</td><td></td>"+
-          "<td style=\"text-align:center;font-weight:700;font-family:var(--mono)\">"+vMes+"</td>"+
-          "<td style=\"text-align:center;font-weight:700;font-family:var(--mono);color:var(--blue)\">S/ "+cMes+"</td></tr>";
-      } else {
-        var sf=xJUL_SEM_FECHAS[xCOM_SEM-1];
-        var v=getVentasVendedor(e.vendedor, sf.desde, sf.hasta);
-        var r=calcTramosJulio(v);
-        totalVentasEmb+=v; totalComEmb+=r.comision;
-        return "<tr><td style=\"font-weight:500;padding-left:22px;\">"+e.vendedor+"</td><td></td>"+
-          "<td style=\"text-align:center;font-weight:700;font-family:var(--mono)\">"+v+"</td>"+
-          "<td style=\"font-family:var(--mono);color:var(--grey2);font-size:11px\">"+(r.detalle||"—")+"</td>"+
-          "<td style=\"text-align:center;font-weight:700;font-family:var(--mono);color:var(--blue)\">S/ "+r.comision+"</td></tr>";
-      }
-    }).join("");
-
-    // Fila de la sede / supervisor (reemplaza la antigua "Tabla 2" aparte)
-    var filaSup;
     if(esMes){
-      var vMes=0, semCump=0;
+      var vMes=0, semCump=0, comAsesorMes=0;
       for(var i=0;i<5;i++){
         var sf=xJUL_SEM_FECHAS[i];
         var m=xJUL_METAS_SEM[sede][i];
         var v=getVentasSedeJulio(sede, sf.desde, sf.hasta);
         vMes+=v;
         if(m>0 && v/m>=1.0) semCump++;
+        embSede.forEach(function(e){
+          comAsesorMes += calcTramosJulio(getVentasVendedor(e.vendedor, sf.desde, sf.hasta)).comision;
+        });
       }
       var metaMes=xJUL_META_SEDE_TOTAL[sede];
       var pct=metaMes>0?Math.round(vMes/metaMes*100):0;
       var bono=xJUL_BONO_CUMPL[semCump]||0;
       var comSup=vMes*2;
-      totalVentasPais+=vMes; totalMetaPais+=metaMes; totalBono+=bono; totalComSup+=comSup;
-      filaSup="<tr style=\"background:var(--sh);\">"+
-        "<td colspan=\"2\" style=\"font-weight:700;\">🏪 "+sede+" — supervisor "+
-          "<span style=\"font-weight:400;color:var(--grey2);font-size:11px;\">(meta "+metaMes+" · "+pct+"% · "+semCump+"/5 sem OK"+(bono>0?" · bono cumpl. S/"+bono:"")+")</span></td>"+
-        "<td style=\"text-align:center;font-weight:800;font-family:var(--mono);\">"+vMes+"</td>"+
-        "<td style=\"text-align:center;font-weight:800;font-family:var(--mono);color:var(--blue);\">S/ "+(comSup+bono)+"</td></tr>";
+      totalVentas+=vMes; totalMeta+=metaMes; totalComAsesor+=comAsesorMes; totalComSup+=comSup; totalBono+=bono;
+      return "<tr onmouseover=\"this.style.background='var(--sh)'\" onmouseout=\"this.style.background=''\">"+
+        "<td style=\"font-weight:500\">"+sede+"</td>"+
+        "<td style=\"text-align:center;font-weight:700;font-family:var(--mono)\">"+vMes+"</td>"+
+        "<td style=\"text-align:center;font-family:var(--mono)\">"+metaMes+"</td>"+
+        "<td style=\"text-align:center;font-weight:700;font-family:var(--mono);color:"+(pct>=100?"var(--blue)":pct>=80?"var(--green)":"var(--red)")+"\">"+pct+"%</td>"+
+        "<td style=\"text-align:center\">"+semCump+"/5</td>"+
+        "<td style=\"text-align:center;font-family:var(--mono)\">S/ "+comAsesorMes+"</td>"+
+        "<td style=\"text-align:center;font-family:var(--mono)\">S/ "+comSup+"</td>"+
+        "<td style=\"text-align:center\">"+(bono>0?"<span class=\"sbadge com-ok\">S/ "+bono+"</span>":"<span class=\"sbadge com-no\">—</span>")+"</td>"+
+      "</tr>";
     } else {
       var sf=xJUL_SEM_FECHAS[xCOM_SEM-1];
       var m=xJUL_METAS_SEM[sede][xCOM_SEM-1];
       var v=getVentasSedeJulio(sede, sf.desde, sf.hasta);
       var pct=m>0?Math.round(v/m*100):0;
+      var comAsesor=0;
+      embSede.forEach(function(e){
+        comAsesor += calcTramosJulio(getVentasVendedor(e.vendedor, sf.desde, sf.hasta)).comision;
+      });
       var comSup=v*2;
-      totalVentasPais+=v; totalMetaPais+=m; totalComSup+=comSup;
-      filaSup="<tr style=\"background:var(--sh);\">"+
-        "<td colspan=\"2\" style=\"font-weight:700;\">🏪 "+sede+" — supervisor "+
-          "<span style=\"font-weight:400;color:var(--grey2);font-size:11px;\">(meta "+m+" · "+pct+"%)</span></td>"+
-        "<td style=\"text-align:center;font-weight:800;font-family:var(--mono);\">"+v+"</td>"+
-        "<td style=\"font-family:var(--mono);color:var(--grey2);font-size:11px\">S/2 × venta</td>"+
-        "<td style=\"text-align:center;font-weight:800;font-family:var(--mono);color:var(--blue);\">S/ "+comSup+"</td></tr>";
+      var totalSede=comAsesor+comSup;
+      totalVentas+=v; totalMeta+=m; totalComAsesor+=comAsesor; totalComSup+=comSup;
+      return "<tr onmouseover=\"this.style.background='var(--sh)'\" onmouseout=\"this.style.background=''\">"+
+        "<td style=\"font-weight:500\">"+sede+"</td>"+
+        "<td style=\"text-align:center;font-weight:700;font-family:var(--mono)\">"+v+"</td>"+
+        "<td style=\"text-align:center;font-family:var(--mono)\">"+m+"</td>"+
+        "<td style=\"text-align:center;font-weight:700;font-family:var(--mono);color:"+(pct>=100?"var(--blue)":pct>=80?"var(--green)":"var(--red)")+"\">"+pct+"%</td>"+
+        "<td style=\"text-align:center\"><span class=\"sbadge "+(pct>=100?"com-100":pct>=80?"com-ok":"com-no")+"\">"+(pct>=100?"Cumplida":pct>=80?"Parcial":"No cumplida")+"</span></td>"+
+        "<td style=\"text-align:center;font-family:var(--mono)\">S/ "+comAsesor+"</td>"+
+        "<td style=\"text-align:center;font-family:var(--mono)\">S/ "+comSup+"</td>"+
+        "<td style=\"text-align:center;font-weight:700;font-family:var(--mono);color:var(--blue)\">S/ "+totalSede+"</td>"+
+      "</tr>";
     }
-
-    return filasEmb + filaSup;
   }).join("");
 
-  document.getElementById("com-tbody").innerHTML = bloques ||
-    "<tr><td colspan=\"5\" style=\"text-align:center;padding:16px;color:var(--grey2)\">Sin ventas registradas en este periodo</td></tr>";
+  document.getElementById("com-tbody").innerHTML = tbodyHTML ||
+    "<tr><td colspan=\"8\" style=\"text-align:center;padding:16px;color:var(--grey2)\">Sin ventas registradas en este periodo</td></tr>";
 
-  document.getElementById("com-tfoot").innerHTML =
-    "<tr style=\"background:var(--sh);font-weight:700\"><td colspan=\"2\">TOTAL EMBAJADORES</td>"+
-    (esMes?
-      "<td style=\"text-align:center;font-family:var(--mono)\">"+totalVentasEmb+"</td><td style=\"text-align:center;font-family:var(--mono);color:var(--blue)\">S/ "+totalComEmb+"</td>"
-      :
-      "<td style=\"text-align:center;font-family:var(--mono)\">"+totalVentasEmb+"</td><td></td><td style=\"text-align:center;font-family:var(--mono);color:var(--blue)\">S/ "+totalComEmb+"</td>"
-    )+"</tr>";
+  document.getElementById("com-tfoot").innerHTML = esMes?
+    "<tr style=\"background:var(--sh);font-weight:700\"><td>TOTAL PAÍS</td>"+
+    "<td style=\"text-align:center;font-family:var(--mono)\">"+totalVentas+"</td>"+
+    "<td style=\"text-align:center;font-family:var(--mono)\">"+totalMeta+"</td>"+
+    "<td style=\"text-align:center;font-family:var(--mono);color:var(--blue)\">"+(totalMeta>0?Math.round(totalVentas/totalMeta*100):0)+"%</td>"+
+    "<td></td>"+
+    "<td style=\"text-align:center;font-family:var(--mono);color:var(--blue)\">S/ "+totalComAsesor+"</td>"+
+    "<td style=\"text-align:center;font-family:var(--mono);color:var(--blue)\">S/ "+totalComSup+"</td>"+
+    "<td style=\"text-align:center;font-family:var(--mono);color:var(--blue)\">S/ "+totalBono+"</td></tr>"
+    :
+    "<tr style=\"background:var(--sh);font-weight:700\"><td>TOTAL PAÍS</td>"+
+    "<td style=\"text-align:center;font-family:var(--mono)\">"+totalVentas+"</td>"+
+    "<td style=\"text-align:center;font-family:var(--mono)\">"+totalMeta+"</td>"+
+    "<td style=\"text-align:center;font-family:var(--mono);color:var(--blue)\">"+(totalMeta>0?Math.round(totalVentas/totalMeta*100):0)+"%</td>"+
+    "<td></td>"+
+    "<td style=\"text-align:center;font-family:var(--mono);color:var(--blue)\">S/ "+totalComAsesor+"</td>"+
+    "<td style=\"text-align:center;font-family:var(--mono);color:var(--blue)\">S/ "+totalComSup+"</td>"+
+    "<td style=\"text-align:center;font-family:var(--mono);color:var(--blue)\">S/ "+(totalComAsesor+totalComSup)+"</td></tr>";
 
   // ── KPIs ──
-  var pctPais=totalMetaPais>0?Math.round(totalVentasPais/totalMetaPais*100):0;
+  var pctPais=totalMeta>0?Math.round(totalVentas/totalMeta*100):0;
   document.getElementById("com-kpis").innerHTML=
-    "<div class=\"kpi-card blue\"><div class=\"kpi-label\">Ventas periodo</div><div class=\"kpi-val\">"+totalVentasPais+"</div><div class=\"kpi-sub\">meta: "+totalMetaPais+"</div></div>"+
+    "<div class=\"kpi-card blue\"><div class=\"kpi-label\">Ventas periodo</div><div class=\"kpi-val\">"+totalVentas+"</div><div class=\"kpi-sub\">meta: "+totalMeta+"</div></div>"+
     "<div class=\"kpi-card "+(pctPais>=100?"blue":pctPais>=80?"green":"red")+"\"><div class=\"kpi-label\">Cumplimiento</div><div class=\"kpi-val\">"+pctPais+"%</div><div class=\"kpi-sub\">vs meta periodo (350 mes)</div></div>"+
-    "<div class=\"kpi-card amber\"><div class=\"kpi-label\">Com. embajadores</div><div class=\"kpi-val\">S/ "+totalComEmb+"</div><div class=\"kpi-sub\">"+embajadores.length+" embajadores activos</div></div>"+
+    "<div class=\"kpi-card amber\"><div class=\"kpi-label\">Com. embajadores</div><div class=\"kpi-val\">S/ "+totalComAsesor+"</div><div class=\"kpi-sub\">"+embajadores.length+" embajadores activos</div></div>"+
     "<div class=\"kpi-card green\"><div class=\"kpi-label\">Com. supervisores</div><div class=\"kpi-val\">S/ "+totalComSup+"</div><div class=\"kpi-sub\">"+(esMes?"+ bono cumpl. S/ "+totalBono:"S/2 × venta efectiva")+"</div></div>";
 
-  // Nota de alcance visible
   var titEl=document.getElementById("com-main-titulo");
   if(titEl) titEl.innerHTML = "Liquidacion de Comisiones — Julio 2026 <span style=\"font-size:10px;font-weight:400;color:var(--grey2)\">(bono afiliaciones supervisor y bono pensionista: gestión manual, fuera de este cálculo · ventas de \"Call [Sede] Center\" no generan comisión individual de embajador — sí cuentan para meta y comisión de supervisor de su sede)</span>";
 }
