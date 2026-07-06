@@ -2421,18 +2421,32 @@ var META_JUL = (function(){
   return out;
 })();
 
-// Tramos progresivos para embajadores: 1-5→S/5, 6-10→S/8, 11-15→S/10, 16+→S/12
+// Comisión semanal para embajadores — JULIO 2026, política v2 (actualizada
+// 06-jul-2026 según "JULIO COMISIONES.docx"). Tarifa ÚNICA por rango: una
+// vez cerrada la semana, TODAS las ventas efectivas de esa semana se pagan
+// al valor del rango alcanzado (ya no es progresivo/acumulado por bloques).
+// Histórico: hasta el 03-jul-2026 la política vigente era progresiva
+// (1-5→S/5, 6-10→S/8, 11-15→S/10, 16+→S/12); quedó reemplazada por esta.
+// Política vigente:
+//   1 a 4 ventas    → S/ 5  c/u
+//   5 a 10 ventas   → S/ 8  c/u
+//   11 a 15 ventas  → S/ 10 c/u
+//   16+ ventas      → S/ 15 c/u
+var xJUL_RANGOS_TARIFA = [
+  {max:4,        rate:5,  label:"1 a 4 ventas"},
+  {max:10,       rate:8,  label:"5 a 10 ventas"},
+  {max:15,       rate:10, label:"11 a 15 ventas"},
+  {max:Infinity, rate:15, label:"16+ ventas"},
+];
 function calcTramosJulio(ventas){
-  var v=ventas, total=0, detalle=[];
-  var tramos=[{n:5,rate:5},{n:5,rate:8},{n:5,rate:10},{n:Infinity,rate:12}];
-  tramos.forEach(function(t){
-    if(v<=0) return;
-    var cant=Math.min(v,t.n);
-    total+=cant*t.rate;
-    if(cant>0) detalle.push(cant+"×S/"+t.rate);
-    v-=cant;
-  });
-  return {comision:total, detalle:detalle.join(" + ")};
+  var v=ventas||0;
+  if(v<=0) return {comision:0, detalle:"—"};
+  var tramo=null;
+  for(var i=0;i<xJUL_RANGOS_TARIFA.length;i++){
+    if(v<=xJUL_RANGOS_TARIFA[i].max){ tramo=xJUL_RANGOS_TARIFA[i]; break; }
+  }
+  var total=v*tramo.rate;
+  return {comision:total, detalle:v+"×S/"+tramo.rate+" ("+tramo.label+")"};
 }
 
 // Bono por semanas cumplidas (sede llega a 100% de su meta semanal).
@@ -2654,7 +2668,7 @@ function renderComisionesJulio(){
     (esMes?
       "<th style=\"text-align:center\">Ventas mes</th><th style=\"text-align:center\">Comisión mes</th>"
       :
-      "<th style=\"text-align:center\">Ventas semana</th><th style=\"text-align:left\">Tramos aplicados</th><th style=\"text-align:center\">Comisión semana</th>"
+      "<th style=\"text-align:center\">Ventas semana</th><th style=\"text-align:left\">Tarifa aplicada</th><th style=\"text-align:center\">Comisión semana</th>"
     )+"</tr>";
 
   var totalComEmb=0, totalVentasEmb=0;
