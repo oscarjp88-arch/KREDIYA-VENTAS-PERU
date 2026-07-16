@@ -2709,9 +2709,14 @@ function renderComisionesJulio(){
   var totalVentas=0, totalMeta=0, totalComAsesor=0, totalComSup=0, totalBono=0;
 
   var tbodyHTML = sedes.map(function(sede){
-    var embSede = embajadores.filter(function(e){ return e.sede===sede; });
 
     if(esMes){
+      // Com. asesor = tarifa unica del rango alcanzado, aplicada al TOTAL
+      // de ventas de la sede esa semana (incluye Call Center, que se suma
+      // a la casa aunque no tenga un embajador nombrado). Ya no se suma
+      // persona por persona: es una sola tarifa por el total semanal de
+      // la sede, replicando el mismo criterio que mayo/junio pero con la
+      // tabla de tarifas de julio (calcTramosJulio).
       var vMes=0, semCump=0, comAsesorMes=0;
       for(var i=0;i<5;i++){
         var sf=xJUL_SEM_FECHAS[i];
@@ -2719,9 +2724,7 @@ function renderComisionesJulio(){
         var v=getVentasSedeJulio(sede, sf.desde, sf.hasta);
         vMes+=v;
         if(m>0 && v/m>=1.0) semCump++;
-        embSede.forEach(function(e){
-          comAsesorMes += calcTramosJulio(getVentasVendedor(e.vendedor, sf.desde, sf.hasta)).comision;
-        });
+        comAsesorMes += calcTramosJulio(v).comision;
       }
       var metaMes=xJUL_META_SEDE_TOTAL[sede];
       var pct=metaMes>0?Math.round(vMes/metaMes*100):0;
@@ -2744,23 +2747,37 @@ function renderComisionesJulio(){
       var m=xJUL_METAS_SEM[sede][xCOM_SEM-1];
       var v=getVentasSedeJulio(sede, sf.desde, sf.hasta);
       var pct=m>0?Math.round(v/m*100):0;
-      var comAsesor=0;
-      embSede.forEach(function(e){
-        comAsesor += calcTramosJulio(getVentasVendedor(e.vendedor, sf.desde, sf.hasta)).comision;
-      });
+      // Tarifa unica sobre el TOTAL de la sede (incluye Call Center).
+      var comAsesor=calcTramosJulio(v).comision;
       var comSup=v*2;
       var totalSede=comAsesor+comSup;
-      // Total sede se ajusta abajo sumando el bono acumulado, para que
-      // quede liquidado el asesor+supervisor+bono en un solo numero.
-      var semCumpHasta=0;
+      // Bono de cumplimiento: se gana UNA vez por nivel alcanzado (no cada
+      // semana). Aqui se calcula cuantas semanas cumplidas hay ANTES de
+      // esta semana y HASTA esta semana (inclusive); la diferencia de
+      // tarifa entre ambos puntos es lo NUEVO que se gana justo esta
+      // semana. Si la sede ya habia alcanzado ese nivel antes, esta
+      // semana no vuelve a sumar el mismo bono (evita duplicarlo).
+      var semCumpAntes=0, semCumpHasta=0;
       for(var wi=0; wi<xCOM_SEM; wi++){
         var sfw=xJUL_SEM_FECHAS[wi], mw=xJUL_METAS_SEM[sede][wi];
         var vw=getVentasSedeJulio(sede, sfw.desde, sfw.hasta);
-        if(mw>0 && vw/mw>=1.0) semCumpHasta++;
+        var cumpleEsa=(mw>0 && vw/mw>=1.0);
+        if(cumpleEsa) semCumpHasta++;
+        if(wi<xCOM_SEM-1 && cumpleEsa) semCumpAntes++;
       }
-      var bonoAcum=xJUL_BONO_CUMPL[semCumpHasta]||0;
-      totalSede+=bonoAcum;
-      totalVentas+=v; totalMeta+=m; totalComAsesor+=comAsesor; totalComSup+=comSup; totalBono+=bonoAcum;
+      var bonoAntes=xJUL_BONO_CUMPL[semCumpAntes]||0;
+      var bonoHasta=xJUL_BONO_CUMPL[semCumpHasta]||0;
+      var bonoNuevo=Math.max(0, bonoHasta-bonoAntes);
+      totalSede+=bonoNuevo;
+      totalVentas+=v; totalMeta+=m; totalComAsesor+=comAsesor; totalComSup+=comSup; totalBono+=bonoNuevo;
+      var bonoCellHTML;
+      if(bonoNuevo>0){
+        bonoCellHTML="<span class=\"sbadge com-ok\">🎉 +S/ "+bonoNuevo+" nuevo</span><br><span style=\"font-size:10px;color:var(--grey2);\">acum. S/ "+bonoHasta+" ("+semCumpHasta+"/"+xCOM_SEM+" sem)</span>";
+      } else if(bonoHasta>0){
+        bonoCellHTML="<span class=\"sbadge com-no\" style=\"opacity:.7;\">ya cobrado</span><br><span style=\"font-size:10px;color:var(--grey2);\">acum. S/ "+bonoHasta+" ("+semCumpHasta+"/"+xCOM_SEM+" sem)</span>";
+      } else {
+        bonoCellHTML="<span class=\"sbadge com-no\">—</span>";
+      }
       return "<tr onmouseover=\"this.style.background='var(--sh)'\" onmouseout=\"this.style.background=''\">"+
         "<td style=\"font-weight:500\">"+sede+"</td>"+
         "<td style=\"text-align:center;font-weight:700;font-family:var(--mono)\">"+v+"</td>"+
@@ -2770,13 +2787,38 @@ function renderComisionesJulio(){
         "<td style=\"text-align:center;font-family:var(--mono)\">S/ "+comAsesor+"</td>"+
         "<td style=\"text-align:center;font-family:var(--mono)\">S/ "+comSup+"</td>"+
         "<td style=\"text-align:center;font-weight:700;font-family:var(--mono);color:var(--blue)\">S/ "+totalSede+"</td>"+
-        "<td style=\"text-align:center\">"+(bonoAcum>0?"<span class=\"sbadge com-ok\">S/ "+bonoAcum+" ("+semCumpHasta+"/"+xCOM_SEM+" sem)</span>":"<span class=\"sbadge com-no\">—</span>")+"</td>"+
+        "<td style=\"text-align:center\">"+bonoCellHTML+"</td>"+
       "</tr>";
     }
   }).join("");
 
   document.getElementById("com-tbody").innerHTML = tbodyHTML ||
     "<tr><td colspan=\"9\" style=\"text-align:center;padding:16px;color:var(--grey2)\">Sin ventas registradas en este periodo</td></tr>";
+
+  // ── Bono supervisor por semana con +100 ventas efectivas A NIVEL PAÍS
+  // (suma de las 10 sedes esa semana, no por sede individual). Fuente:
+  // sección 5 del doc, "Bono semanal especial". Se paga UNA vez por
+  // semana que supere 100, no repetido por sede.
+  function ventasPaisSemanaJulio(semIdx){
+    var t=0;
+    sedes.forEach(function(sd){
+      var sf2=xJUL_SEM_FECHAS[semIdx];
+      t+=getVentasSedeJulio(sd, sf2.desde, sf2.hasta);
+    });
+    return t;
+  }
+  var bonoPais100=0, semanasPais100=0, detallePais100=[];
+  if(esMes){
+    for(var wi5=0; wi5<5; wi5++){
+      var vp=ventasPaisSemanaJulio(wi5);
+      if(vp>100){ semanasPais100++; detallePais100.push("Sem "+(wi5+1)+": "+vp); }
+    }
+    bonoPais100=semanasPais100*100;
+  } else {
+    var vpSem=ventasPaisSemanaJulio(xCOM_SEM-1);
+    if(vpSem>100){ semanasPais100=1; bonoPais100=100; detallePais100.push(xJUL_SEM_FECHAS[xCOM_SEM-1].label+": "+vpSem); }
+  }
+  totalComSup += bonoPais100;
 
   document.getElementById("com-tfoot").innerHTML = esMes?
     "<tr style=\"background:var(--sh);font-weight:700\"><td>TOTAL PAÍS</td>"+
@@ -2805,10 +2847,10 @@ function renderComisionesJulio(){
     "<div class=\"kpi-card blue\"><div class=\"kpi-label\">Ventas periodo</div><div class=\"kpi-val\">"+totalVentas+"</div><div class=\"kpi-sub\">meta: "+totalMeta+"</div></div>"+
     "<div class=\"kpi-card "+(pctPais>=100?"blue":pctPais>=80?"green":"red")+"\"><div class=\"kpi-label\">Cumplimiento</div><div class=\"kpi-val\">"+pctPais+"%</div><div class=\"kpi-sub\">vs meta periodo (350 mes)</div></div>"+
     "<div class=\"kpi-card amber\"><div class=\"kpi-label\">Com. embajadores</div><div class=\"kpi-val\">S/ "+totalComAsesor+"</div><div class=\"kpi-sub\">"+embajadores.length+" embajadores activos</div></div>"+
-    "<div class=\"kpi-card green\"><div class=\"kpi-label\">Com. supervisores</div><div class=\"kpi-val\">S/ "+totalComSup+"</div><div class=\"kpi-sub\">"+(esMes?"+ bono cumpl. S/ "+totalBono:"S/2 × venta · bono acum. S/ "+totalBono+"")+"</div></div>";
+    "<div class=\"kpi-card green\"><div class=\"kpi-label\">Com. supervisores</div><div class=\"kpi-val\">S/ "+totalComSup+"</div><div class=\"kpi-sub\">"+(esMes?"+ bono cumpl. S/ "+totalBono+(bonoPais100>0?" + bono país +100: S/ "+bonoPais100+" ("+semanasPais100+" sem)":""):"S/2 × venta"+(bonoPais100>0?" · bono país +100: S/ "+bonoPais100:""))+"</div></div>";
 
   var titEl=document.getElementById("com-main-titulo");
-  if(titEl) titEl.innerHTML = "Liquidacion de Comisiones — Julio 2026 <span style=\"font-size:10px;font-weight:400;color:var(--grey2)\">(bono afiliaciones supervisor y bono pensionista: gestión manual, fuera de este cálculo · ventas de \"Call [Sede] Center\" no generan comisión individual de embajador — sí cuentan para meta y comisión de supervisor de su sede)</span>";
+  if(titEl) titEl.innerHTML = "Liquidacion de Comisiones — Julio 2026 <span style=\"font-size:10px;font-weight:400;color:var(--grey2)\">(bono afiliaciones supervisor y bono pensionista: gestión manual, fuera de este cálculo · ventas de \"Call [Sede] Center\" no generan comisión individual de embajador — sí cuentan para meta y comisión de supervisor de su sede · bono supervisor +100 ventas se evalúa por PAÍS, no por sede"+(bonoPais100>0?" — activo esta vista: S/ "+bonoPais100+" ("+detallePais100.join(", ")+")":"")+")</span>";
 }
 function renderComisiones(){
   if(xCOM_MES_KEY===xJUL_MES_KEY){ renderComisionesJulio(); return; }
