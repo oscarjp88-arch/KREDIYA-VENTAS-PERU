@@ -2754,13 +2754,12 @@ function renderComisionesJulio(){
       var comAsesor=calcTramosJulio(v).comision;
       var comSup=v*2;
       var totalSede=comAsesor+comSup;
-      // Bono de cumplimiento: se gana UNA vez por nivel alcanzado (no cada
-      // semana). Aqui se calcula cuantas semanas cumplidas hay ANTES de
-      // esta semana y HASTA esta semana (inclusive); la diferencia de
-      // tarifa entre ambos puntos es lo NUEVO que se gana justo esta
-      // semana. Si la sede ya habia alcanzado ese nivel antes, esta
-      // semana no vuelve a sumar el mismo bono (evita duplicarlo).
-      var semCumpAntes=0, semCumpHasta=0;
+      // Bono de cumplimiento: cada nivel (1,2,3,4 semanas cumplidas) es un
+                  // valor INDEPENDIENTE segun la tabla xJUL_BONO_CUMPL (no se suman
+                  // entre si). Se paga el valor completo del nivel la semana en que se
+                  // alcanza por primera vez; si la sede ya estaba en ese nivel antes,
+                  // esta semana no se repite el pago (evita duplicarlo).
+            var semCumpAntes=0, semCumpHasta=0;
       for(var wi=0; wi<xCOM_SEM; wi++){
         var sfw=xJUL_SEM_FECHAS[wi], mw=xJUL_METAS_SEM[sede][wi];
         var vw=getVentasSedeJulio(sede, sfw.desde, sfw.hasta);
@@ -2770,7 +2769,7 @@ function renderComisionesJulio(){
       }
       var bonoAntes=xJUL_BONO_CUMPL[semCumpAntes]||0;
       var bonoHasta=xJUL_BONO_CUMPL[semCumpHasta]||0;
-      var bonoNuevo=Math.max(0, bonoHasta-bonoAntes);
+            var bonoNuevo=(bonoHasta>bonoAntes)?bonoHasta:0;
       totalSede+=bonoNuevo;
       totalVentas+=v; totalMeta+=m; totalComAsesor+=comAsesor; totalComSup+=comSup; totalBono+=bonoNuevo;
       var bonoCellHTML;
