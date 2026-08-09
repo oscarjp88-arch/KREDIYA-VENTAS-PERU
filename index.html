@@ -189,6 +189,7 @@ select.filter-sel:hover{border-color:var(--blue);}
 .prog-bar-track{flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden;}
 .prog-bar-fill{height:100%;border-radius:4px;transition:width .4s;}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -547,6 +548,7 @@ select.filter-sel:hover{border-color:var(--blue);}
         <option value="">-- selecciona --</option>
       </select>
       <span style="font-size:11px;color:var(--grey2);">Se actualiza automaticamente con el CSV cargado</span>
+      <button class="btn btn-outline" onclick="descargarComisionesExcel()" style="font-size:11px;margin-left:8px;">&#128229; Descargar Excel</button>
     </div>
   </div>
 
@@ -3775,6 +3777,217 @@ function renderPrecios(){
         "<td style=\"text-align:right;font-family:var(--mono)\">"+fmtSoles(total)+"</td>"+
         "</tr>";
     }).join("") || "<tr><td colspan='6' style='text-align:center;color:var(--grey2)'>Sin datos</td></tr>";
+}
+
+// ══════════════════════════════════════════════════════════════
+// DESCARGA EXCEL COMISIONES
+// ══════════════════════════════════════════════════════════════
+function descargarComisionesExcel(){
+  var mk = xCOM_MES_KEY || "2026-07";
+  var semIdx = xCOM_SEM - 1;
+  var esMes = xCOM_SEM === 0;
+  
+  // Determinar motor segun mes
+  var esJulio = mk === xJUL_MES_KEY;
+  var esAgosto = mk === xAGO_MES_KEY;
+  
+  var semFechas = esJulio ? xJUL_SEM_FECHAS : esAgosto ? xAGO_SEM_FECHAS : null;
+  var metasSem = esJulio ? xJUL_METAS_SEM : esAgosto ? xAGO_METAS_SEM : null;
+  var metasTotal = esJulio ? xJUL_META_SEDE_TOTAL : esAgosto ? xAGO_META_SEDE_TOTAL : null;
+  var calcTramos = esJulio ? calcTramosJulio : esAgosto ? calcTramosAgosto : null;
+  var calcBono = esJulio ? calcBonoJulio : esAgosto ? calcBonoAgosto : null;
+  var supRate = 2; // S/2 por venta (julio y agosto)
+  
+  if(!semFechas || !metasSem){ alert("Solo disponible para julio y agosto 2026"); return; }
+  
+  var sedes = Object.keys(metasSem);
+  var wb = XLSX.utils.book_new();
+  
+  // ── HOJA 1: LIQUIDACION ────────────────────────────────────
+  var data = [];
+  var mesLabel = esJulio ? "Julio 2026" : "Agosto 2026";
+  var periodoLabel = esMes ? "Mes completo — " + mesLabel 
+    : (semFechas[semIdx] ? semFechas[semIdx].label : mesLabel);
+  
+  // Titulo
+  data.push(["LIQUIDACION DE COMISIONES KREDIYA PERU"]);
+  data.push(["Periodo: " + periodoLabel]);
+  data.push(["Generado: " + new Date().toLocaleString("es-PE")]);
+  data.push([]);
+  
+  if(esMes){
+    // Headers mes completo
+    var nSems = semFechas.length;
+    var headers = ["SEDE", "Meta mes", "Ventas mes", "% Cumpl."];
+    for(var s=0;s<nSems;s++) headers.push("Sem "+(s+1)+" ventas");
+    for(var s=0;s<nSems;s++) headers.push("Sem "+(s+1)+" com.");
+    headers.push("Com. asesor total", "Sems OK", "Bono cumpl.", "Com. supervisor", "TOTAL LIQUIDADO");
+    data.push(headers);
+    
+    var totVentas=0, totMeta=0, totComA=0, totBono=0, totComS=0;
+    
+    sedes.forEach(function(sede){
+      var metas = metasSem[sede];
+      var metaMes = metasTotal[sede] || 0;
+      var ventasSem = [], comSem = [], semCump = 0, vMes = 0, comAsesorMes = 0;
+      
+      for(var s=0;s<semFechas.length;s++){
+        var sf = semFechas[s];
+        var v = getVentasSede(sede, sf.desde, sf.hasta);
+        var cal = calcTramos(v);
+        ventasSem.push(v);
+        comSem.push(cal.comision);
+        vMes += v;
+        comAsesorMes += cal.comision;
+        if(metas[s]>0 && v>=metas[s]) semCump++;
+      }
+      
+      var pct = metaMes>0 ? Math.round(vMes/metaMes*100) : 0;
+      var bono = calcBono(semCump);
+      var comSup = vMes * supRate;
+      var total = comAsesorMes + bono + comSup;
+      totVentas+=vMes; totMeta+=metaMes; totComA+=comAsesorMes; totBono+=bono; totComS+=comSup;
+      
+      var row = [sede, metaMes, vMes, pct+"%"];
+      ventasSem.forEach(function(v){row.push(v);});
+      comSem.forEach(function(c){row.push(c);});
+      row.push(comAsesorMes, semCump+"/"+semFechas.length, bono, comSup, total);
+      data.push(row);
+    });
+    
+    // Totales
+    data.push([]);
+    var totRow = ["TOTAL PAIS", totMeta, totVentas, ""];
+    for(var s=0;s<semFechas.length;s++) totRow.push("");
+    for(var s=0;s<semFechas.length;s++) totRow.push("");
+    totRow.push(totComA, "", totBono, totComS, totComA+totBono+totComS);
+    data.push(totRow);
+    
+  } else {
+    // Headers semana individual
+    if(!semFechas[semIdx]){ alert("Semana no disponible"); return; }
+    var sf = semFechas[semIdx];
+    data.push(["SEDE", "Meta semana", "Ventas", "% Cumpl.", "Rango tarifa", "Tarifa S/", 
+               "Com. asesor", "Cumple meta", "Bono semana", "Com. supervisor", "TOTAL"]);
+    
+    var totV=0, totCA=0, totB=0, totCS=0;
+    
+    sedes.forEach(function(sede){
+      var metas = metasSem[sede];
+      var meta = metas[semIdx] || 0;
+      var v = getVentasSede(sede, sf.desde, sf.hasta);
+      var cal = calcTramos(v);
+      var pct = meta>0 ? Math.round(v/meta*100) : 0;
+      var cumple = meta>0 && v>=meta;
+      
+      // Bono semana: para mes completo calculamos incremental
+      // Para vista semana: S/30 (ago) o el bono de esa semana especifica
+      var bonoSem = 0;
+      if(cumple){
+        if(esAgosto){ bonoSem = 30; }
+        else {
+          // Julio: bono es el incremento de esa semana especifica
+          // Necesitamos saber cuantas sems anteriores cumplieron
+          var semsCumpAntes = 0;
+          for(var s=0;s<semIdx;s++){
+            var sfA = semFechas[s];
+            var vA = getVentasSede(sede, sfA.desde, sfA.hasta);
+            if(metas[s]>0 && vA>=metas[s]) semsCumpAntes++;
+          }
+          var bonoAntes = calcBono(semsCumpAntes);
+          var bonoHasta = calcBono(semsCumpAntes+1);
+          bonoSem = bonoHasta - bonoAntes;
+        }
+      }
+      
+      var comSup = v * supRate;
+      var total = cal.comision + bonoSem + comSup;
+      totV+=v; totCA+=cal.comision; totB+=bonoSem; totCS+=comSup;
+      
+      data.push([sede, meta, v, pct+"%", cal.detalle.split("(")[1]?(cal.detalle.split("(")[1].replace(")","")):"—",
+                 cal.comision>0?(cal.comision/Math.max(v,1)):0,
+                 cal.comision, cumple?"Si":"No", bonoSem, comSup, total]);
+    });
+    
+    data.push([]);
+    data.push(["TOTAL PAIS", "", totV, "", "", "", totCA, "", totB, totCS, totCA+totB+totCS]);
+  }
+  
+  // ── HOJA 2: POLITICA ─────────────────────────────────────
+  var politica = [];
+  politica.push(["POLITICA DE COMISIONES — " + mesLabel.toUpperCase()]);
+  politica.push([]);
+  
+  if(esJulio){
+    politica.push(["TARIFAS POR RANGO (embajadores)"]);
+    politica.push(["Rango de ventas", "Tarifa por venta"]);
+    politica.push(["1 a 4 ventas", "S/ 5"]);
+    politica.push(["5 a 10 ventas", "S/ 8"]);
+    politica.push(["11 a 15 ventas", "S/ 10"]);
+    politica.push(["16 o mas ventas", "S/ 15"]);
+    politica.push([]);
+    politica.push(["BONO POR SEMANAS CUMPLIDAS (acumulado)"]);
+    politica.push(["Semanas cumplidas", "Bono total acumulado"]);
+    politica.push(["1 semana", "S/ 30"]);
+    politica.push(["2 semanas", "S/ 80 (30+50)"]);
+    politica.push(["3 semanas", "S/ 160 (30+50+80)"]);
+    politica.push(["4 semanas", "S/ 260 (30+50+80+100)"]);
+    politica.push(["5 semanas", "S/ 360 (30+50+80+100+100)"]);
+    politica.push([]);
+    politica.push(["SUPERVISOR"]);
+    politica.push(["S/ 2 por venta finalizada en su sede"]);
+    politica.push([]);
+    politica.push(["SEMANAS JULIO 2026"]);
+    politica.push(["Semana", "Desde", "Hasta"]);
+    xJUL_SEM_FECHAS.forEach(function(sf,i){
+      politica.push(["Semana "+(i+1), sf.desde, sf.hasta]);
+    });
+  } else {
+    politica.push(["TARIFAS POR RANGO (embajadores)"]);
+    politica.push(["Rango de ventas", "Tarifa por venta"]);
+    politica.push(["1 a 4 ventas", "S/ 5"]);
+    politica.push(["5 a 10 ventas", "S/ 8"]);
+    politica.push(["11 a 15 ventas", "S/ 10"]);
+    politica.push(["16 o mas ventas", "S/ 15"]);
+    politica.push([]);
+    politica.push(["BONO POR SEMANA CUMPLIDA"]);
+    politica.push(["S/ 30 por cada semana que la sede cumpla su meta (todas las semanas igual)"]);
+    politica.push([]);
+    politica.push(["SUPERVISOR"]);
+    politica.push(["S/ 2 por venta finalizada en su sede"]);
+    politica.push(["S/ 0.25 por afiliacion valida"]);
+    politica.push(["S/ 100 bono si la semana supera 100 ventas a nivel pais"]);
+    politica.push([]);
+    politica.push(["SEMANAS AGOSTO 2026"]);
+    politica.push(["Semana", "Desde", "Hasta"]);
+    xAGO_SEM_FECHAS.forEach(function(sf,i){
+      politica.push(["Semana "+(i+1), sf.desde, sf.hasta]);
+    });
+  }
+  
+  politica.push([]);
+  politica.push(["META POR SEDE"]);
+  politica.push(["Sede", "Meta mes"].concat(semFechas.map(function(_,i){return "Sem "+(i+1);})));
+  sedes.forEach(function(sede){
+    var metas = metasSem[sede];
+    politica.push([sede, metasTotal[sede]].concat(metas));
+  });
+  
+  // Crear workbook
+  var ws1 = XLSX.utils.aoa_to_sheet(data);
+  var ws2 = XLSX.utils.aoa_to_sheet(politica);
+  
+  // Columnas anchas
+  ws1["!cols"] = [{wch:25},{wch:10},{wch:10},{wch:10},{wch:10},{wch:10},{wch:10},{wch:10},{wch:12},{wch:10},{wch:12},{wch:10},{wch:15}];
+  ws2["!cols"] = [{wch:30},{wch:15},{wch:15},{wch:15},{wch:15},{wch:15}];
+  
+  XLSX.utils.book_append_sheet(wb, ws1, "Liquidacion");
+  XLSX.utils.book_append_sheet(wb, ws2, "Politica");
+  
+  var nombreArchivo = "Comisiones_" + mesLabel.replace(" ","_") + "_" + 
+    (esMes ? "MesCompleto" : "Sem"+(semIdx+1)) + ".xlsx";
+  
+  XLSX.writeFile(wb, nombreArchivo);
 }
 
 </script>
