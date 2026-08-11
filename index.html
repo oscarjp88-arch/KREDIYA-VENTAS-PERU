@@ -627,11 +627,12 @@ select.filter-sel:hover{border-color:var(--blue);}
     </div>
     <div style="overflow-x:auto;">
       <table class="tbl">
-        <thead><tr>
-          <th style="width:36px;">#</th>
+        <thead id="vd-ranking-thead"><tr>
+          <th style="width:36px;text-align:center;">🚦</th>
           <th style="text-align:left;min-width:160px;">CASA</th>
           <th style="text-align:center;">FIRMADAS</th>
-          <th style="text-align:center;">PARTICIPACIÓN</th>
+          <th style="text-align:center;">META DÍA</th>
+          <th style="text-align:center;">CUMPL.</th>
           <th style="text-align:center;min-width:120px;">PESO</th>
           <th style="text-align:center;">ESTADO</th>
         </tr></thead>
@@ -1403,10 +1404,8 @@ function setVDDia(iso){
 }
 
 function renderVDRanking(porDia){
-  // Determina lista de días disponibles para el selector (con venta + hoy si cae en el mes)
   var diasConVentas=Object.keys(porDia).sort();
   var hoyIso=HOY;
-  var yr=parseInt(xVD_MES.split("-")[0]), mo=parseInt(xVD_MES.split("-")[1])-1;
   var hoyEnMes = hoyIso.slice(0,7)===xVD_MES;
   var diasSel = diasConVentas.slice();
   if(hoyEnMes && diasSel.indexOf(hoyIso)===-1) diasSel.push(hoyIso);
@@ -1423,6 +1422,11 @@ function renderVDRanking(porDia){
     selEl.value=xVD_DIA;
   }
 
+  // Meta diaria = meta mensual ÷ días hábiles del mes
+  var metasMes = null, diasHab = 21;
+  if(xVD_MES===xJUL_MES_KEY){ metasMes=xJUL_META_SEDE_TOTAL; diasHab=23; }
+  else if(xVD_MES===xAGO_MES_KEY){ metasMes=xAGO_META_SEDE_TOTAL; diasHab=21; }
+
   var datosDia = porDia[xVD_DIA] || {__total:0};
   var filas = VD_SEDES_TODAS.map(function(sede){
     return {sede:sede, v:datosDia[sede]||0};
@@ -1433,33 +1437,34 @@ function renderVDRanking(porDia){
   var rows = filas.map(function(f,i){
     var pct = totalDia>0 ? Math.round(f.v/totalDia*1000)/10 : 0;
     var pesoWidth = maxV>0 ? Math.round(f.v/maxV*100) : 0;
-    var estadoHTML;
-    if(f.v===0){
-      estadoHTML='<span class="chip red">Sin venta</span>';
-    } else if(i===0 && f.v>0){
-      estadoHTML='<span class="chip amber" style="border:1px solid var(--amber);">⭐ Va ganando</span>';
-    } else {
-      estadoHTML='<span class="chip amber">'+f.v+' venta'+(f.v===1?'':'s')+'</span>';
+
+    // Meta dia y cumplimiento
+    var metaDia = (metasMes&&metasMes[f.sede]) ? metasMes[f.sede]/diasHab : null;
+    var metaDisplay = metaDia!==null ? metaDia.toFixed(1) : "—";
+    var cumplHTML = "<span style=\"color:var(--grey2)\">—</span>";
+    var semaforo = ""+(i+1);
+    if(metaDia!==null && metaDia>0){
+      var cp = f.v/metaDia*100;
+      var col = cp>=100?"var(--green)":cp>=70?"#f29900":"var(--red)";
+      cumplHTML = "<span style=\"font-weight:700;font-family:var(--mono);color:"+col+"\">"+Math.round(cp)+"%</span>";
+      semaforo = cp>=100?"✅":cp>=70?"⚠️":"🔴";
     }
+
+    var estadoHTML;
+    if(f.v===0){ estadoHTML='<span class="chip red">Sin venta</span>'; }
+    else if(i===0 && f.v>0){ estadoHTML='<span class="chip amber" style="border:1px solid var(--amber);">⭐ Va ganando</span>'; }
+    else { estadoHTML='<span class="chip amber">'+f.v+' venta'+(f.v===1?'':'s')+'</span>'; }
+
     return "<tr>"+
-      "<td style=\"font-weight:700;color:var(--grey2);\">"+(i+1)+"</td>"+
+      "<td style=\"text-align:center;font-size:13px;\">"+semaforo+"</td>"+
       "<td style=\"font-weight:500;\">"+f.sede+"</td>"+
       "<td style=\"text-align:center;font-weight:800;font-family:var(--mono);\">"+f.v+"</td>"+
-      "<td style=\"text-align:center;font-family:var(--mono);color:var(--grey2);\">"+pct+"%</td>"+
+      "<td style=\"text-align:center;font-family:var(--mono);color:var(--grey2)\">"+metaDisplay+"</td>"+
+      "<td style=\"text-align:center;\">"+cumplHTML+"</td>"+
       "<td><div class=\"pg-track\"><div class=\"pg-fill\" style=\"width:"+pesoWidth+"%;background:"+(f.v>0?'var(--blue)':'var(--border2)')+";\"></div></div></td>"+
       "<td style=\"text-align:center;\">"+estadoHTML+"</td></tr>";
   }).join("");
   document.getElementById('vd-ranking-tbody').innerHTML = rows;
-
-  var diaLbl = xVD_DIA ? new Date(xVD_DIA+"T00:00:00").toLocaleDateString('es-PE',{weekday:'short',day:'2-digit',month:'short'}) : "—";
-  var tfootRow = "<tr style=\"background:var(--blue);\">"+
-    "<td></td>"+
-    "<td style=\"color:#fff;font-weight:800;font-size:13px;padding:10px 12px;\">TOTAL DÍA ("+diaLbl+")</td>"+
-    "<td style=\"text-align:center;font-family:var(--mono);color:#fff;font-weight:900;font-size:18px;\">"+totalDia+"</td>"+
-    "<td style=\"text-align:center;font-family:var(--mono);color:#fff;font-weight:700;\">100%</td>"+
-    "<td></td><td></td></tr>";
-  document.getElementById('vd-ranking-tfoot').innerHTML = tfootRow;
-}
 
 function renderVentasDiarias(){
   if(!ALL||!ALL.length||!xVD_MES){
