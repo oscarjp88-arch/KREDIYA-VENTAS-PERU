@@ -1101,9 +1101,9 @@ function setMetasMes(mes){
 }
 
 function renderMetas(){
-  var META  = MES_METAS==='2026-04'?META_ABR  : MES_METAS==='2026-05'?META_MAY  : MES_METAS==='2026-07'?META_JUL : META_JUN;
-  var BDAYS = MES_METAS==='2026-04'?BDAYS_ABR : MES_METAS==='2026-05'?BDAYS_MAYO: MES_METAS==='2026-07'?BDAYS_JUL : BDAYS_JUN;
-  var mesLabelStr = MES_METAS==='2026-04'?'Abril 2026': MES_METAS==='2026-05'?'Mayo 2026': MES_METAS==='2026-07'?'Julio 2026':'Junio 2026';
+  var META  = MES_METAS==='2026-04'?META_ABR  : MES_METAS==='2026-05'?META_MAY  : MES_METAS==='2026-07'?META_JUL : MES_METAS==='2026-08'?META_AGO : META_JUN;
+  var BDAYS = MES_METAS==='2026-04'?BDAYS_ABR : MES_METAS==='2026-05'?BDAYS_MAYO: MES_METAS==='2026-07'?BDAYS_JUL : MES_METAS==='2026-08'?BDAYS_AGO : BDAYS_JUN;
+  var mesLabelStr = MES_METAS==='2026-04'?'Abril 2026': MES_METAS==='2026-05'?'Mayo 2026': MES_METAS==='2026-07'?'Julio 2026':MES_METAS==='2026-08'?'Agosto 2026':'Junio 2026';
   var isAbr = MES_METAS==='2026-04'; // para compatibilidad (abril = mes cerrado)
   var dhTotal=diasHabilesTotales(BDAYS);
   var dhHoy=isAbr?dhTotal:diasHabilesHastaHoy(BDAYS); // abril = fin de mes
@@ -2551,8 +2551,8 @@ function _actualizarDropdownComisiones(meses, mkActual){
     sel.innerHTML+='<option value="'+mk+'">'+mesLabel(mk)+'</option>';
   });
   sel.value=prev&&xMETAS_HIST[prev]?prev:mkActual;
-  // Solo actualizar key, NO llamar renderComisiones aquí para evitar conflictos
-  xCOM_MES_KEY=sel.value;
+    // Actualizar key y re-renderizar comisiones para el mes mas reciente
+    setComMes(sel.value); // Actualiza key + re-renderiza (pills, titulo y tabla) para el nuevo mes
 }
 
 
