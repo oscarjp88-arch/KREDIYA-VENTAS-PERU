@@ -612,6 +612,8 @@ select.filter-sel:hover{border-color:var(--blue);}
     <div class="sec-actions" style="display:flex;align-items:center;gap:8px;">
       <span style="font-size:11px;font-weight:700;color:var(--grey2);">Mes:</span>
       <select class="filter-sel" id="vd-mes-sel" onchange="setVDMes(this.value)" style="font-size:11px;"></select>
+            <span style="font-size:11px;font-weight:700;color:var(--grey2);margin-left:8px;">Día:</span>
+            <select class="filter-sel" id="vd-dia-sel" onchange="setVDDia(this.value)" style="font-size:11px;"></select>
     </div>
   </div>
 
@@ -620,11 +622,7 @@ select.filter-sel:hover{border-color:var(--blue);}
   <div class="sheet" style="margin-bottom:14px;">
     <div class="sheet-hdr">
       <span class="sheet-hdr-title">Ranking de casas por ventas finalizadas</span>
-      <div style="display:flex;align-items:center;gap:10px;">
-        <span style="font-size:11px;font-weight:700;color:var(--grey2);">Día:</span>
-        <select class="filter-sel" id="vd-dia-sel" onchange="setVDDia(this.value)" style="font-size:11px;"></select>
       </div>
-    </div>
     <div style="overflow-x:auto;">
       <table class="tbl">
         <thead id="vd-ranking-thead"><tr>
@@ -783,7 +781,7 @@ var META_MAY = {
 };
 
 // Hoy
-var HOY=(function(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})();
+function getHOY(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 // ── JUNIO 2026 ──────────────────────────────────────
 // 22 días hábiles (29 jun = San Pedro y San Pablo, feriado)
 var BDAYS_JUN = (function(){
@@ -843,7 +841,7 @@ function esCancelado(r){return r['Estado de la Solicitud']==='CANCELADA';}
 
 // ── Días hábiles transcurridos hasta hoy en un mes ──
 function diasHabilesHastaHoy(bdays){
-  return bdays.filter(function(d){return d<=HOY;}).length;
+    return bdays.filter(function(d){return d<=getHOY();}).length;
 }
 function diasHabilesTotales(bdays){return bdays.length;}
 
@@ -1405,7 +1403,7 @@ function setVDDia(iso){
 
 function renderVDRanking(porDia){
   var diasConVentas=Object.keys(porDia).sort();
-  var hoyIso=HOY;
+      var hoyIso=getHOY();
   var hoyEnMes = hoyIso.slice(0,7)===xVD_MES;
   var diasSel = diasConVentas.slice();
   if(hoyEnMes && diasSel.indexOf(hoyIso)===-1) diasSel.push(hoyIso);
