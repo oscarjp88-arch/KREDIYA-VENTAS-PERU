@@ -445,34 +445,7 @@ select.filter-sel:hover{border-color:var(--blue);}
     <div class="sheet-hdr"><span class="sheet-hdr-title">Inventario y plan de despacho</span></div>
     <div style="overflow-x:auto">
       <table class="tbl">
-        <thead>
-          <tr>
-            <th rowspan="2" style="min-width:180px">CASA / SEDE</th>
-            <th rowspan="2" style="text-align:center">Tipo</th>
-            <th colspan="2" style="text-align:center;border-bottom:1px solid var(--border)">A07</th>
-            <th colspan="2" style="text-align:center;border-bottom:1px solid var(--border)">A16</th>
-            <th colspan="2" style="text-align:center;border-bottom:1px solid var(--border)">Moto</th>
-            <th colspan="2" style="text-align:center;border-bottom:1px solid var(--border)">Redmi</th>
-            <th rowspan="2" style="text-align:center">Total Hoy</th>
-            <th rowspan="2" style="text-align:center;color:#2e7d32">Total + 🚚</th>
-            <th rowspan="2" style="text-align:center">Estado</th>
-            <th rowspan="2" style="text-align:center">Desp. A07</th>
-            <th rowspan="2" style="text-align:center">Desp. A16</th>
-            <th rowspan="2" style="text-align:center">Desp. Moto</th>
-            <th rowspan="2" style="text-align:center">Desp. Redmi</th>
-            <th rowspan="2" style="text-align:center">Plan despacho</th>
-          </tr>
-          <tr>
-            <th style="text-align:center;font-size:11px;color:var(--grey2)">Hoy</th>
-            <th style="text-align:center;font-size:11px;color:#2e7d32">🚚</th>
-            <th style="text-align:center;font-size:11px;color:var(--grey2)">Hoy</th>
-            <th style="text-align:center;font-size:11px;color:#2e7d32">🚚</th>
-            <th style="text-align:center;font-size:11px;color:var(--grey2)">Hoy</th>
-            <th style="text-align:center;font-size:11px;color:#2e7d32">🚚</th>
-            <th style="text-align:center;font-size:11px;color:var(--grey2)">Hoy</th>
-            <th style="text-align:center;font-size:11px;color:#2e7d32">🚚</th>
-          </tr>
-        </thead>
+        <thead id="stock-thead"></thead>
         <tbody id="stock-tbody"></tbody>
         <tfoot id="stock-tfoot"></tfoot>
       </table>
@@ -524,14 +497,7 @@ select.filter-sel:hover{border-color:var(--blue);}
     <div class="sheet-hdr"><span class="sheet-hdr-title">Detalle stock por ubicacion y referencia</span></div>
     <div style="overflow-x:auto;">
       <table class="tbl">
-        <thead><tr>
-          <th style="text-align:left;min-width:200px;">UBICACION</th>
-          <th style="text-align:center;">Samsung A07</th>
-          <th style="text-align:center;">Samsung A16</th>
-          <th style="text-align:center;">Motorola G06</th>
-          <th style="text-align:center;">Redmi 15C</th>
-          <th style="text-align:center;">TOTAL</th>
-        </tr></thead>
+        <thead id="ubicacion-thead"></thead>
         <tbody id="ubicacion-tbody"></tbody>
         <tfoot id="ubicacion-tfoot"></tfoot>
       </table>
@@ -1581,6 +1547,9 @@ var xMIN={"INDEPENDENCIA": {"A07": 3, "A16": 5, "MOTO": 2, "REDMI": 2}, "MIRAFLO
 
 function xGP(p){
   var u=(p||"").toUpperCase();
+  if(u.indexOf("A07")>-1&&u.indexOf("128")>-1)return"A07128";
+  if((u.indexOf("REDMI")>-1&&u.indexOf("A7")>-1)||u.indexOf("A7 PRO")>-1)return"REDMIA7";
+  if(u.indexOf("HONOR")>-1&&u.indexOf("X5D")>-1)return"HONORX5D";
   if(u.indexOf("A07")>-1)return"A07";
   if(u.indexOf("A16")>-1)return"A16";
   if(u.indexOf("MOTOR")>-1||u.indexOf("MOTO")>-1)return"MOTO";
@@ -1589,10 +1558,12 @@ function xGP(p){
 }
 function xGS(){try{return JSON.parse(localStorage.getItem(xSK))||{};}catch(e){return{};}}
 function xSS(s){try{localStorage.setItem(xSK,JSON.stringify(s));}catch(e){}}
+function xNuevoStock(){return{A07:0,A16:0,MOTO:0,REDMI:0,REDMIA7:0,HONORX5D:0,A07128:0};}
+function xTotalRefs(o){return xREFS.reduce(function(t,r){return t+(parseInt((o||{})[r.key])||0);},0);}
 
 function xGV(){
   var v={};
-  xSEDES.forEach(function(s){v[s]={A07:0,A16:0,MOTO:0,REDMI:0,total:0};});
+  xSEDES.forEach(function(s){v[s]=xNuevoStock();v[s].total=0;});
   if(!ALL||!ALL.length)return v;
   var rango=getStockRango();
   ALL.filter(function(r){
@@ -1909,10 +1880,13 @@ function cargarStock(){
           return keywords.every(function(kw){return ku.indexOf(kw.toUpperCase())!==-1;});
         })||"";
       }
-      var colA07  = findKey(["A07"]);
+      var colA07128=findKey(["A07","128"]);
+      var colA07  = allKeys.find(function(k){var u=k.toUpperCase();return u.indexOf("A07")>-1&&u.indexOf("128")===-1;})||"";
       var colA16  = findKey(["A16"]);
       var colMOTO = findKey(["G06"]) || findKey(["MOTO"]);
-      var colREDMI= findKey(["REDMI"]) || findKey(["15C"]);
+      var colREDMIA7=findKey(["REDMI","A7"]);
+      var colREDMI= findKey(["REDMI","15C"]) || findKey(["15C"]);
+      var colHONOR=findKey(["HONOR","X5D"]);
 
       var stock={};
       Object.entries(ultimo).forEach(function(e){
@@ -1922,7 +1896,10 @@ function cargarStock(){
           A07  : parseInt(row[colA07  ])||0,
           A16  : parseInt(row[colA16  ])||0,
           MOTO : parseInt(row[colMOTO ])||0,
-          REDMI: parseInt(row[colREDMI])||0
+          REDMI: parseInt(row[colREDMI])||0,
+          REDMIA7:parseInt(row[colREDMIA7])||0,
+          HONORX5D:parseInt(row[colHONOR])||0,
+          A07128:parseInt(row[colA07128])||0
         };
       });
 
@@ -1942,7 +1919,7 @@ function cargarStock(){
         .then(function(csv){
           var lines=csv.trim().split("\n").filter(function(l){return l.trim();});
           var hdrs=parseCsvLine(lines[0]).map(function(h){return h.trim();});
-          xTRANSITO={A07:0,A16:0,MOTO:0,REDMI:0,total:0,cargado:true,porSede:{}};
+          xTRANSITO=xNuevoStock();xTRANSITO.total=0;xTRANSITO.cargado=true;xTRANSITO.porSede={};
           // Saltar filas vacías iniciales para encontrar los encabezados reales
           var hdrIdx=0;
           while(hdrIdx<lines.length && lines[hdrIdx].replace(/,/g,"").trim()==="") hdrIdx++;
@@ -1955,15 +1932,12 @@ function cargarStock(){
             var modelo=(row["Modelo de Equipo"]||"").toUpperCase();
             var cant=parseInt(row["Cantidad en Tránsito"]||row["Cantidad en Transito"]||row["cantidad en tránsito"]||row["CANTIDAD EN TRÁNSITO"]||0);
             if(!cant) return;
-            if(!xTRANSITO.porSede[sede]) xTRANSITO.porSede[sede]={A07:0,A16:0,MOTO:0,REDMI:0};
-            var ref;
-            if(modelo.indexOf("A07")!==-1)      ref="A07";
-            else if(modelo.indexOf("A16")!==-1) ref="A16";
-            else if(modelo.indexOf("G06")!==-1||modelo.indexOf("MOTO")!==-1) ref="MOTO";
-            else if(modelo.indexOf("REDMI")!==-1||modelo.indexOf("15C")!==-1) ref="REDMI";
+            if(!xTRANSITO.porSede[sede]) xTRANSITO.porSede[sede]=xNuevoStock();
+            var ref=xGP(modelo);
+            if(ref==="OTRO") ref=null;
             if(ref){ xTRANSITO.porSede[sede][ref]+=cant; xTRANSITO[ref]+=cant; }
           });
-          xTRANSITO.total=xTRANSITO.A07+xTRANSITO.A16+xTRANSITO.MOTO+(xTRANSITO.REDMI||0);
+          xTRANSITO.total=xTotalRefs(xTRANSITO);
           renderStock();
         })
         .catch(function(){});
@@ -2018,8 +1992,8 @@ function getStockRango(){
 
 var xALMACEN_URL='https://docs.google.com/spreadsheets/d/e/2PACX-1vSOH1zrHykRFFAmqtnw2J_QMdDRXciuse5kdXGLJ_tSEFnGHR8hYMRYC7Wdp5xckGRUOgktsa2TDjLa/pub?gid=34176342&single=true&output=csv';
 var xTRANSITO_URL='https://docs.google.com/spreadsheets/d/e/2PACX-1vSOH1zrHykRFFAmqtnw2J_QMdDRXciuse5kdXGLJ_tSEFnGHR8hYMRYC7Wdp5xckGRUOgktsa2TDjLa/pub?gid=629609629&single=true&output=csv';
-var xTRANSITO={A07:0,A16:0,MOTO:0,REDMI:0,total:0,cargado:false,porSede:{}};
-var xALMACEN={A07:0,A16:0,MOTO:0,REDMI:0}; // se llena desde Sheets
+var xTRANSITO={A07:0,A16:0,MOTO:0,REDMI:0,REDMIA7:0,HONORX5D:0,A07128:0,total:0,cargado:false,porSede:{}};
+var xALMACEN={A07:0,A16:0,MOTO:0,REDMI:0,REDMIA7:0,HONORX5D:0,A07128:0}; // se llena desde Sheets
 
 function parseCsvLine(line){
   // Parser robusto que maneja campos con comas dentro de comillas
@@ -2039,13 +2013,8 @@ function procesarAlmacenCSV(csv){
   if(lines.length<2) return;
   
   var hdrs=parseCsvLine(lines[0]).map(function(h){return h.toUpperCase();});
-  var iA07=-1,iA16=-1,iMOTO=-1,iREDMI=-1;
-  hdrs.forEach(function(h,i){
-    if(h.indexOf("A07")>-1) iA07=i;
-    else if(h.indexOf("A16")>-1) iA16=i;
-    else if(h.indexOf("MOTOROLA")>-1||h.indexOf("G06")>-1) iMOTO=i;
-    else if(h.indexOf("REDMI")>-1||h.indexOf("15C")>-1) iREDMI=i;
-  });
+  var indices={};
+  hdrs.forEach(function(h,i){var ref=xGP(h);if(ref!=="OTRO")indices[ref]=i;});
   
   // Tomar la ultima fila con datos numericos validos
   var dataLines=lines.slice(1).filter(function(l){return l.trim();});
@@ -2082,10 +2051,9 @@ function procesarAlmacenCSV(csv){
   var ultima=allRows[0]; // la mas reciente
   
   if(!ultima) return;
-  if(iA07>-1)   xALMACEN.A07  =parseInt(ultima[iA07  ])||0;
-  if(iA16>-1)   xALMACEN.A16  =parseInt(ultima[iA16  ])||0;
-  if(iMOTO>-1)  xALMACEN.MOTO =parseInt(ultima[iMOTO ])||0;
-  if(iREDMI>-1) xALMACEN.REDMI=parseInt(ultima[iREDMI])||0;
+  xREFS.forEach(function(ref){
+    if(indices[ref.key]!==undefined)xALMACEN[ref.key]=parseInt(ultima[indices[ref.key]])||0;
+  });
 }
 
 function cargarCompras(){
@@ -2103,7 +2071,7 @@ function cargarCompras(){
       var lines=csv.trim().split("\n").filter(function(l){return l.trim();});
       // Fila 2 = headers (MODELO, TOTAL, ENTREGADO, SALDO)
       // Filas 3-5 = datos
-      xALMACEN={A07:0,A16:0,MOTO:0,REDMI:0};
+      xALMACEN=xNuevoStock();
       procesarAlmacenCSV(csv);
       renderCompras();
       if(st)st.textContent="Almacen actualizado: A07="+xALMACEN.A07+" A16="+xALMACEN.A16+" Moto="+xALMACEN.MOTO;
@@ -3304,8 +3272,81 @@ function renderComisiones(){
 // Para agregar nueva referencia, agregar objeto en xREFS:
 // { key: "A36", nombre: "Samsung A36", color: "#9c27b0" }
 // ══════════════════════════════════════════════════════════════
-var xREFS = [{"key": "A07", "nombre": "Samsung A07", "color": "#1a73e8"}, {"key": "A16", "nombre": "Samsung A16", "color": "#34a853"}, {"key": "MOTO", "nombre": "Motorola G06", "color": "#fa7b17"}, {"key": "REDMI", "nombre": "Redmi 15C", "color": "#9c27b0"}];
+var xREFS = [
+  {key:"A07",nombre:"Samsung A07 64GB",corto:"A07 64",color:"#1a73e8"},
+  {key:"A16",nombre:"Samsung A16",corto:"A16",color:"#34a853"},
+  {key:"MOTO",nombre:"Motorola G06",corto:"Moto G06",color:"#fa7b17"},
+  {key:"REDMI",nombre:"Redmi 15C",corto:"Redmi 15C",color:"#9c27b0"},
+  {key:"REDMIA7",nombre:"Redmi A7 Pro",corto:"Redmi A7 Pro",color:"#e91e63"},
+  {key:"HONORX5D",nombre:"Honor X5D",corto:"Honor X5D",color:"#00acc1"},
+  {key:"A07128",nombre:"Samsung A07 128GB",corto:"A07 128",color:"#5e35b1"}
+];
 var xSEDES_CFG2 = {"INDEPENDENCIA": "lima", "MIRAFLORES": "lima", "CERCADO DE LIMA": "lima", "SAN JUAN DE MIRAFLORES": "lima", "SAN JUAN DE LURIGANCHO": "lima", "TRUJILLO": "provincia", "CHICLAYO": "provincia", "PIURA": "provincia", "AREQUIPA": "provincia", "ICA": "provincia", "CUSCO": "provincia"};
+
+// Las vistas de productos usan un solo catálogo para que formularios, inventario,
+// tránsito, compras y ventas por sede mantengan exactamente las mismas referencias.
+function renderStock(){
+  var st=xGS(),vd=xGV(),totRefs=xNuevoStock();
+  var tHoy=0,tDesp=0,nUrg=0,nOk=0;
+  var h1='<tr><th rowspan="2" style="min-width:180px">CASA / SEDE</th><th rowspan="2" style="text-align:center">Tipo</th>';
+  var h2='<tr>';
+  xREFS.forEach(function(r){h1+='<th colspan="2" style="text-align:center;border-bottom:1px solid var(--border)">'+r.corto+'</th>';h2+='<th style="text-align:center;font-size:11px;color:var(--grey2)">Hoy</th><th style="text-align:center;font-size:11px;color:#2e7d32">🚚</th>';});
+  h1+='<th rowspan="2" style="text-align:center">Total Hoy</th><th rowspan="2" style="text-align:center;color:#2e7d32">Total + 🚚</th><th rowspan="2" style="text-align:center">Estado</th>';
+  xREFS.forEach(function(r){h1+='<th rowspan="2" style="text-align:center">Desp. '+r.corto+'</th>';});
+  h1+='<th rowspan="2" style="text-align:center">Plan despacho</th></tr>';h2+='</tr>';
+  document.getElementById('stock-thead').innerHTML=h1+h2;
+
+  document.getElementById('stock-tbody').innerHTML=xSEDES.map(function(sd){
+    var s=st[sd]||xNuevoStock(),v=vd[sd]||xNuevoStock();
+    var hasData=Object.prototype.hasOwnProperty.call(st,sd),hoyTotal=xTotalRefs(s),tr=xTRANSITO.porSede[sd]||xNuevoStock(),trTotal=xTotalRefs(tr);
+    var desp={},despTotal=0,refsEnCero=0;
+    xREFS.forEach(function(r){var n=parseInt(s[r.key])||0,min=(xMIN[sd]&&xMIN[sd][r.key])||0;desp[r.key]=hasData?Math.max(0,min-n):0;despTotal+=desp[r.key];if(min>0&&n===0)refsEnCero++;totRefs[r.key]+=n;});
+    tHoy+=hoyTotal;tDesp+=despTotal;
+    var bg,bc;if(!hasData){bg='Sin datos';bc='nd';}else if(refsEnCero>=2){bg='Crítico';bc='crit';nUrg++;}else if(refsEnCero||despTotal){bg='Reponer';bc='warn';nUrg++;}else{bg='OK';bc='ok';nOk++;}
+    var esLima=xSEDES_CFG[sd]==='lima',urg=!hasData?'Sin datos Sheets':despTotal===0?'Sin despacho':refsEnCero?'URGENTE · '+(esLima?'mismo día':'2 días'):'Programar · '+(esLima?'mismo día':'2 días');
+    var row='<tr><td style="font-weight:500;font-size:12px">'+sd+'</td><td style="text-align:center">'+(esLima?'<span class="tipo-lima">Lima</span>':'<span class="tipo-prov">Provincia</span>')+'</td>';
+    xREFS.forEach(function(r){var n=parseInt(s[r.key])||0,t=parseInt(tr[r.key])||0,c=n<=3?'#d93025':n<=7?'#f29900':'#188038';row+='<td style="text-align:center;font-weight:700;font-family:var(--mono);color:'+c+'">'+n+'</td><td style="text-align:center;font-family:var(--mono);color:#2e7d32;font-weight:600">'+(t||'—')+'</td>';});
+    row+='<td style="text-align:center;font-weight:700;font-family:var(--mono)">'+hoyTotal+'</td><td style="text-align:center;font-weight:700;font-family:var(--mono);color:#2e7d32">'+(xTRANSITO.cargado?hoyTotal+trTotal:'—')+'</td><td style="text-align:center"><span class="sbadge '+bc+'">'+bg+'</span></td>';
+    xREFS.forEach(function(r){var n=parseInt(s[r.key])||0,min=(xMIN[sd]&&xMIN[sd][r.key])||0,d=desp[r.key];row+='<td class="desp '+(d?'warn':'ok')+'" title="Ideal: '+min+' uds">'+(!hasData?'—':d?'+'+d:'✅')+'</td>';});
+    return row+'<td style="text-align:center"><span class="sbadge '+(despTotal?'warn':'ok')+'">'+urg+'</span></td></tr>';
+  }).join('');
+  var foot='<tr style="background:var(--sh);font-weight:700"><td colspan="2">TOTAL</td>';
+  xREFS.forEach(function(r){foot+='<td style="text-align:center;font-family:var(--mono);font-weight:700">'+totRefs[r.key]+'</td><td style="text-align:center;font-family:var(--mono);color:#2e7d32">'+(xTRANSITO.cargado?(xTRANSITO[r.key]||0):'—')+'</td>';});
+  foot+='<td style="text-align:center;color:var(--blue)">'+tHoy+'</td><td style="text-align:center;color:#2e7d32">'+(xTRANSITO.cargado?tHoy+xTRANSITO.total:'—')+'</td><td></td><td colspan="'+xREFS.length+'" style="text-align:center;color:var(--red)">Despacho total: '+tDesp+' uds</td><td></td></tr>';
+  document.getElementById('stock-tfoot').innerHTML=foot;
+  document.getElementById('stock-kpis').innerHTML='<div class="kpi-card blue"><div class="kpi-label">Stock total hoy</div><div class="kpi-val">'+tHoy+'</div><div class="kpi-sub">todas las casas</div></div><div class="kpi-card red"><div class="kpi-label">Despacho sugerido</div><div class="kpi-val">'+tDesp+'</div><div class="kpi-sub">según mínimos configurados</div></div><div class="kpi-card '+(nUrg?'red':'green')+'"><div class="kpi-label">Casas urgentes</div><div class="kpi-val">'+nUrg+'</div></div><div class="kpi-card green"><div class="kpi-label">Casas OK</div><div class="kpi-val">'+nOk+'</div></div>';
+}
+
+function renderCompras(){
+  var st=xGS(),totalAlm=xTotalRefs(xALMACEN),totalCasas=xREFS.reduce(function(t,r){return t+getStockCasas(r.key);},0),totalTrans=xTRANSITO.cargado?xTRANSITO.total:0;
+  var ventaSemTotal=xREFS.reduce(function(t,r){return t+getVentaSemana(r.key);},0),promSemTotal=xREFS.reduce(function(t,r){return t+getPromedioSemanal(r.key);},0);
+  document.getElementById('compras-kpis').innerHTML='<div class="kpi-card blue"><div class="kpi-label">Total en almacén</div><div class="kpi-val">'+totalAlm+'</div></div><div class="kpi-card green"><div class="kpi-label">Total en casas</div><div class="kpi-val">'+totalCasas+'</div></div><div class="kpi-card blue"><div class="kpi-label">Total disponible</div><div class="kpi-val">'+(totalAlm+totalCasas+totalTrans)+'</div></div><div class="kpi-card amber"><div class="kpi-label">Venta sem actual</div><div class="kpi-val">'+ventaSemTotal+'</div><div class="kpi-sub">prom sem: '+promSemTotal+'</div></div>';
+  var totals={alm:0,casas:0,trans:0,total:0};
+  document.getElementById('compras-tbody').innerHTML=xREFS.map(function(ref){var alm=xALMACEN[ref.key]||0,casas=getStockCasas(ref.key),trans=xTRANSITO.cargado?(xTRANSITO[ref.key]||0):0,total=alm+casas+trans,promDia=getPromedioDiario(ref.key),dias=promDia>0?Math.round(total/promDia):999;totals.alm+=alm;totals.casas+=casas;totals.trans+=trans;totals.total+=total;var dec=dias>=10?'OK — suficiente':dias>=5?'Comprar esta semana':'COMPRAR YA',cls=dias>=10?'ok':dias>=5?'revisar':'si';return '<tr><td style="font-weight:500">'+ref.nombre+'</td><td style="text-align:center">'+alm+'</td><td style="text-align:center">'+casas+'</td><td style="text-align:center;color:#2e7d32">'+(xTRANSITO.cargado?trans:'—')+'</td><td style="text-align:center;font-weight:700;color:var(--blue)">'+total+'</td><td style="text-align:center">'+getVentaSemana(ref.key)+'</td><td style="text-align:center">'+getPromedioSemanal(ref.key)+'</td><td style="text-align:center">'+(dias===999?'∞':dias+' días')+'</td><td style="text-align:center"><span class="decision-compra '+cls+'">'+dec+'</span></td></tr>';}).join('');
+  document.getElementById('compras-tfoot').innerHTML='<tr style="background:var(--sh);font-weight:700"><td>TOTAL</td><td style="text-align:center">'+totals.alm+'</td><td style="text-align:center">'+totals.casas+'</td><td style="text-align:center;color:#2e7d32">'+(xTRANSITO.cargado?totals.trans:'—')+'</td><td style="text-align:center;color:var(--blue)">'+totals.total+'</td><td colspan="4"></td></tr>';
+  document.getElementById('ubicacion-thead').innerHTML='<tr><th style="text-align:left;min-width:200px">UBICACIÓN</th>'+xREFS.map(function(r){return '<th style="text-align:center">'+r.nombre+'</th>';}).join('')+'<th style="text-align:center">TOTAL</th></tr>';
+  var colTotals=xNuevoStock();
+  function ubicRow(nombre,o,style){var total=xTotalRefs(o);xREFS.forEach(function(r){colTotals[r.key]+=(o[r.key]||0);});return '<tr'+(style?' style="'+style+'"':'')+'><td style="font-weight:600">'+nombre+'</td>'+xREFS.map(function(r){return '<td style="text-align:center;font-family:var(--mono)">'+(o[r.key]||0)+'</td>';}).join('')+'<td style="text-align:center;font-weight:700">'+total+'</td></tr>';}
+  var rows=ubicRow('🏠 Almacén central',xALMACEN,'background:#f8f9fa');
+  xSEDES.forEach(function(sd){rows+=ubicRow((xSEDES_CFG[sd]==='lima'?'🏙':'🏠')+' '+sd,st[sd]||xNuevoStock());});
+  if(xTRANSITO.cargado&&xTRANSITO.total>0)rows+=ubicRow('🚚 En tránsito',xTRANSITO,'background:#e8f5e9;color:#2e7d32');
+  document.getElementById('ubicacion-tbody').innerHTML=rows;
+  document.getElementById('ubicacion-tfoot').innerHTML='<tr style="background:var(--sh);font-weight:700"><td>TOTAL GENERAL</td>'+xREFS.map(function(r){return '<td style="text-align:center;color:var(--blue)">'+colTotals[r.key]+'</td>';}).join('')+'<td style="text-align:center;color:var(--blue)">'+xTotalRefs(colTotals)+'</td></tr>';
+}
+
+function renderCasas(){
+  var mes=document.getElementById('casas-mes-sel')?document.getElementById('casas-mes-sel').value:'';
+  if(!ALL||!ALL.length){document.getElementById('casas-kpis').innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--grey2)">Carga el CSV primero</div>';return;}
+  var fin=ALL.filter(function(r){if(r['Estado de la Solicitud']!=='Aprobado'||r['Estado Contrato']!=='FIRMADO')return false;if(mes){var d=parseFecha(r['Fecha Venta']);if(!d||toMesKey(d)!==mes)return false;}return true;});
+  var dt={};xSEDES.forEach(function(s){dt[s]=xNuevoStock();dt[s].t=0;});
+  fin.forEach(function(r){var s=r['Tienda Venta']||'',p=xGP(r['Producto Vendido']);if(dt[s]){if(p!=='OTRO')dt[s][p]++;dt[s].t++;}});
+  var srt=Object.entries(dt).sort(function(a,b){return b[1].t-a[1].t;}),tot={};xREFS.forEach(function(r){tot[r.key]=srt.reduce(function(n,e){return n+(e[1][r.key]||0);},0);});
+  document.getElementById('casas-kpis').innerHTML='<div class="kpi-card blue"><div class="kpi-label">Total firmado</div><div class="kpi-val">'+fin.length+'</div><div class="kpi-sub">ventas periodo</div></div>'+xREFS.map(function(r){return '<div class="kpi-card"><div class="kpi-label">'+r.nombre+'</div><div class="kpi-val">'+tot[r.key]+'</div><div class="kpi-sub">unidades</div></div>';}).join('');
+  document.getElementById('casas-thead').innerHTML='<tr><th style="text-align:left;min-width:180px">CASA / SEDE</th><th style="text-align:center">Tipo</th>'+xREFS.map(function(r){return '<th style="text-align:center">'+r.corto+'</th>';}).join('')+'<th style="text-align:center">TOTAL</th><th>Mix</th></tr>';
+  document.getElementById('casas-tbody').innerHTML=srt.map(function(e){var nm=e[0],d=e[1],row='<tr><td style="font-weight:500">'+nm+'</td><td style="text-align:center">'+(xSEDES_CFG[nm]==='lima'?'<span class="tipo-lima">Lima</span>':'<span class="tipo-prov">Provincia</span>')+'</td>';xREFS.forEach(function(r){row+='<td style="text-align:center;font-family:var(--mono)">'+(d[r.key]||0)+'</td>';});row+='<td style="text-align:center;font-weight:700;color:var(--blue)">'+d.t+'</td><td><div style="display:flex;height:8px;border-radius:4px;overflow:hidden;width:100px">';xREFS.forEach(function(r){row+='<div title="'+r.nombre+'" style="width:'+(d.t?Math.round((d[r.key]||0)/d.t*100):0)+'%;background:'+r.color+'"></div>';});return row+'</div></td></tr>';}).join('');
+  document.getElementById('casas-bars').innerHTML='<div style="display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--grey2);margin-bottom:10px">'+xREFS.map(function(r){return '<span><span style="display:inline-block;width:10px;height:10px;background:'+r.color+';border-radius:2px;margin-right:3px"></span>'+r.corto+'</span>';}).join('')+'</div>';
+  document.getElementById('casas-title').textContent='Ventas por casa'+(mes?' - '+mes:' - todos los meses');
+}
 var xSEDE_PERIOD = "semact";
 var xSEDE_SORT = "ventas";
 
