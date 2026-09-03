@@ -3083,55 +3083,44 @@ var xAGO_SUP_AFIL  = 0.25;
 var xAGO_SUP_BONO_SEM = 100; // si semana >100 ventas en total país
 
 // ══════════════════════════════════════════════════════════════
-  // SEPTIEMBRE 2026 — políticas nuevas (embajadores, supervisor, créditos, call)
+  // SEPTIEMBRE 2026 — políticas nuevas (embajadores, supervisor, call). Sin créditos.
   // ══════════════════════════════════════════════════════════════
   (function(){
-    var panel = document.getElementById('tab-comisiones');
-    if(panel && !document.getElementById('com-sep-nota')){
-      var wrap = document.createElement('div');
-      wrap.innerHTML =
-        '<div class="sheet" style="margin-top:14px;display:none;" id="com-sep-nota"></div>' +
-        '<div class="sheet" style="margin-top:14px;display:none;" id="com-sep-creditos-sheet">' +
-        '<div class="sheet-hdr"><span class="sheet-hdr-title">Línea de créditos KrediYa — septiembre (estructura, sin datos conectados aún)</span></div>' +
-        '<div style="overflow-x:auto;"><table class="tbl"><thead><tr>' +
-        '<th style="text-align:left">SEDE</th>' +
-        '<th style="text-align:center">Meta créditos (mes)</th>' +
-        '<th style="text-align:center">Créditos vendidos</th>' +
-        '<th style="text-align:center">Com. asesor</th>' +
-        '<th style="text-align:center">Com. supervisor</th>' +
-        '</tr></thead><tbody id="com-sep-creditos-tbody"></tbody></table></div>' +
-        '</div>' +
-        '<div class="sheet" style="margin-top:14px;display:none;" id="com-sep-call-sheet">' +
-        '<div class="sheet-hdr"><span class="sheet-hdr-title">Ventas del call por casa (ya incluidas arriba en el total de la sede)</span></div>' +
-        '<div style="overflow-x:auto;"><table class="tbl"><thead><tr>' +
-        '<th style="text-align:left">SEDE</th>' +
-        '<th style="text-align:center">Ventas del call</th>' +
-        '</tr></thead><tbody id="com-sep-call-tbody"></tbody></table></div>' +
-        '</div>';
-      while(wrap.firstChild) panel.appendChild(wrap.firstChild);
-    }
+      var panel = document.getElementById('tab-comisiones');
+      if(panel && !document.getElementById('com-sep-call-sheet')){
+            var wrap = document.createElement('div');
+            wrap.innerHTML =
+                    '<div class="sheet" style="margin-top:14px;display:none;" id="com-sep-call-sheet">' +
+                      '<div class="sheet-hdr"><span class="sheet-hdr-title">Ventas del call por casa (ya incluidas arriba en el total de la sede)</span></div>' +
+                      '<div style="overflow-x:auto;"><table class="tbl"><thead><tr>' +
+                        '<th style="text-align:left">SEDE</th>' +
+                        '<th style="text-align:center">Ventas del call</th>' +
+                      '</tr></thead><tbody id="com-sep-call-tbody"></tbody></table></div>' +
+                    '</div>';
+            while(wrap.firstChild) panel.appendChild(wrap.firstChild);
+      }
   })();
-  
+
   var xSEP_MES_KEY = "2026-09";
-  
+
   var xSEP_SEM_FECHAS = [
     {label:"Semana 1 — 1 al 4 sep", desde:"2026-09-01", hasta:"2026-09-04"},
     {label:"Semana 2 — 7 al 11 sep", desde:"2026-09-07", hasta:"2026-09-11"},
     {label:"Semana 3 — 14 al 18 sep", desde:"2026-09-14", hasta:"2026-09-18"},
     {label:"Semana 4 — 21 al 30 sep", desde:"2026-09-21", hasta:"2026-09-30"},
     ];
-  
-  var xSEP_META_CEL_SEDE_TOTAL = {
-    "INDEPENDENCIA":46, "MIRAFLORES":30, "CERCADO DE LIMA":46, "SAN JUAN DE MIRAFLORES":20,
-    "SAN JUAN DE LURIGANCHO":20, "TRUJILLO":26, "CHICLAYO":32, "PIURA":20,
-    "AREQUIPA":20, "ICA":20, "CUSCO":20
+
+  var xSEP_META_CEL_SEDE_SEM = {
+    "INDEPENDENCIA":[8,16,8,8], "MIRAFLORES":[4,8,4,4], "CERCADO DE LIMA":[6,13,6,7],
+    "SAN JUAN DE MIRAFLORES":[3,6,2,3], "SAN JUAN DE LURIGANCHO":[3,6,3,4],
+    "TRUJILLO":[5,9,4,5], "CHICLAYO":[5,10,5,6], "PIURA":[3,6,3,3],
+    "AREQUIPA":[3,6,3,4], "ICA":[2,5,2,3], "CUSCO":[3,6,3,4]
   };
-  var xSEP_META_CRED_SEDE_TOTAL = {
-    "INDEPENDENCIA":60, "MIRAFLORES":40, "CERCADO DE LIMA":60, "SAN JUAN DE MIRAFLORES":28,
-    "SAN JUAN DE LURIGANCHO":28, "TRUJILLO":34, "CHICLAYO":42, "PIURA":28,
-    "AREQUIPA":28, "ICA":28, "CUSCO":24
-  };
-  
+  function metaMesSede(sede){
+    var arr = xSEP_META_CEL_SEDE_SEM[sede]||[0,0,0,0];
+    return arr[0]+arr[1]+arr[2]+arr[3];
+  }
+
   var xSEP_RANGOS_TARIFA = [
     {max:4, rate:5, label:"1 a 4 ventas"},
     {max:10, rate:8, label:"5 a 10 ventas"},
@@ -3147,26 +3136,37 @@ var xAGO_SUP_BONO_SEM = 100; // si semana >100 ventas en total país
     }
     return {comision:v*tramo.rate, detalle:v+"×S/"+tramo.rate+" ("+tramo.label+")"};
   }
-  
-  var xSEP_EMB_CRED_TARIFA = {1000:15, 2000:30, 3000:50};
-  var xSEP_SUP_CRED_TARIFA = {1000:3, 2000:5, 3000:8};
-  
-  var xSEP_SUP_VENTA = 2;
-  
-  var xSEP_SUP_BONO_VENTAS_UMBRAL = 70; var xSEP_SUP_BONO_VENTAS_MONTO = 50;
-  var xSEP_SUP_BONO_CRED_UMBRAL = 80; var xSEP_SUP_BONO_CRED_MONTO = 100;
-  
+
+  var xSEP_BONO_SEM_EMBAJADOR = 20;
+  var xSEP_BONO_4SEM_EXTRA = 50;
+  function calcBonoSeptiembre(sede, esMes, semIdx){
+    var metas = xSEP_META_CEL_SEDE_SEM[sede]||[0,0,0,0];
+    if(esMes){
+      var nOk=0;
+      xSEP_SEM_FECHAS.forEach(function(sf,i){
+        var v=getVentasSede(sede,sf.desde,sf.hasta);
+        if(v>=metas[i]) nOk++;
+      });
+      return nOk*xSEP_BONO_SEM_EMBAJADOR + (nOk===4?xSEP_BONO_4SEM_EXTRA:0);
+    } else {
+      var sf=xSEP_SEM_FECHAS[semIdx];
+      if(!sf) return 0;
+      var v=getVentasSede(sede,sf.desde,sf.hasta);
+      return (v>=metas[semIdx]) ? xSEP_BONO_SEM_EMBAJADOR : 0;
+    }
+  }
+
+  var xSEP_SUP_VENTA = 3;
+
+  var xSEP_SUP_BONO_VENTAS_UMBRAL = 70;  var xSEP_SUP_BONO_VENTAS_MONTO = 50;
+
   function hideSepExtras(){
-    ['com-sep-nota','com-sep-creditos-sheet','com-sep-call-sheet'].forEach(function(id){
-      var el=document.getElementById(id); if(el) el.style.display='none';
-    });
+    var el=document.getElementById('com-sep-call-sheet'); if(el) el.style.display='none';
   }
   function showSepExtras(){
-    ['com-sep-nota','com-sep-creditos-sheet','com-sep-call-sheet'].forEach(function(id){
-      var el=document.getElementById(id); if(el) el.style.display='';
-    });
+    var el=document.getElementById('com-sep-call-sheet'); if(el) el.style.display='';
   }
-  
+
   function getVentasCallSede(sede, desde, hasta){
     return ALL.filter(function(r){
       if(!esFirmado(r)||r["Estado de la Solicitud"]!=="Aprobado") return false;
@@ -3180,7 +3180,7 @@ var xAGO_SUP_BONO_SEM = 100; // si semana >100 ventas en total país
       return true;
     }).length;
   }
-  
+
   function getVentasPais(desde,hasta){
     return ALL.filter(function(r){
       if(!esFirmado(r)||r["Estado de la Solicitud"]!=="Aprobado") return false;
@@ -3191,7 +3191,7 @@ var xAGO_SUP_BONO_SEM = 100; // si semana >100 ventas en total país
       return true;
     }).length;
   }
-  
+
   function renderComisionesSeptiembre(){
     if(!ALL||!ALL.length){
       document.getElementById("com-tbody").innerHTML=
@@ -3201,15 +3201,14 @@ var xAGO_SUP_BONO_SEM = 100; // si semana >100 ventas en total país
     var rsheet=document.getElementById("com-ranking-sheet");
     if(rsheet) rsheet.style.display="none";
     showSepExtras();
-    
+
     var semIdx=xCOM_SEM-1;
     var esMes=xCOM_SEM===0;
-    var mesDesde=xSEP_SEM_FECHAS[0].desde, mesHasta=xSEP_SEM_FECHAS[xSEP_SEM_FECHAS.length-1].hasta;
-    
+
     document.getElementById("com-titulo").textContent = esMes
-      ? "Acumulado mes — Septiembre 2026"
+    ? "Acumulado mes — Septiembre 2026"
       : xSEP_SEM_FECHAS[semIdx]?xSEP_SEM_FECHAS[semIdx].label:"Septiembre 2026";
-    
+
     if(esMes){
       document.getElementById("com-thead").innerHTML=
         "<tr><th style=\"text-align:left;min-width:200px\">SEDE</th>"+
@@ -3232,13 +3231,13 @@ var xAGO_SUP_BONO_SEM = 100; // si semana >100 ventas en total país
         "<th style=\"text-align:center\">Bono</th>"+
         "<th style=\"text-align:center\">Total sede</th></tr>";
     }
-    
-    var sedes=Object.keys(xSEP_META_CEL_SEDE_TOTAL);
-    var totalVentas=0,totalMeta=0,totalComAsesor=0,totalComSup=0;
-    
+
+    var sedes=Object.keys(xSEP_META_CEL_SEDE_SEM);
+    var totalVentas=0,totalMeta=0,totalComAsesor=0,totalComSup=0,totalBonoEmb=0;
+
     var tbodyHTML=sedes.map(function(sede){
-      var metaMes=xSEP_META_CEL_SEDE_TOTAL[sede]||0;
       if(esMes){
+        var metaMes=metaMesSede(sede);
         var vMes=0,comAsesorMes=0;
         xSEP_SEM_FECHAS.forEach(function(sf){
           var v=getVentasSede(sede,sf.desde,sf.hasta);
@@ -3246,8 +3245,9 @@ var xAGO_SUP_BONO_SEM = 100; // si semana >100 ventas en total país
         });
         var pctMes=metaMes>0?Math.round(vMes/metaMes*100):0;
         var comSup=vMes*xSEP_SUP_VENTA;
-        totalVentas+=vMes;totalMeta+=metaMes;totalComAsesor+=comAsesorMes;totalComSup+=comSup;
-        var total=comAsesorMes+comSup;
+        var bono=calcBonoSeptiembre(sede,true);
+        totalVentas+=vMes;totalMeta+=metaMes;totalComAsesor+=comAsesorMes;totalComSup+=comSup;totalBonoEmb+=bono;
+        var total=comAsesorMes+comSup+bono;
         var pctCol=pctMes>=100?"color:var(--blue)":pctMes>=80?"color:var(--green)":"color:var(--red)";
         return "<tr onmouseover=\"this.style.background='var(--sh)'\" onmouseout=\"this.style.background=''\">"+
           "<td style=\"font-weight:500\">"+sede+"</td>"+
@@ -3256,33 +3256,37 @@ var xAGO_SUP_BONO_SEM = 100; // si semana >100 ventas en total país
           "<td style=\"text-align:center;font-weight:700;font-family:var(--mono);"+pctCol+"\">"+pctMes+"%</td>"+
           "<td style=\"text-align:center;font-family:var(--mono)\">S/ "+comAsesorMes+"</td>"+
           "<td style=\"text-align:center;font-family:var(--mono)\">S/ "+comSup+"</td>"+
-          "<td style=\"text-align:center\"><span class=\"sbadge com-no\">Pendiente*</span></td>"+
+          "<td style=\"text-align:center;font-family:var(--mono);"+(bono>0?"color:var(--green)":"")+"\">S/ "+bono+"</td>"+
           "<td style=\"text-align:center;font-weight:700;font-family:var(--mono);color:var(--blue)\">S/ "+total+"</td>"+
           "</tr>";
       } else {
         var sf=xSEP_SEM_FECHAS[semIdx];
         if(!sf) return "";
         var v=getVentasSede(sede,sf.desde,sf.hasta);
+        var metaSem=(xSEP_META_CEL_SEDE_SEM[sede]||[0,0,0,0])[semIdx]||0;
+        var pctSem=metaSem>0?Math.round(v/metaSem*100):0;
         var cal=calcTramosSeptiembre(v);
         var comSup=v*xSEP_SUP_VENTA;
-        var totalSede=cal.comision+comSup;
-        totalVentas+=v;totalComAsesor+=cal.comision;totalComSup+=comSup;
+        var bono=calcBonoSeptiembre(sede,false,semIdx);
+        var totalSede=cal.comision+comSup+bono;
+        totalVentas+=v;totalMeta+=metaSem;totalComAsesor+=cal.comision;totalComSup+=comSup;totalBonoEmb+=bono;
+        var pctCol=pctSem>=100?"color:var(--blue)":pctSem>=80?"color:var(--green)":"color:var(--red)";
         return "<tr onmouseover=\"this.style.background='var(--sh)'\" onmouseout=\"this.style.background=''\">"+
           "<td style=\"font-weight:500\">"+sede+"</td>"+
           "<td style=\"text-align:center;font-weight:700;font-family:var(--mono)\">"+v+"</td>"+
-          "<td style=\"text-align:center;font-family:var(--mono);color:var(--grey2)\">—*</td>"+
-          "<td style=\"text-align:center;font-family:var(--mono);color:var(--grey2)\">—</td>"+
+          "<td style=\"text-align:center;font-family:var(--mono)\">"+metaSem+"</td>"+
+          "<td style=\"text-align:center;font-weight:700;font-family:var(--mono);"+pctCol+"\">"+pctSem+"%</td>"+
           "<td style=\"text-align:center;font-size:11px;color:var(--grey2)\">"+cal.detalle+"</td>"+
           "<td style=\"text-align:center;font-family:var(--mono)\">S/ "+cal.comision+"</td>"+
           "<td style=\"text-align:center;font-family:var(--mono)\">S/ "+comSup+"</td>"+
-          "<td style=\"text-align:center\"><span class=\"sbadge com-no\">Pendiente*</span></td>"+
+          "<td style=\"text-align:center;font-family:var(--mono);"+(bono>0?"color:var(--green)":"")+"\">S/ "+bono+"</td>"+
           "<td style=\"text-align:center;font-weight:700;font-family:var(--mono);color:var(--blue)\">S/ "+totalSede+"</td>"+
           "</tr>";
       }
     }).join("");
-    
+
     document.getElementById("com-tbody").innerHTML=tbodyHTML;
-    
+
     var bonoVentasTotal=0;
     if(esMes){
       xSEP_SEM_FECHAS.forEach(function(sf){
@@ -3296,55 +3300,39 @@ var xAGO_SUP_BONO_SEM = 100; // si semana >100 ventas en total país
         if(vPw>=xSEP_SUP_BONO_VENTAS_UMBRAL) bonoVentasTotal=xSEP_SUP_BONO_VENTAS_MONTO;
       }
     }
-    
+
     var pctTotal=totalMeta>0?Math.round(totalVentas/totalMeta*100):0;
     document.getElementById("com-tfoot").innerHTML=
       "<tr style=\"background:var(--sh);font-weight:700\">"+
       "<td>TOTAL PAÍS</td>"+
       "<td style=\"text-align:center;font-family:var(--mono)\">"+totalVentas+"</td>"+
-      "<td style=\"text-align:center;font-family:var(--mono)\">"+(esMes?totalMeta:"—")+"</td>"+
-      "<td style=\"text-align:center;font-family:var(--mono)\">"+(esMes?pctTotal+"%":"—")+"</td>"+
+      "<td style=\"text-align:center;font-family:var(--mono)\">"+totalMeta+"</td>"+
+      "<td style=\"text-align:center;font-family:var(--mono)\">"+pctTotal+"%</td>"+
       (esMes?"":"<td></td>")+
       "<td style=\"text-align:center;font-family:var(--mono);color:var(--blue)\">S/ "+totalComAsesor+"</td>"+
       "<td style=\"text-align:center;font-family:var(--mono);color:var(--blue)\">S/ "+totalComSup+"</td>"+
-      "<td style=\"text-align:center;font-family:var(--mono);color:var(--blue)\">S/ "+bonoVentasTotal+" (sup.)</td>"+
-      "<td style=\"text-align:center;font-family:var(--mono);color:var(--blue);font-weight:700\">S/ "+(totalComAsesor+totalComSup+bonoVentasTotal)+"</td>"+
+      "<td style=\"text-align:center;font-family:var(--mono);color:var(--blue)\">S/ "+totalBonoEmb+" + S/ "+bonoVentasTotal+" (sup.)</td>"+
+      "<td style=\"text-align:center;font-family:var(--mono);color:var(--blue);font-weight:700\">S/ "+(totalComAsesor+totalComSup+totalBonoEmb+bonoVentasTotal)+"</td>"+
       "</tr>";
-    
+
     document.getElementById("com-kpis").innerHTML=
-      "<div class=\"kpi-card blue\"><div class=\"kpi-label\">Ventas celular periodo</div><div class=\"kpi-val\">"+totalVentas+"</div><div class=\"kpi-sub\">"+(esMes?"meta: "+totalMeta:"meta semanal pendiente")+"</div></div>"+
-      "<div class=\"kpi-card "+(pctTotal>=100?"blue":pctTotal>=80?"green":"red")+"\"><div class=\"kpi-label\">Cumplimiento</div><div class=\"kpi-val\">"+(esMes?pctTotal+"%":"—")+"</div><div class=\"kpi-sub\">vs meta mensual</div></div>"+
+      "<div class=\"kpi-card blue\"><div class=\"kpi-label\">Ventas celular periodo</div><div class=\"kpi-val\">"+totalVentas+"</div><div class=\"kpi-sub\">meta: "+totalMeta+"</div></div>"+
+      "<div class=\"kpi-card "+(pctTotal>=100?"blue":pctTotal>=80?"green":"red")+"\"><div class=\"kpi-label\">Cumplimiento</div><div class=\"kpi-val\">"+pctTotal+"%</div><div class=\"kpi-sub\">vs meta del periodo</div></div>"+
       "<div class=\"kpi-card amber\"><div class=\"kpi-label\">Bono supervisor (ventas)</div><div class=\"kpi-val\">S/ "+bonoVentasTotal+"</div><div class=\"kpi-sub\">"+xSEP_SUP_BONO_VENTAS_UMBRAL+"+ ventas país/semana</div></div>"+
-      "<div class=\"kpi-card\"><div class=\"kpi-label\">Com. total est.</div><div class=\"kpi-val\">S/ "+(totalComAsesor+totalComSup+bonoVentasTotal)+"</div><div class=\"kpi-sub\">asesores+sup+bono ventas</div></div>";
-  
-  var nota=document.getElementById("com-sep-nota");
-    if(nota) nota.innerHTML =
-      "<div style=\"padding:12px 14px;font-size:12px;color:var(--grey2);\">"+
-      "* La meta semanal por sede de septiembre aún no está definida, por lo que el bono de S/ 30 por semana cumplida (embajadores) se muestra como <b>Pendiente</b>. "+
-      "La línea de créditos (S/1,000 / S/2,000 / S/3,000) todavía no está conectada a datos reales — el formato del reporte se define en la 2da semana de septiembre; abajo se deja la estructura lista."+
-      "</div>";
-    
-    var credRows=sedes.map(function(sede){
-      var metaCred=xSEP_META_CRED_SEDE_TOTAL[sede]||0;
-      return "<tr><td style=\"font-weight:500\">"+sede+"</td>"+
-        "<td style=\"text-align:center;font-family:var(--mono)\">"+metaCred+"</td>"+
-        "<td style=\"text-align:center;font-family:var(--mono);color:var(--grey2)\">—</td>"+
-        "<td style=\"text-align:center;font-family:var(--mono);color:var(--grey2)\">—</td>"+
-        "<td style=\"text-align:center;font-family:var(--mono);color:var(--grey2)\">—</td></tr>";
-    }).join("");
-    var credTbody=document.getElementById("com-sep-creditos-tbody");
-    if(credTbody) credTbody.innerHTML=credRows;
-    
-    var callDesde = esMes?mesDesde:(xSEP_SEM_FECHAS[semIdx]?xSEP_SEM_FECHAS[semIdx].desde:mesDesde);
-    var callHasta = esMes?mesHasta:(xSEP_SEM_FECHAS[semIdx]?xSEP_SEM_FECHAS[semIdx].hasta:mesHasta);
+      "<div class=\"kpi-card\"><div class=\"kpi-label\">Com. total est.</div><div class=\"kpi-val\">S/ "+(totalComAsesor+totalComSup+totalBonoEmb+bonoVentasTotal)+"</div><div class=\"kpi-sub\">asesores+sup+bonos</div></div>";
+
+    var callDesde = esMes?xSEP_SEM_FECHAS[0].desde:(xSEP_SEM_FECHAS[semIdx]?xSEP_SEM_FECHAS[semIdx].desde:xSEP_SEM_FECHAS[0].desde);
+    var callHasta = esMes?xSEP_SEM_FECHAS[3].hasta:(xSEP_SEM_FECHAS[semIdx]?xSEP_SEM_FECHAS[semIdx].hasta:xSEP_SEM_FECHAS[3].hasta);
     var callRows=sedes.map(function(sede){
       var c=getVentasCallSede(sede,callDesde,callHasta);
       return "<tr><td style=\"font-weight:500\">"+sede+"</td>"+
         "<td style=\"text-align:center;font-family:var(--mono);font-weight:700\">"+c+"</td></tr>";
     }).join("");
     var callTbody=document.getElementById("com-sep-call-tbody");
-  if(callTbody) callTbody.innerHTML=callRows;
+    if(callTbody) callTbody.innerHTML=callRows;
   }
+
+  
   
   function renderComisiones(){
   if(xCOM_MES_KEY===xJUL_MES_KEY){ renderComisionesJulio(); return; }
