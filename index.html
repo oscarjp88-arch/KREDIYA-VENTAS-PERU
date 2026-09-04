@@ -2924,7 +2924,7 @@ var xAGO_RANGOS_TARIFA = [
 // RENDER COMISIONES AGOSTO 2026
 // ══════════════════════════════════════════════════════════════
 function renderComisionesAgosto(){
-  hideSepExtras();
+  showSepExtras();
   var semIdx=xCOM_SEM-1;
   var esMes=xCOM_SEM===0;
 
@@ -3055,6 +3055,16 @@ function renderComisionesAgosto(){
     "<div class=\"kpi-card green\"><div class=\"kpi-label\">Sedes meta</div><div class=\"kpi-val\">"+sedesOk+"/"+sedes.length+"</div><div class=\"kpi-sub\">>= 100% meta</div></div>"+
     "<div class=\"kpi-card amber\"><div class=\"kpi-label\">Com. total est.</div><div class=\"kpi-val\">S/ "+(totalComAsesor+totalComSup+totalBono)+"</div><div class=\"kpi-sub\">asesores+sup+bonos</div></div>";
 
+    var callDesdeAgo = esMes?xAGO_SEM_FECHAS[0].desde:(xAGO_SEM_FECHAS[semIdx]?xAGO_SEM_FECHAS[semIdx].desde:xAGO_SEM_FECHAS[0].desde);
+    var callHastaAgo = esMes?xAGO_SEM_FECHAS[3].hasta:(xAGO_SEM_FECHAS[semIdx]?xAGO_SEM_FECHAS[semIdx].hasta:xAGO_SEM_FECHAS[3].hasta);
+    var callRowsAgo=sedes.map(function(sede){
+        var c=getVentasCallSede(sede,callDesdeAgo,callHastaAgo);
+      return "<tr><td style=\"font-weight:500\">"+sede+"</td>"+
+        "<td style=\"text-align:center;font-family:var(--mono);font-weight:700\">"+c+"</td></tr>";
+    }).join("");
+    var callTbodyAgo=document.getElementById("com-sep-call-tbody");
+    if(callTbodyAgo) callTbodyAgo.innerHTML=callRowsAgo;
+  
   // Actualizar botones semana con fechas agosto
   var semBtns=document.querySelectorAll("#tab-comisiones .pill[data-sem]");
   // (botones ya actualizados por el selector de mes)
@@ -3122,8 +3132,8 @@ var xAGO_SUP_BONO_SEM = 100; // si semana >100 ventas en total país
   }
 
   var xSEP_RANGOS_TARIFA = [
-    {max:4, rate:5, label:"1 a 4 ventas"},
-    {max:10, rate:8, label:"5 a 10 ventas"},
+    {max:5, rate:5, label:"1 a 5 ventas"},
+    {max:10, rate:8, label:"6 a 10 ventas"},
     {max:15, rate:10, label:"11 a 15 ventas"},
     {max:Infinity, rate:15, label:"16+ ventas"},
     ];
@@ -3156,9 +3166,23 @@ var xAGO_SUP_BONO_SEM = 100; // si semana >100 ventas en total país
     }
   }
 
-  var xSEP_SUP_VENTA = 3;
+    var xSEP_SUP_VENTA = 4;
 
-  var xSEP_SUP_BONO_VENTAS_UMBRAL = 70;  var xSEP_SUP_BONO_VENTAS_MONTO = 50;
+    function metaSemanaTotal(semIdx){
+      var t=0;
+      Object.keys(xSEP_META_CEL_SEDE_SEM).forEach(function(sede){
+        var arr = xSEP_META_CEL_SEDE_SEM[sede]||[0,0,0,0];
+        t += arr[semIdx]||0;
+      });
+      return t;
+    }
+    var xSEP_SUP_BONO_TIERS = [ {umbral:100, monto:100}, {umbral:90, monto:80}, {umbral:80, monto:50} ];
+  function calcBonoSupervisorSemanal(pct){
+    for(var i=0;i<xSEP_SUP_BONO_TIERS.length;i++){
+      if(pct>=xSEP_SUP_BONO_TIERS[i].umbral) return xSEP_SUP_BONO_TIERS[i].monto;
+    }
+      return 0;
+  }
 
   function hideSepExtras(){
     var el=document.getElementById('com-sep-call-sheet'); if(el) el.style.display='none';
@@ -3289,15 +3313,19 @@ var xAGO_SUP_BONO_SEM = 100; // si semana >100 ventas en total país
 
     var bonoVentasTotal=0;
     if(esMes){
-      xSEP_SEM_FECHAS.forEach(function(sf){
+          xSEP_SEM_FECHAS.forEach(function(sf,i){
         var vP=getVentasPais(sf.desde,sf.hasta);
-        if(vP>=xSEP_SUP_BONO_VENTAS_UMBRAL) bonoVentasTotal+=xSEP_SUP_BONO_VENTAS_MONTO;
+        var metaP=metaSemanaTotal(i);
+            var pctP=metaP>0?(vP/metaP*100):0;
+            bonoVentasTotal+=calcBonoSupervisorSemanal(pctP);
       });
     } else {
       var sfw=xSEP_SEM_FECHAS[semIdx];
       if(sfw){
         var vPw=getVentasPais(sfw.desde,sfw.hasta);
-        if(vPw>=xSEP_SUP_BONO_VENTAS_UMBRAL) bonoVentasTotal=xSEP_SUP_BONO_VENTAS_MONTO;
+        var metaPw=metaSemanaTotal(semIdx);
+        var pctPw=metaPw>0?(vPw/metaPw*100):0;
+        bonoVentasTotal=calcBonoSupervisorSemanal(pctPw);
       }
     }
 
@@ -3318,7 +3346,7 @@ var xAGO_SUP_BONO_SEM = 100; // si semana >100 ventas en total país
     document.getElementById("com-kpis").innerHTML=
       "<div class=\"kpi-card blue\"><div class=\"kpi-label\">Ventas celular periodo</div><div class=\"kpi-val\">"+totalVentas+"</div><div class=\"kpi-sub\">meta: "+totalMeta+"</div></div>"+
       "<div class=\"kpi-card "+(pctTotal>=100?"blue":pctTotal>=80?"green":"red")+"\"><div class=\"kpi-label\">Cumplimiento</div><div class=\"kpi-val\">"+pctTotal+"%</div><div class=\"kpi-sub\">vs meta del periodo</div></div>"+
-      "<div class=\"kpi-card amber\"><div class=\"kpi-label\">Bono supervisor (ventas)</div><div class=\"kpi-val\">S/ "+bonoVentasTotal+"</div><div class=\"kpi-sub\">"+xSEP_SUP_BONO_VENTAS_UMBRAL+"+ ventas país/semana</div></div>"+
+            "<div class=\"kpi-card amber\"><div class=\"kpi-label\">Bono supervisor (ventas)</div><div class=\"kpi-val\">S/ "+bonoVentasTotal+"</div><div class=\"kpi-sub\">80/90/100% cumpl. país/semana</div></div>"+
       "<div class=\"kpi-card\"><div class=\"kpi-label\">Com. total est.</div><div class=\"kpi-val\">S/ "+(totalComAsesor+totalComSup+totalBonoEmb+bonoVentasTotal)+"</div><div class=\"kpi-sub\">asesores+sup+bonos</div></div>";
 
     var callDesde = esMes?xSEP_SEM_FECHAS[0].desde:(xSEP_SEM_FECHAS[semIdx]?xSEP_SEM_FECHAS[semIdx].desde:xSEP_SEM_FECHAS[0].desde);
