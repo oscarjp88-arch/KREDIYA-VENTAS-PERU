@@ -2511,6 +2511,7 @@ function cargarPresupuesto(){
 }
 
 function _actualizarDropdownComisiones(meses, mkActual){
+if(meses.indexOf(xSEP_MES_KEY)===-1){ meses=meses.concat([xSEP_MES_KEY]).sort(); }
   var sel=document.getElementById("com-mes-sel"); if(!sel) return;
   var prev=sel.value||mkActual;
   sel.innerHTML='<option value="">-- selecciona --</option>';
