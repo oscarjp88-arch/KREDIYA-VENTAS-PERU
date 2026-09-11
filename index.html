@@ -290,7 +290,8 @@ select.filter-sel:hover{border-color:var(--blue);}
         <option value="2026-04">Abril 2026</option>
         <option value="2026-05">Mayo 2026</option>
         <option value="2026-06">Junio 2026</option>
-        <option value="2026-07" selected>Julio 2026</option>
+                        <option value="2026-07" selected>Julio 2026</option>
+        <option value="2026-09">Sep 2026</option>
         <option value="2026-08">Agosto 2026</option>
         <option value="2026-07">Julio 2026</option>
       </select>
@@ -1065,9 +1066,9 @@ function setMetasMes(mes){
 }
 
 function renderMetas(){
-  var META  = MES_METAS==='2026-04'?META_ABR  : MES_METAS==='2026-05'?META_MAY  : MES_METAS==='2026-07'?META_JUL : MES_METAS==='2026-08'?META_AGO : META_JUN;
-  var BDAYS = MES_METAS==='2026-04'?BDAYS_ABR : MES_METAS==='2026-05'?BDAYS_MAYO: MES_METAS==='2026-07'?BDAYS_JUL : MES_METAS==='2026-08'?BDAYS_AGO : BDAYS_JUN;
-  var mesLabelStr = MES_METAS==='2026-04'?'Abril 2026': MES_METAS==='2026-05'?'Mayo 2026': MES_METAS==='2026-07'?'Julio 2026':MES_METAS==='2026-08'?'Agosto 2026':'Junio 2026';
+    var META  = MES_METAS==='2026-04'?META_ABR  : MES_METAS==='2026-05'?META_MAY  : MES_METAS==='2026-07'?META_JUL : MES_METAS==='2026-08'?META_AGO : MES_METAS==='2026-09'?META_SEP : META_JUN;
+    var BDAYS = MES_METAS==='2026-04'?BDAYS_ABR : MES_METAS==='2026-05'?BDAYS_MAYO: MES_METAS==='2026-07'?BDAYS_JUL : MES_METAS==='2026-08'?BDAYS_AGO : MES_METAS==='2026-09'?BDAYS_SEP : BDAYS_JUN;
+    var mesLabelStr = MES_METAS==='2026-04'?'Abril 2026': MES_METAS==='2026-05'?'Mayo 2026': MES_METAS==='2026-07'?'Julio 2026':MES_METAS==='2026-08'?'Agosto 2026':MES_METAS==='2026-09'?'Septiembre 2026':'Junio 2026';
   var isAbr = MES_METAS==='2026-04'; // para compatibilidad (abril = mes cerrado)
   var dhTotal=diasHabilesTotales(BDAYS);
   var dhHoy=isAbr?dhTotal:diasHabilesHastaHoy(BDAYS); // abril = fin de mes
@@ -3131,7 +3132,22 @@ var xAGO_SUP_BONO_SEM = 100; // si semana >100 ventas en total país
     var arr = xSEP_META_CEL_SEDE_SEM[sede]||[0,0,0,0];
     return arr[0]+arr[1]+arr[2]+arr[3];
   }
-
+  var BDAYS_SEP = (function(){
+        var out=[];
+        xSEP_SEM_FECHAS.forEach(function(sf){
+                var d=new Date(sf.desde+"T00:00:00"), fin=new Date(sf.hasta+"T00:00:00");
+                while(d<=fin){ out.push(toISO(d)); d.setDate(d.getDate()+1); }
+        });
+        return out;
+  })();
+    var META_SEP = (function(){
+          var out={};
+          Object.keys(xSEP_META_CEL_SEDE_SEM).forEach(function(sede){
+                  out[sede]={mes:metaMesSede(sede), dh:BDAYS_SEP.length};
+          });
+          return out;
+    })();
+  
   var xSEP_RANGOS_TARIFA = [
     {max:5, rate:5, label:"1 a 5 ventas"},
     {max:10, rate:8, label:"6 a 10 ventas"},
