@@ -3112,20 +3112,29 @@ var xAGO_SUP_BONO_SEM = 100; // si semana >100 ventas en total país
                       '</tr></thead><tbody id="com-sep-call-tbody"></tbody></table></div>' +
                                   '</div>' +
                                   '<div class="sheet" style="margin-top:14px;display:none;" id="com-sep-diario-sheet">' +
-                                    '<div class="sheet-hdr" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">' +
-                                      '<span class="sheet-hdr-title">Liquidacion diaria - Embajadores (escalon diario, vigente desde 10 sep)</span>' +
-                                      '<select id="com-sep-dia-sel" class="filter-sel" style="font-size:11px;" onchange="renderComisionDiariaEmbajadores(this.value)"></select>' +
-                                    '</div>' +
-                                    '<div style="overflow-x:auto;"><table class="tbl"><thead><tr>' +
-                                      '<th style="text-align:left">SEDE</th>' +
-                                      '<th style="text-align:left">VENDEDOR</th>' +
-                                      '<th style="text-align:center">Ventas del dia</th>' +
-                                      '<th style="text-align:center">Escalon</th>' +
-                                      '<th style="text-align:center">Com. embajador</th>' +
-                                      '<th style="text-align:center">Com. supervisor</th>' +
-                                      '<th style="text-align:center">Total</th>' +
-                                    '</tr></thead><tbody id="com-sep-dia-tbody"></tbody><tfoot id="com-sep-dia-tfoot"></tfoot></table></div>' +
-                                  '</div>';
+                  '<div class="sheet-hdr" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">' +
+                    '<span class="sheet-hdr-title">Liquidacion por dia/semana - Embajadores (escalon diario, vigente desde 10 sep)</span>' +
+                    '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' +
+                      '<button type="button" class="pill" onclick="aplicarRangoDiaSep(&quot;sem2&quot;)">Sem 2 (10-11 sep)</button>' +
+                      '<button type="button" class="pill" onclick="aplicarRangoDiaSep(&quot;sem3&quot;)">Sem 3 (14-18 sep)</button>' +
+                      '<button type="button" class="pill" onclick="aplicarRangoDiaSep(&quot;sem4&quot;)">Sem 4 (21-30 sep)</button>' +
+                      '<button type="button" class="pill" onclick="aplicarRangoDiaSep(&quot;todo&quot;)">Todo (10 sep+)</button>' +
+                      '<span style="font-size:11px;color:var(--grey2)">Desde</span>' +
+                      '<input type="date" id="com-sep-dia-desde" style="font-size:11px;border:1px solid var(--border2);border-radius:4px;padding:3px 6px;" onchange="renderComisionDiariaEmbajadores()">' +
+                      '<span style="font-size:11px;color:var(--grey2)">Hasta</span>' +
+                      '<input type="date" id="com-sep-dia-hasta" style="font-size:11px;border:1px solid var(--border2);border-radius:4px;padding:3px 6px;" onchange="renderComisionDiariaEmbajadores()">' +
+                    '</div>' +
+                  '</div>' +
+                  '<div style="overflow-x:auto;"><table class="tbl"><thead><tr>' +
+                    '<th style="text-align:left">SEDE</th>' +
+                    '<th style="text-align:left">VENDEDOR</th>' +
+                    '<th style="text-align:center">Dias activos</th>' +
+                    '<th style="text-align:center">Ventas en rango</th>' +
+                    '<th style="text-align:center">Com. embajador</th>' +
+                    '<th style="text-align:center">Com. supervisor</th>' +
+                    '<th style="text-align:center">Total</th>' +
+                  '</tr></thead><tbody id="com-sep-dia-tbody"></tbody><tfoot id="com-sep-dia-tfoot"></tfoot></table></div>' +
+                '</div>';
             while(wrap.firstChild) panel.appendChild(wrap.firstChild);
       }
   })();
@@ -3235,55 +3244,89 @@ var xAGO_SUP_BONO_SEM = 100; // si semana >100 ventas en total país
           return {comision:calAntes.comision+totalComD, detalle:calAntes.detalle+" + "+totalVd+" esc."};
     }
   
-    function renderComisionDiariaEmbajadores(fechaISO){
-          var sel=document.getElementById('com-sep-dia-sel');
-          if(sel && fechaISO && sel.value!==fechaISO) sel.value=fechaISO;
-          if(!fechaISO && sel) fechaISO=sel.value;
+function calcLiquidacionEmbajadoresRango(desde, hasta){
+    var map={};
+    fechasEnRangoSep(desde, hasta).forEach(function(fi){
           var sedes=Object.keys(xSEP_META_CEL_SEDE_SEM);
-          var rows=[]; var totV=0, totEmb=0, totSup=0;
           sedes.forEach(function(sede){
-                  var vd=getVendedoresDiaSede(sede,fechaISO);
-                  Object.keys(vd).sort().forEach(function(vend){
+                  var vd=getVendedoresDiaSede(sede, fi);
+                  Object.keys(vd).forEach(function(vend){
                             var n=vd[vend];
                             var com=calcComisionEscalonadaDia(n);
                             var sup=n*xSEP_SUP_VENTA;
-                            var tramoTxt = n<=1?"1a: S/10":n===2?"1a-2a: S/10+20":n===3?"1a-3a: S/10+20+25":("1a-4a+: S/10+20+25+30x"+(n-3));
-                            totV+=n; totEmb+=com; totSup+=sup;
-                            rows.push("<tr><td style=\"font-weight:500\">"+sede+"</td>"+
-                                                "<td>"+vend+"</td>"+
-                                                "<td style=\"text-align:center;font-family:var(--mono);font-weight:700\">"+n+"</td>"+
-                                                "<td style=\"text-align:center;font-size:11px;color:var(--grey2)\">"+tramoTxt+"</td>"+
-                                                "<td style=\"text-align:center;font-family:var(--mono)\">S/ "+com+"</td>"+
-                                                "<td style=\"text-align:center;font-family:var(--mono)\">S/ "+sup+"</td>"+
-                                                "<td style=\"text-align:center;font-family:var(--mono);font-weight:700;color:var(--blue)\">S/ "+(com+sup)+"</td></tr>");
+                            var key=sede+"||"+vend;
+                            if(!map[key]) map[key]={sede:sede, vend:vend, dias:0, ventas:0, comEmb:0, comSup:0};
+                            map[key].dias++;
+                            map[key].ventas+=n;
+                            map[key].comEmb+=com;
+                            map[key].comSup+=sup;
                   });
           });
-          var tbody=document.getElementById('com-sep-dia-tbody');
-          if(tbody) tbody.innerHTML = rows.length?rows.join(""):"<tr><td colspan=\"7\" style=\"text-align:center;padding:14px;color:var(--grey2)\">Sin ventas de embajadores este dia</td></tr>";
-          var tfoot=document.getElementById('com-sep-dia-tfoot');
-          if(tfoot) tfoot.innerHTML = "<tr style=\"background:var(--sh);font-weight:700\"><td colspan=\"2\">TOTAL DIA</td>"+
-                  "<td style=\"text-align:center;font-family:var(--mono)\">"+totV+"</td><td></td>"+
-                  "<td style=\"text-align:center;font-family:var(--mono);color:var(--blue)\">S/ "+totEmb+"</td>"+
-                  "<td style=\"text-align:center;font-family:var(--mono);color:var(--blue)\">S/ "+totSup+"</td>"+
-                  "<td style=\"text-align:center;font-family:var(--mono);color:var(--blue)\">S/ "+(totEmb+totSup)+"</td></tr>";
-    }
-  
-    function poblarSelectorDiaSep(){
-          var sel=document.getElementById('com-sep-dia-sel');
-          if(!sel || sel.dataset.filled==="1") return;
-          var hoyISO=toISO(new Date());
-          var fin = hoyISO>xSEP_SEM_FECHAS[3].hasta?xSEP_SEM_FECHAS[3].hasta:hoyISO;
-          if(fin<xSEP_CAMBIO_FECHA) fin=xSEP_CAMBIO_FECHA;
-          var fechas=fechasEnRangoSep(xSEP_CAMBIO_FECHA, fin);
-          sel.innerHTML=fechas.map(function(f,i){
-                  var d=new Date(f+"T00:00:00");
-                  var dias=["dom","lun","mar","mie","jue","vie","sab"];
-                  var meses=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
-                  var lbl=dias[d.getDay()]+" "+d.getDate()+" "+meses[d.getMonth()];
-                  return "<option value=\""+f+"\""+(i===fechas.length-1?" selected":"")+">"+lbl+"</option>";
-          }).join("");
-          sel.dataset.filled="1";
-    }
+    });
+    return map;
+}
+
+  function renderComisionDiariaEmbajadores(desde, hasta){
+      var inpD=document.getElementById('com-sep-dia-desde');
+      var inpH=document.getElementById('com-sep-dia-hasta');
+      if(!desde && inpD) desde=inpD.value;
+      if(!hasta && inpH) hasta=inpH.value;
+      if(!desde) desde=xSEP_CAMBIO_FECHA;
+      if(!hasta) hasta=desde;
+      if(hasta<desde) hasta=desde;
+      if(desde<xSEP_CAMBIO_FECHA) desde=xSEP_CAMBIO_FECHA;
+      if(inpD && inpD.value!==desde) inpD.value=desde;
+      if(inpH && inpH.value!==hasta) inpH.value=hasta;
+
+      var map=calcLiquidacionEmbajadoresRango(desde, hasta);
+      var keys=Object.keys(map).sort();
+      var rows=[]; var totV=0, totEmb=0, totSup=0;
+      keys.forEach(function(key){
+            var r=map[key];
+            totV+=r.ventas; totEmb+=r.comEmb; totSup+=r.comSup;
+            rows.push("<tr><td style=\"font-weight:500\">"+r.sede+"</td>"+
+                            "<td>"+r.vend+"</td>"+
+                            "<td style=\"text-align:center;font-family:var(--mono)\">"+r.dias+"</td>"+
+                            "<td style=\"text-align:center;font-family:var(--mono);font-weight:700\">"+r.ventas+"</td>"+
+                            "<td style=\"text-align:center;font-family:var(--mono)\">S/ "+r.comEmb+"</td>"+
+                            "<td style=\"text-align:center;font-family:var(--mono)\">S/ "+r.comSup+"</td>"+
+                            "<td style=\"text-align:center;font-family:var(--mono);font-weight:700;color:var(--blue)\">S/ "+(r.comEmb+r.comSup)+"</td></tr>");
+      });
+      var tbody=document.getElementById('com-sep-dia-tbody');
+      if(tbody) tbody.innerHTML = rows.length?rows.join(""):"<tr><td colspan=\"7\" style=\"text-align:center;padding:14px;color:var(--grey2)\">Sin ventas de embajadores en este rango</td></tr>";
+      var tfoot=document.getElementById('com-sep-dia-tfoot');
+      if(tfoot) tfoot.innerHTML = "<tr style=\"background:var(--sh);font-weight:700\"><td colspan=\"3\">TOTAL RANGO</td>"+
+            "<td style=\"text-align:center;font-family:var(--mono)\">"+totV+"</td>"+
+            "<td style=\"text-align:center;font-family:var(--mono);color:var(--blue)\">S/ "+totEmb+"</td>"+
+            "<td style=\"text-align:center;font-family:var(--mono);color:var(--blue)\">S/ "+totSup+"</td>"+
+            "<td style=\"text-align:center;font-family:var(--mono);color:var(--blue)\">S/ "+(totEmb+totSup)+"</td></tr>";
+  }
+
+  function poblarSelectorDiaSep(){
+      var inpD=document.getElementById('com-sep-dia-desde');
+      var inpH=document.getElementById('com-sep-dia-hasta');
+      if(!inpD || !inpH || inpD.dataset.filled==="1") return;
+      var hoyISO=toISO(new Date());
+      var fin = hoyISO>xSEP_SEM_FECHAS[3].hasta?xSEP_SEM_FECHAS[3].hasta:hoyISO;
+      if(fin<xSEP_CAMBIO_FECHA) fin=xSEP_CAMBIO_FECHA;
+      inpD.min=xSEP_CAMBIO_FECHA; inpD.max=xSEP_SEM_FECHAS[3].hasta; inpD.value=fin;
+      inpH.min=xSEP_CAMBIO_FECHA; inpH.max=xSEP_SEM_FECHAS[3].hasta; inpH.value=fin;
+      inpD.dataset.filled="1";
+  }
+
+  function aplicarRangoDiaSep(tipo){
+      var inpD=document.getElementById('com-sep-dia-desde');
+      var inpH=document.getElementById('com-sep-dia-hasta');
+      var hoyISO=toISO(new Date());
+      var desde, hasta;
+      if(tipo==='sem2'){ desde=xSEP_CAMBIO_FECHA; hasta=xSEP_SEM_FECHAS[1].hasta; }
+      else if(tipo==='sem3'){ desde=xSEP_SEM_FECHAS[2].desde; hasta=xSEP_SEM_FECHAS[2].hasta; }
+      else if(tipo==='sem4'){ desde=xSEP_SEM_FECHAS[3].desde; hasta=xSEP_SEM_FECHAS[3].hasta; }
+      else { desde=xSEP_CAMBIO_FECHA; hasta=hoyISO>xSEP_SEM_FECHAS[3].hasta?xSEP_SEM_FECHAS[3].hasta:hoyISO; }
+      if(inpD) inpD.value=desde;
+      if(inpH) inpH.value=hasta;
+      renderComisionDiariaEmbajadores(desde, hasta);
+  }
   
   var xSEP_BONO_SEM_EMBAJADOR = 20;
   var xSEP_BONO_4SEM_EXTRA = 50;
