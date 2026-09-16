@@ -253,7 +253,7 @@ select.filter-sel:hover{border-color:var(--blue);}
 
   <div class="chart-grid">
     <div class="chart-card">
-      <div class="chart-title">Ventas firmadas por día</div>
+<div class="chart-title">Meta vs Venta por mes</div>>
       <div class="chart-box"><canvas id="c-dias"></canvas></div>
     </div>
     <div class="chart-card">
@@ -1007,15 +1007,32 @@ var CHARTS = {};
   }
 }
 function renderChartDias(rows){
-  var fin=rows.filter(esFirmado);
-  var bd={};
-  fin.forEach(function(r){var d=parseFecha(r['Fecha Venta']);if(d){var k=toISO(d);bd[k]=(bd[k]||0)+1;}});
-  var ent=Object.entries(bd).sort(function(a,b){return a[0].localeCompare(b[0]);});
-  if(!ent.length) return;
-  mkChart('c-dias','bar',{
-    labels:ent.map(function(e){return e[0].slice(5);}),
-    datasets:[{label:'Firmadas',data:ent.map(function(e){return e[1];}),backgroundColor:'rgba(26,115,232,.7)',borderColor:'#1a73e8',borderWidth:1,borderRadius:2}]
-  },{scales:{x:{ticks:{color:'#5f6368',font:{size:9},maxRotation:45},grid:{display:false}},y:{beginAtZero:true,ticks:{color:'#5f6368',stepSize:1},grid:{color:'#f1f3f4'}}}});
+    var xMETA_MES_MAP = {'2026-04':META_ABR,'2026-05':META_MAY,'2026-06':META_JUN,'2026-07':META_JUL,'2026-08':META_AGO,'2026-09':META_SEP};
+    var meses = Object.keys(xMETA_MES_MAP).sort();
+    function metaTotalMes(mk){
+          var obj=xMETA_MES_MAP[mk]; if(!obj) return 0;
+          return Object.keys(obj).reduce(function(s,sede){ return s+(obj[sede].mes||0); },0);
+    }
+    var ventaPorMes={};
+    ALL.forEach(function(r){
+          if(!esFirmado(r)) return;
+          var d=parseFecha(r['Fecha Venta']); if(!d) return;
+          var mk=toMesKey(d);
+          if(xMETA_MES_MAP[mk]) ventaPorMes[mk]=(ventaPorMes[mk]||0)+1;
+    });
+    var labels=meses.map(function(mk){return mesLabel(mk);});
+    var metaArr=meses.map(metaTotalMes);
+    var ventaArr=meses.map(function(mk){return ventaPorMes[mk]||0;});
+    mkChart('c-dias','bar',{
+          labels:labels,
+          datasets:[
+            {label:'Meta',data:metaArr,backgroundColor:'rgba(95,99,104,.35)',borderColor:'#5f6368',borderWidth:1,borderRadius:2},
+            {label:'Venta',data:ventaArr,backgroundColor:'rgba(26,115,232,.75)',borderColor:'#1a73e8',borderWidth:1,borderRadius:2}
+                ]
+    },{
+          plugins:{legend:{display:true,position:'top',labels:{color:'#5f6368',font:{size:10},boxWidth:10}}},
+          scales:{x:{ticks:{color:'#5f6368',font:{size:10}},grid:{display:false}},y:{beginAtZero:true,ticks:{color:'#5f6368'},grid:{color:'#f1f3f4'}}}
+    });
 }
 function renderChartProd(rows){
   var fin=rows.filter(esFirmado);
