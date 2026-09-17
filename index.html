@@ -1006,6 +1006,32 @@ var CHARTS = {};
     if(box&&box.parentNode){box.parentNode.innerHTML='<div style="color:#d93025;font-size:11px;padding:8px;">Error: '+err.message+'</div>';}
   }
 }
+
+// Plugin: mostrar el valor numerico encima de cada barra (solo Meta vs Venta)
+var dataLabelsMetaVenta = {
+  id: 'dataLabelsMetaVenta',
+  afterDatasetsDraw: function(chart){
+    if(chart.canvas.id !== 'c-dias') return;
+    var ctx = chart.ctx;
+    chart.data.datasets.forEach(function(dataset, di){
+      var meta = chart.getDatasetMeta(di);
+      if(meta.hidden) return;
+      meta.data.forEach(function(bar, i){
+        var val = dataset.data[i];
+        if(val === undefined || val === null) return;
+        ctx.save();
+        ctx.fillStyle = '#3c4043';
+        ctx.font = '600 10px Roboto Mono, monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(val, bar.x, bar.y - 4);
+        ctx.restore();
+      });
+    });
+  }
+};
+if(typeof Chart!=='undefined'&&Chart.register) Chart.register(dataLabelsMetaVenta);
+
 function renderChartDias(rows){
     var xMETA_MES_MAP = {'2026-04':META_ABR,'2026-05':META_MAY,'2026-06':META_JUN,'2026-07':META_JUL,'2026-08':META_AGO,'2026-09':META_SEP};
     var meses = Object.keys(xMETA_MES_MAP).sort();
