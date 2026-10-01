@@ -4488,12 +4488,13 @@ function descargarComisionesExcelSeptiembre(semIdx, esMes){
     bold_ok: cs(true,  "375623", "E2EFDA", "center"),
     bold_no: cs(true,  "595959", null,     "center"),
     total:   cs(true,  "FFFFFF", "2E75B6", "center"),
+    subtotal:cs(true,  "1F3864", "D9E2F3", "center"),
     nota:    cs(false, "595959", null,     "left", true),
   };
   function cell(v, style, fmt){
     var c = {v:v, s:style};
     if(fmt) c.z = fmt;
-    if(typeof v === "string" && v[0]==="="){ c.t = "n"; c.f = v.substring(1); delete c.v; }
+    if(typeof v === "string" && v[0]==="="){ c.t = "n"; c.f = v.substring(1); c.v = 0; }
     else if(typeof v === "number"){ c.t = "n"; }
     else if(typeof v === "string"){ c.t = "s"; }
     return c;
@@ -4579,7 +4580,7 @@ function descargarComisionesExcelSeptiembre(semIdx, esMes){
     addCell(ws,r,9,bonoVentasTotal,cs(true,"375623",null,"center"),'"S/ "#,##0'); r+=2;
 
     [ "📌 % Cumpl. = Ventas ÷ Meta semana",
-      "📌 Com. asesor: antes del 10-sep = tarifa única por tramo de ventas de la sede. Desde el 10-sep = escalón diario por asesor (ver hoja Politica y hoja Embajadores Detalle)",
+      "📌 Com. asesor: antes del 10-sep = tarifa única por tramo de ventas de la sede. Desde el 10-sep = escalón diario por asesor (ver hoja Politica y hoja Liquidacion diaria)",
       "📌 Com. supervisor = Ventas × S/"+xSEP_SUP_VENTA,
       "📌 Bono embajador = S/"+xSEP_BONO_SEM_EMBAJADOR+" si la sede cumple su meta de la semana",
       "📌 Bono supervisor país = según % de cumplimiento del país esa semana (ver hoja Politica)"
@@ -4657,7 +4658,8 @@ function descargarComisionesExcelSeptiembre(semIdx, esMes){
       "📌 Com. supervisor = Total ventas mes × S/"+xSEP_SUP_VENTA,
       "📌 Bono embajador = S/"+xSEP_BONO_SEM_EMBAJADOR+" × semanas cumplidas, + S/"+xSEP_BONO_4SEM_EXTRA+" extra si cumple las 4 semanas",
       "📌 Bono supervisor país = según % cumplimiento del país cada semana (se suma aparte, no por sede)",
-      "📌 Total = Com. asesor + Bono embajador + Com. supervisor"
+      "📌 Total = Com. asesor + Bono embajador + Com. supervisor",
+      "📌 Ver hoja 'Liquidacion diaria' para el detalle día a día de cómo se arma la comisión de cada asesor (escalón diario)"
     ].forEach(function(n){ addCell(ws,r,1,n,ST.nota); r++; });
 
     var cw=[24,10];
@@ -4667,51 +4669,92 @@ function descargarComisionesExcelSeptiembre(semIdx, esMes){
     ws["!cols"]=cw.map(function(w){return{wch:w};});
   }
 
-  // ══ HOJA 2: Embajadores Detalle (desde 10-sep, escalón diario) ══
+  // ══ HOJA 2: Liquidacion diaria (venta por día, tal cual se liquida, con sumatoria) ══
   var we = {};
-  we["!ref"] = "A1:H300";
   var re = 1;
-  addCell(we,re,1,"LIQUIDACION DIARIA POR ASESOR — ESCALON DESDE 10-SEP-2026",ST.titulo); re++;
+  var DOW = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+  var MES3 = ["ene","feb","mar","abr","may","jun","jul","ago","set","oct","nov","dic"];
+  function fmtDiaLargo(iso){
+    var p = iso.split("-"); var d = new Date(+p[0], +p[1]-1, +p[2]);
+    return DOW[d.getDay()] + ", " + (+p[2]) + " " + MES3[+p[1]-1] + ".";
+  }
+
   var rangoDesde = esMes ? xSEP_SEM_FECHAS[0].desde : xSEP_SEM_FECHAS[semIdx].desde;
   var rangoHasta = esMes ? xSEP_SEM_FECHAS[nSems-1].hasta : xSEP_SEM_FECHAS[semIdx].hasta;
   var rDesdeEf = rangoDesde < xSEP_CAMBIO_FECHA ? xSEP_CAMBIO_FECHA : rangoDesde;
-  addCell(we,re,1,"Periodo: "+periodo+"  (escalón aplica desde "+xSEP_CAMBIO_FECHA+")",cs(true,"1F3864",null,"left")); re++;
-  addCell(we,re,1,"Escalón por venta del día: 1ª=S/"+xSEP_ESCALON_DIARIO[0]+" · 2ª=S/"+xSEP_ESCALON_DIARIO[1]+" · 3ª=S/"+xSEP_ESCALON_DIARIO[2]+" · 4ª+=S/"+xSEP_ESCALON_DIARIO[3]+"  |  Texto azul = fórmula verificable",ST.nota); re+=2;
+
+  addCell(we,re,1,"LIQUIDACION DIARIA DE COMISIONES — EMBAJADORES — KREDIYA PERU",ST.titulo); re++;
+  addCell(we,re,1,"Periodo: "+rDesdeEf+" al "+rangoHasta+"  ("+periodo+")",cs(true,"1F3864",null,"left")); re++;
+  addCell(we,re,1,"Generado: "+new Date().toLocaleString("es-PE")+"  |  Texto azul = fórmula verificable  |  Escalón diario por vendedor: 1ra venta S/"+xSEP_ESCALON_DIARIO[0]+", 2da S/"+xSEP_ESCALON_DIARIO[1]+", 3ra S/"+xSEP_ESCALON_DIARIO[2]+", 4ta en adelante S/"+xSEP_ESCALON_DIARIO[3]+" c/u (se reinicia cada día)  |  Supervisor: S/"+xSEP_SUP_VENTA+" x venta",ST.nota); re+=2;
 
   if(rangoHasta < xSEP_CAMBIO_FECHA){
     addCell(we,re,1,"El periodo seleccionado es anterior al cambio de tarifa (10-sep). Ver hoja Liquidacion — tramo por volumen.",ST.nota);
+    we["!ref"]="A1:H"+(re+1);
   } else {
-    var ehdrs = ["SEDE","VENDEDOR","Días\nactivos","Ventas\nen rango","Com. embajador\n(escalón, ver días)","Com. supervisor\n(ventas×"+xSEP_SUP_VENTA+")","TOTAL\n(E+F)"];
+    var ehdrs = ["FECHA","DIA","SEDE","VENDEDOR","Ventas\ndel dia","Com. embajador\n(escalon diario)","Com. supervisor\n(ventas x S/"+xSEP_SUP_VENTA+")","TOTAL\ndia"];
     for(var eci=0;eci<ehdrs.length;eci++) addCell(we,re,eci+1,ehdrs[eci],ST.hdr);
     we["!rows"]=we["!rows"]||[]; we["!rows"][re-1]={hpt:30}; re++;
-    var e_data_start=re;
 
-    var map = calcLiquidacionEmbajadoresRango(rDesdeEf, rangoHasta);
-    var keys = Object.keys(map).sort();
-    keys.forEach(function(key){
-      var m = map[key];
-      addCell(we,re,1,m.sede,ST.sede);
-      addCell(we,re,2,m.vend,ST.normal);
-      addCell(we,re,3,m.dias,ST.normal);
-      addCell(we,re,4,m.ventas,ST.normal);
-      addCell(we,re,5,m.comEmb,ST.normal,'"S/ "#,##0');
-      addCell(we,re,6,"=D"+re+"*"+xSEP_SUP_VENTA,ST.formula,'"S/ "#,##0');
-      addCell(we,re,7,"=E"+re+"+F"+re,cs(true,"000080",null,"center"),'"S/ "#,##0');
-      re++;
+    var subtotalRows = [];
+    var hayDatos = false;
+
+    fechasEnRangoSep(rDesdeEf, rangoHasta).forEach(function(fi){
+      // reunir todas las ventas de embajadores de este día, en todas las sedes
+      var filas = [];
+      sedes.forEach(function(sede){
+        var vd = getVendedoresDiaSede(sede, fi);
+        Object.keys(vd).forEach(function(vend){
+          filas.push({sede:sede, vend:vend, n:vd[vend]});
+        });
+      });
+      if(!filas.length) return; // día sin ventas de embajadores: se omite, igual que el reporte de referencia
+      hayDatos = true;
+      filas.sort(function(a,b){ return a.sede===b.sede ? (a.vend<b.vend?-1:1) : (a.sede<b.sede?-1:1); });
+
+      var day_start = re;
+      filas.forEach(function(f){
+        addCell(we,re,1,fi,ST.normal);
+        addCell(we,re,2,fmtDiaLargo(fi),ST.normal);
+        addCell(we,re,3,f.sede,ST.sede);
+        addCell(we,re,4,f.vend,ST.normal);
+        addCell(we,re,5,f.n,ST.normal);
+        addCell(we,re,6,"=IF(E"+re+"=0,0,IF(E"+re+">=1,"+xSEP_ESCALON_DIARIO[0]+",0)+IF(E"+re+">=2,"+xSEP_ESCALON_DIARIO[1]+",0)+IF(E"+re+">=3,"+xSEP_ESCALON_DIARIO[2]+",0)+IF(E"+re+">3,"+xSEP_ESCALON_DIARIO[3]+"*(E"+re+"-3),0))",ST.formula,'"S/ "#,##0');
+        addCell(we,re,7,"=E"+re+"*"+xSEP_SUP_VENTA,ST.formula,'"S/ "#,##0');
+        addCell(we,re,8,"=F"+re+"+G"+re,cs(true,"000080",null,"center"),'"S/ "#,##0');
+        re++;
+      });
+      var day_end = re-1;
+
+      addCell(we,re,2,"TOTAL "+fmtDiaLargo(fi).toUpperCase(),ST.subtotal);
+      addCell(we,re,5,"=SUM(E"+day_start+":E"+day_end+")",ST.subtotal,"0");
+      addCell(we,re,6,"=SUM(F"+day_start+":F"+day_end+")",ST.subtotal,'"S/ "#,##0');
+      addCell(we,re,7,"=SUM(G"+day_start+":G"+day_end+")",ST.subtotal,'"S/ "#,##0');
+      addCell(we,re,8,"=SUM(H"+day_start+":H"+day_end+")",ST.subtotal,'"S/ "#,##0');
+      subtotalRows.push(re);
+      re++; re++; // fila en blanco entre días
     });
-    var e_data_end = re-1; re++;
-    if(keys.length){
-      addCell(we,re,1,"TOTAL RANGO",ST.total); addCell(we,re,2,"",ST.total);
-      addCell(we,re,3,"",ST.total);
-      addCell(we,re,4,"=SUM(D"+e_data_start+":D"+e_data_end+")",ST.total,"0");
-      addCell(we,re,5,"=SUM(E"+e_data_start+":E"+e_data_end+")",ST.total,'"S/ "#,##0');
-      addCell(we,re,6,"=SUM(F"+e_data_start+":F"+e_data_end+")",ST.total,'"S/ "#,##0');
-      addCell(we,re,7,"=SUM(G"+e_data_start+":G"+e_data_end+")",ST.total,'"S/ "#,##0');
+
+    if(hayDatos){
+      var sumE = subtotalRows.map(function(rr){return "E"+rr;}).join("+");
+      var sumF = subtotalRows.map(function(rr){return "F"+rr;}).join("+");
+      var sumG = subtotalRows.map(function(rr){return "G"+rr;}).join("+");
+      var sumH = subtotalRows.map(function(rr){return "H"+rr;}).join("+");
+      addCell(we,re,2,"TOTAL RANGO ("+rDesdeEf+" a "+rangoHasta+")",ST.total);
+      addCell(we,re,5,"="+sumE,ST.total,"0");
+      addCell(we,re,6,"="+sumF,ST.total,'"S/ "#,##0');
+      addCell(we,re,7,"="+sumG,ST.total,'"S/ "#,##0');
+      addCell(we,re,8,"="+sumH,ST.total,'"S/ "#,##0');
+      re+=2;
     } else {
-      addCell(we,re,1,"Sin ventas de asesores en este rango",ST.nota);
+      addCell(we,re,1,"Sin ventas de embajadores en este rango",ST.nota); re+=2;
     }
+
+    addCell(we,re,1,"Nota: solo se listan los días con ventas de embajadores dentro del rango. Ventas de \"Call [Sede] Center\" no aparecen aquí (no generan comisión individual de embajador).",ST.nota); re++;
+    addCell(we,re,1,"Nota: el escalón diario se reinicia cada día, por vendedor (no es acumulado del mes).",ST.nota); re++;
+
+    we["!ref"]="A1:H"+(re+2);
   }
-  we["!cols"]=[{wch:24},{wch:22},{wch:10},{wch:11},{wch:16},{wch:16},{wch:12}];
+  we["!cols"]=[{wch:12},{wch:20},{wch:24},{wch:24},{wch:9},{wch:16},{wch:16},{wch:11}];
 
   // ══ HOJA 3: Politica ══
   var wp = {};
@@ -4732,7 +4775,7 @@ function descargarComisionesExcelSeptiembre(semIdx, esMes){
   rp++;
 
   cp(rp,1,"ESCALÓN DIARIO POR ASESOR — DESDE EL 10-SEP",cs(true,"1F3864",null,"left")); rp++;
-  cp(rp,1,"Se paga por venta del día de cada asesor (no por sede): 1ª venta, 2ª venta, 3ª venta, 4ª venta en adelante.",ST.nota); rp++;
+  cp(rp,1,"Se paga por venta del día de cada asesor (no por sede): 1ª venta, 2ª venta, 3ª venta, 4ª venta en adelante. Se reinicia cada día.",ST.nota); rp++;
   ["Venta # del día","Monto"].forEach(function(h,i){ cp(rp,i+1,h,ST.hdr); }); rp++;
   xSEP_ESCALON_DIARIO.forEach(function(monto,i){
     var bg=i%2===0?"F2F2F2":null;
@@ -4782,7 +4825,7 @@ function descargarComisionesExcelSeptiembre(semIdx, esMes){
   wp["!cols"]=[{wch:34},{wch:16},{wch:16},{wch:16},{wch:16},{wch:16},{wch:16}];
 
   XLSX.utils.book_append_sheet(wb, ws, "Liquidacion");
-  XLSX.utils.book_append_sheet(wb, we, "Embajadores Detalle");
+  XLSX.utils.book_append_sheet(wb, we, "Liquidacion diaria");
   XLSX.utils.book_append_sheet(wb, wp, "Politica");
 
   var sufijo = esMes ? "MesCompleto" : "Sem"+(semIdx+1);
