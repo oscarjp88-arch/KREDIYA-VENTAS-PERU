@@ -4060,7 +4060,9 @@ function descargarComisionesExcel(){
   var esJulio = mk === xJUL_MES_KEY;
   var esAgosto = mk === xAGO_MES_KEY;
 
-  if(!esJulio && !esAgosto){ alert("Descarga disponible para julio y agosto 2026"); return; }
+  var esSeptiembre = mk === xSEP_MES_KEY;
+  if(esSeptiembre){ descargarComisionesExcelSeptiembre(semIdx, esMes); return; }
+  if(!esJulio && !esAgosto){ alert("Descarga disponible para julio, agosto y septiembre 2026"); return; }
 
   var semFechas  = esJulio ? xJUL_SEM_FECHAS  : xAGO_SEM_FECHAS;
   var metasSem   = esJulio ? xJUL_METAS_SEM   : xAGO_METAS_SEM;
@@ -4449,6 +4451,344 @@ function descargarComisionesExcel(){
   var fname  = "Comisiones_"+mesCorto+"2026_"+sufijo+".xlsx";
   XLSX.writeFile(wb, fname);
 }
+
+function descargarComisionesExcelSeptiembre(semIdx, esMes){
+  var mesLabelTxt = "Septiembre 2026";
+  var nSems = xSEP_SEM_FECHAS.length;
+  var sedes = Object.keys(xSEP_META_CEL_SEDE_SEM);
+
+  if(!esMes && !xSEP_SEM_FECHAS[semIdx]){ alert("Semana no disponible"); return; }
+
+  var periodo = esMes ? ("Mes completo — " + mesLabelTxt) : xSEP_SEM_FECHAS[semIdx].label;
+
+  var wb = XLSX.utils.book_new();
+
+  function cs(bold, color, bg, halign, italic){
+    var s = {};
+    s.font = {name:"Arial", sz:10, bold:!!bold, color:{rgb: color||"000000"}, italic:!!italic};
+    if(bg) s.fill = {fgColor:{rgb:bg}, patternType:"solid"};
+    s.alignment = {horizontal: halign||"center", vertical:"center", wrapText:true};
+    s.border = {
+      top:{style:"thin",color:{rgb:"BBBBBB"}},
+      bottom:{style:"thin",color:{rgb:"BBBBBB"}},
+      left:{style:"thin",color:{rgb:"BBBBBB"}},
+      right:{style:"thin",color:{rgb:"BBBBBB"}}
+    };
+    return s;
+  }
+  var ST = {
+    titulo:  cs(true,  "FFFFFF", "1F3864", "left"),
+    hdr:     cs(true,  "FFFFFF", "2E75B6", "center"),
+    sede:    cs(true,  "000000", null,     "left"),
+    sede_ok: cs(true,  "000000", "E2EFDA", "left"),
+    normal:  cs(false, "000000", null,     "center"),
+    ok:      cs(false, "000000", "E2EFDA", "center"),
+    formula: cs(false, "000080", null,     "center"),
+    formula_ok: cs(false,"000080","E2EFDA","center"),
+    bold_ok: cs(true,  "375623", "E2EFDA", "center"),
+    bold_no: cs(true,  "595959", null,     "center"),
+    total:   cs(true,  "FFFFFF", "2E75B6", "center"),
+    nota:    cs(false, "595959", null,     "left", true),
+  };
+  function cell(v, style, fmt){
+    var c = {v:v, s:style};
+    if(fmt) c.z = fmt;
+    if(typeof v === "string" && v[0]==="="){ c.t = "n"; c.f = v.substring(1); delete c.v; }
+    else if(typeof v === "number"){ c.t = "n"; }
+    else if(typeof v === "string"){ c.t = "s"; }
+    return c;
+  }
+  function colLetter(n){
+    if(n<=26) return String.fromCharCode(64+n);
+    return String.fromCharCode(64+Math.floor((n-1)/26))+String.fromCharCode(64+((n-1)%26)+1);
+  }
+  function addCell(ws, r, c_num, v, style, fmt){
+    var addr = colLetter(c_num) + r;
+    ws[addr] = cell(v, style, fmt);
+  }
+
+  // ══ HOJA 1: Liquidacion ══
+  var ws = {};
+  ws["!ref"] = "A1:Z200";
+  var r = 1;
+  addCell(ws, r, 1, "LIQUIDACION DE COMISIONES — KREDIYA PERU — SEPTIEMBRE 2026", ST.titulo); r++;
+  addCell(ws, r, 1, "Periodo: " + periodo, cs(true,"1F3864",null,"left")); r++;
+  addCell(ws, r, 1, "Generado: " + new Date().toLocaleString("es-PE") + "  |  Texto azul = fórmula verificable  |  Tarifa cambió el 10-sep (ver hoja Politica)", ST.nota); r+=2;
+
+  var bonoVentasTotal = 0;
+  if(esMes){
+    xSEP_SEM_FECHAS.forEach(function(sf,i){
+      var vP=getVentasPais(sf.desde,sf.hasta);
+      var metaP=metaSemanaTotal(i);
+      var pctP=metaP>0?(vP/metaP*100):0;
+      bonoVentasTotal+=calcBonoSupervisorSemanal(pctP);
+    });
+  } else {
+    var sfw=xSEP_SEM_FECHAS[semIdx];
+    var vPw=getVentasPais(sfw.desde,sfw.hasta);
+    var metaPw=metaSemanaTotal(semIdx);
+    var pctPw=metaPw>0?(vPw/metaPw*100):0;
+    bonoVentasTotal=calcBonoSupervisorSemanal(pctPw);
+  }
+
+  if(!esMes){
+    // ── VISTA SEMANA ──
+    var hdrs = ["SEDE","Meta\nsemana","Ventas\nreales","% Cumpl.\n(C÷B)","Detalle cálculo\ncomisión asesor",
+                "Com. asesor\n(ver detalle)","Com. supervisor\n(C×4)","Bono\nembajador","TOTAL\n(F+G+H)"];
+    var col_w = [24,10,10,11,30,13,14,11,13];
+    for(var ci=0;ci<hdrs.length;ci++) addCell(ws,r,ci+1,hdrs[ci],ST.hdr);
+    ws["!rows"] = ws["!rows"]||[]; ws["!rows"][r-1]={hpt:36};
+    r++;
+    var data_start = r;
+
+    sedes.forEach(function(sede){
+      var metas = xSEP_META_CEL_SEDE_SEM[sede]||[0,0,0,0];
+      var meta_sem = metas[semIdx]||0;
+      var sf = xSEP_SEM_FECHAS[semIdx];
+      var ventas = getVentasSede(sede, sf.desde, sf.hasta);
+      var cal = calcComAsesorSedePeriodo(sede, sf.desde, sf.hasta);
+      var comSup = ventas*xSEP_SUP_VENTA;
+      var bono = calcBonoSeptiembre(sede, false, semIdx);
+      var cumple = meta_sem>0 && ventas>=meta_sem;
+      var bg = cumple ? "E2EFDA" : null;
+      var st_sede = bg?ST.sede_ok:ST.sede, st_norm = bg?ST.ok:ST.normal, st_form = bg?ST.formula_ok:ST.formula;
+
+      addCell(ws,r,1,sede,st_sede);
+      addCell(ws,r,2,meta_sem,st_norm);
+      addCell(ws,r,3,ventas,st_norm);
+      addCell(ws,r,4,"=IF(B"+r+"=0,\"N/A\",C"+r+"/B"+r+")",st_form,"0.0%");
+      addCell(ws,r,5,cal.detalle||"—",bg?cs(false,"000000","E2EFDA","left"):cs(false,"000000",null,"left"));
+      addCell(ws,r,6,cal.comision,st_norm,'"S/ "#,##0');
+      addCell(ws,r,7,"=C"+r+"*"+xSEP_SUP_VENTA,st_form,'"S/ "#,##0');
+      addCell(ws,r,8,bono,bono>0?ST.bold_ok:ST.bold_no,'"S/ "#,##0');
+      addCell(ws,r,9,"=F"+r+"+G"+r+"+H"+r,cs(true,"000080",bg||null,"center"),'"S/ "#,##0');
+      r++;
+    });
+
+    var data_end = r-1; r++;
+    addCell(ws,r,1,"TOTAL PAÍS",ST.total);
+    addCell(ws,r,2,"",ST.total);
+    addCell(ws,r,3,"=SUM(C"+data_start+":C"+data_end+")",ST.total,"0");
+    addCell(ws,r,4,"",ST.total); addCell(ws,r,5,"",ST.total);
+    addCell(ws,r,6,"=SUM(F"+data_start+":F"+data_end+")",ST.total,'"S/ "#,##0');
+    addCell(ws,r,7,"=SUM(G"+data_start+":G"+data_end+")",ST.total,'"S/ "#,##0');
+    addCell(ws,r,8,"=SUM(H"+data_start+":H"+data_end+")",ST.total,'"S/ "#,##0');
+    addCell(ws,r,9,"=SUM(I"+data_start+":I"+data_end+")",ST.total,'"S/ "#,##0');
+    ws["!rows"][r-1]={hpt:22}; r++;
+    addCell(ws,r,1,"Bono supervisor país (cumplimiento semanal, 80/90/100%)",cs(true,"1F3864",null,"left"));
+    addCell(ws,r,9,bonoVentasTotal,cs(true,"375623",null,"center"),'"S/ "#,##0'); r+=2;
+
+    [ "📌 % Cumpl. = Ventas ÷ Meta semana",
+      "📌 Com. asesor: antes del 10-sep = tarifa única por tramo de ventas de la sede. Desde el 10-sep = escalón diario por asesor (ver hoja Politica y hoja Embajadores Detalle)",
+      "📌 Com. supervisor = Ventas × S/"+xSEP_SUP_VENTA,
+      "📌 Bono embajador = S/"+xSEP_BONO_SEM_EMBAJADOR+" si la sede cumple su meta de la semana",
+      "📌 Bono supervisor país = según % de cumplimiento del país esa semana (ver hoja Politica)"
+    ].forEach(function(n){ addCell(ws,r,1,n,ST.nota); r++; });
+    ws["!cols"] = col_w.map(function(w){return{wch:w};});
+
+  } else {
+    // ── VISTA MES COMPLETO ──
+    var col_sem_v_start = 3;
+    var col_sem_c_start = 3 + nSems;
+    var col_ca_total    = 3 + 2*nSems;
+    var col_sems_ok     = 3 + 2*nSems + 1;
+    var col_bono        = 3 + 2*nSems + 2;
+    var col_sup         = 3 + 2*nSems + 3;
+    var col_total       = 3 + 2*nSems + 4;
+    var total_cols      = 3 + 2*nSems + 5;
+
+    var hdrs2 = ["SEDE","Meta\nmes"];
+    for(var s=0;s<nSems;s++) hdrs2.push("Sem "+(s+1)+"\nventas");
+    for(var s=0;s<nSems;s++) hdrs2.push("Sem "+(s+1)+"\ncom. asesor");
+    hdrs2.push("Com. asesor\ntotal (SUM)","Sems\nOK","Bono\nembajador","Com. sup.\n(ventas×"+xSEP_SUP_VENTA+")","TOTAL\nLIQUIDADO");
+    for(var ci=0;ci<hdrs2.length;ci++) addCell(ws,r,ci+1,hdrs2[ci],ST.hdr);
+    ws["!rows"]=ws["!rows"]||[]; ws["!rows"][r-1]={hpt:40}; r++;
+    var data_start=r;
+
+    sedes.forEach(function(sede){
+      var metas=xSEP_META_CEL_SEDE_SEM[sede]||[0,0,0,0];
+      var metaMes=metaMesSede(sede);
+      var vMes=0, semsCump=0, ventas_sem=[], com_sem=[];
+      xSEP_SEM_FECHAS.forEach(function(sf,s){
+        var v=getVentasSede(sede,sf.desde,sf.hasta);
+        var cal=calcComAsesorSedePeriodo(sede,sf.desde,sf.hasta);
+        ventas_sem.push(v); com_sem.push(cal.comision);
+        vMes+=v;
+        if((metas[s]||0)>0 && v>=(metas[s]||0)) semsCump++;
+      });
+      var bono=calcBonoSeptiembre(sede,true);
+      var cumpleMes=vMes>=metaMes;
+      var bg=cumpleMes?"E2EFDA":null;
+      var st_s=bg?ST.sede_ok:ST.sede, st_n=bg?ST.ok:ST.normal, st_f=bg?ST.formula_ok:ST.formula;
+
+      addCell(ws,r,1,sede,st_s);
+      addCell(ws,r,2,metaMes,st_n);
+      for(var s=0;s<nSems;s++) addCell(ws,r,col_sem_v_start+s,ventas_sem[s],st_n);
+      for(var s=0;s<nSems;s++) addCell(ws,r,col_sem_c_start+s,com_sem[s],st_n,'"S/ "#,##0');
+
+      var ca_from=colLetter(col_sem_c_start), ca_to=colLetter(col_sem_c_start+nSems-1);
+      addCell(ws,r,col_ca_total,"=SUM("+ca_from+r+":"+ca_to+r+")",st_f,'"S/ "#,##0');
+      addCell(ws,r,col_sems_ok,semsCump+"/"+nSems, cs(true,semsCump>0?"375623":"595959",bg||null,"center"));
+      addCell(ws,r,col_bono,bono, cs(true,bono>0?"375623":"595959",bg||null,"center"),'"S/ "#,##0');
+
+      var v_from=colLetter(col_sem_v_start), v_to=colLetter(col_sem_v_start+nSems-1);
+      addCell(ws,r,col_sup,"=SUM("+v_from+r+":"+v_to+r+")*"+xSEP_SUP_VENTA,st_f,'"S/ "#,##0');
+
+      var col_ca_l=colLetter(col_ca_total), col_bon_l=colLetter(col_bono), col_sup_l=colLetter(col_sup);
+      addCell(ws,r,col_total,"="+col_ca_l+r+"+"+col_bon_l+r+"+"+col_sup_l+r, cs(true,"000080",bg||null,"center"),'"S/ "#,##0');
+      r++;
+    });
+
+    var data_end=r-1; r++;
+    for(var ci=0;ci<total_cols;ci++) addCell(ws,r,ci+1,"",ST.total);
+    addCell(ws,r,1,"TOTAL PAÍS",ST.total);
+    [col_sem_v_start,col_ca_total,col_bono,col_sup,col_total].forEach(function(ci){
+      for(var s=0;s<(ci===col_sem_v_start?nSems:1);s++){
+        var cl=colLetter(ci+s);
+        addCell(ws,r,ci+s,"=SUM("+cl+data_start+":"+cl+data_end+")",ST.total, ci===col_sem_v_start?"0":'"S/ "#,##0');
+      }
+    });
+    ws["!rows"][r-1]={hpt:22}; r++;
+    addCell(ws,r,1,"Bono supervisor país (cumplimiento semanal, 80/90/100%, cada semana)",cs(true,"1F3864",null,"left"));
+    addCell(ws,r,col_total,bonoVentasTotal,cs(true,"375623",null,"center"),'"S/ "#,##0'); r+=2;
+
+    [ "📌 Com. asesor sem. = tarifa única por tramo (antes del 10-sep) o escalón diario por asesor (desde el 10-sep) — ver hoja Politica",
+      "📌 Com. asesor total = Suma de las 4 semanas",
+      "📌 Com. supervisor = Total ventas mes × S/"+xSEP_SUP_VENTA,
+      "📌 Bono embajador = S/"+xSEP_BONO_SEM_EMBAJADOR+" × semanas cumplidas, + S/"+xSEP_BONO_4SEM_EXTRA+" extra si cumple las 4 semanas",
+      "📌 Bono supervisor país = según % cumplimiento del país cada semana (se suma aparte, no por sede)",
+      "📌 Total = Com. asesor + Bono embajador + Com. supervisor"
+    ].forEach(function(n){ addCell(ws,r,1,n,ST.nota); r++; });
+
+    var cw=[24,10];
+    for(var s=0;s<nSems;s++) cw.push(9);
+    for(var s=0;s<nSems;s++) cw.push(12);
+    cw.push(14,8,12,13,14);
+    ws["!cols"]=cw.map(function(w){return{wch:w};});
+  }
+
+  // ══ HOJA 2: Embajadores Detalle (desde 10-sep, escalón diario) ══
+  var we = {};
+  we["!ref"] = "A1:H300";
+  var re = 1;
+  addCell(we,re,1,"LIQUIDACION DIARIA POR ASESOR — ESCALON DESDE 10-SEP-2026",ST.titulo); re++;
+  var rangoDesde = esMes ? xSEP_SEM_FECHAS[0].desde : xSEP_SEM_FECHAS[semIdx].desde;
+  var rangoHasta = esMes ? xSEP_SEM_FECHAS[nSems-1].hasta : xSEP_SEM_FECHAS[semIdx].hasta;
+  var rDesdeEf = rangoDesde < xSEP_CAMBIO_FECHA ? xSEP_CAMBIO_FECHA : rangoDesde;
+  addCell(we,re,1,"Periodo: "+periodo+"  (escalón aplica desde "+xSEP_CAMBIO_FECHA+")",cs(true,"1F3864",null,"left")); re++;
+  addCell(we,re,1,"Escalón por venta del día: 1ª=S/"+xSEP_ESCALON_DIARIO[0]+" · 2ª=S/"+xSEP_ESCALON_DIARIO[1]+" · 3ª=S/"+xSEP_ESCALON_DIARIO[2]+" · 4ª+=S/"+xSEP_ESCALON_DIARIO[3]+"  |  Texto azul = fórmula verificable",ST.nota); re+=2;
+
+  if(rangoHasta < xSEP_CAMBIO_FECHA){
+    addCell(we,re,1,"El periodo seleccionado es anterior al cambio de tarifa (10-sep). Ver hoja Liquidacion — tramo por volumen.",ST.nota);
+  } else {
+    var ehdrs = ["SEDE","VENDEDOR","Días\nactivos","Ventas\nen rango","Com. embajador\n(escalón, ver días)","Com. supervisor\n(ventas×"+xSEP_SUP_VENTA+")","TOTAL\n(E+F)"];
+    for(var eci=0;eci<ehdrs.length;eci++) addCell(we,re,eci+1,ehdrs[eci],ST.hdr);
+    we["!rows"]=we["!rows"]||[]; we["!rows"][re-1]={hpt:30}; re++;
+    var e_data_start=re;
+
+    var map = calcLiquidacionEmbajadoresRango(rDesdeEf, rangoHasta);
+    var keys = Object.keys(map).sort();
+    keys.forEach(function(key){
+      var m = map[key];
+      addCell(we,re,1,m.sede,ST.sede);
+      addCell(we,re,2,m.vend,ST.normal);
+      addCell(we,re,3,m.dias,ST.normal);
+      addCell(we,re,4,m.ventas,ST.normal);
+      addCell(we,re,5,m.comEmb,ST.normal,'"S/ "#,##0');
+      addCell(we,re,6,"=D"+re+"*"+xSEP_SUP_VENTA,ST.formula,'"S/ "#,##0');
+      addCell(we,re,7,"=E"+re+"+F"+re,cs(true,"000080",null,"center"),'"S/ "#,##0');
+      re++;
+    });
+    var e_data_end = re-1; re++;
+    if(keys.length){
+      addCell(we,re,1,"TOTAL RANGO",ST.total); addCell(we,re,2,"",ST.total);
+      addCell(we,re,3,"",ST.total);
+      addCell(we,re,4,"=SUM(D"+e_data_start+":D"+e_data_end+")",ST.total,"0");
+      addCell(we,re,5,"=SUM(E"+e_data_start+":E"+e_data_end+")",ST.total,'"S/ "#,##0');
+      addCell(we,re,6,"=SUM(F"+e_data_start+":F"+e_data_end+")",ST.total,'"S/ "#,##0');
+      addCell(we,re,7,"=SUM(G"+e_data_start+":G"+e_data_end+")",ST.total,'"S/ "#,##0');
+    } else {
+      addCell(we,re,1,"Sin ventas de asesores en este rango",ST.nota);
+    }
+  }
+  we["!cols"]=[{wch:24},{wch:22},{wch:10},{wch:11},{wch:16},{wch:16},{wch:12}];
+
+  // ══ HOJA 3: Politica ══
+  var wp = {};
+  wp["!ref"] = "A1:G100";
+  var rp = 1;
+  function cp(rr,c,v,st){ addCell(wp,rr,c,v,st||ST.normal); }
+  cp(rp,1,"POLÍTICA DE COMISIONES — SEPTIEMBRE 2026",ST.titulo); rp+=2;
+
+  cp(rp,1,"TRAMOS POR VOLUMEN — HASTA EL 09-SEP (inclusive)",cs(true,"1F3864",null,"left")); rp++;
+  ["Rango de ventas (sede/semana)","Tarifa","Fórmula"].forEach(function(h,i){ cp(rp,i+1,h,ST.hdr); }); rp++;
+  xSEP_RANGOS_TARIFA.forEach(function(t,i){
+    var bg=i%2===0?"F2F2F2":null;
+    cp(rp,1,t.label,cs(false,"000000",bg,"left"));
+    cp(rp,2,"S/ "+t.rate,cs(false,"000000",bg,"center"));
+    cp(rp,3,"Ventas × "+t.rate,cs(false,"000080",bg,"center"));
+    rp++;
+  });
+  rp++;
+
+  cp(rp,1,"ESCALÓN DIARIO POR ASESOR — DESDE EL 10-SEP",cs(true,"1F3864",null,"left")); rp++;
+  cp(rp,1,"Se paga por venta del día de cada asesor (no por sede): 1ª venta, 2ª venta, 3ª venta, 4ª venta en adelante.",ST.nota); rp++;
+  ["Venta # del día","Monto"].forEach(function(h,i){ cp(rp,i+1,h,ST.hdr); }); rp++;
+  xSEP_ESCALON_DIARIO.forEach(function(monto,i){
+    var bg=i%2===0?"F2F2F2":null;
+    cp(rp,1,(i+1)+(i===xSEP_ESCALON_DIARIO.length-1?"ª en adelante":"ª"),cs(false,"000000",bg,"center"));
+    cp(rp,2,"S/ "+monto,cs(false,"000000",bg,"center"));
+    rp++;
+  });
+  rp++;
+
+  cp(rp,1,"BONO EMBAJADOR (por sede, semanal)",cs(true,"1F3864",null,"left")); rp++;
+  cp(rp,1,"S/ "+xSEP_BONO_SEM_EMBAJADOR+" si la sede cumple su meta de la semana, + S/ "+xSEP_BONO_4SEM_EXTRA+" extra si cumple las 4 semanas del mes.",ST.nota); rp+=2;
+
+  cp(rp,1,"COMISIÓN SUPERVISOR",cs(true,"1F3864",null,"left")); rp++;
+  cp(rp,1,"S/ "+xSEP_SUP_VENTA+" por venta",cs(false,"000000",null,"left"));
+  cp(rp,2,"Ventas × "+xSEP_SUP_VENTA,cs(false,"000080",null,"left")); rp+=2;
+
+  cp(rp,1,"BONO SUPERVISOR PAÍS (semanal, según % cumplimiento país)",cs(true,"1F3864",null,"left")); rp++;
+  ["Umbral cumplimiento país","Bono esa semana"].forEach(function(h,i){ cp(rp,i+1,h,ST.hdr); }); rp++;
+  xSEP_SUP_BONO_TIERS.forEach(function(t,i){
+    var bg=i%2===0?"F2F2F2":null;
+    cp(rp,1,"≥ "+t.umbral+"%",cs(false,"000000",bg,"center"));
+    cp(rp,2,"S/ "+t.monto,cs(false,"000000",bg,"center"));
+    rp++;
+  });
+  rp++;
+
+  cp(rp,1,"SEMANAS SEPTIEMBRE 2026",cs(true,"1F3864",null,"left")); rp++;
+  ["Semana","Desde","Hasta"].forEach(function(h,i){ cp(rp,i+1,h,ST.hdr); }); rp++;
+  xSEP_SEM_FECHAS.forEach(function(sf,i){
+    var bg=i%2===0?"F2F2F2":null;
+    [sf.label,sf.desde,sf.hasta].forEach(function(v,ci){ cp(rp,ci+1,v,cs(false,"000000",bg,"center")); });
+    rp++;
+  });
+  rp++;
+
+  cp(rp,1,"METAS POR SEDE",cs(true,"1F3864",null,"left")); rp++;
+  var mhdrs=["Sede","Meta mes"];
+  for(var s=0;s<nSems;s++) mhdrs.push("Sem "+(s+1));
+  mhdrs.forEach(function(h,i){ cp(rp,i+1,h,ST.hdr); }); rp++;
+  sedes.forEach(function(sede,i){
+    var bg=i%2===0?"F2F2F2":null;
+    cp(rp,1,sede,cs(true,"000000",bg,"left"));
+    cp(rp,2,metaMesSede(sede),cs(false,"000000",bg,"center"));
+    (xSEP_META_CEL_SEDE_SEM[sede]||[]).forEach(function(m,s){ cp(rp,3+s,m,cs(false,"000000",bg,"center")); });
+    rp++;
+  });
+  wp["!cols"]=[{wch:34},{wch:16},{wch:16},{wch:16},{wch:16},{wch:16},{wch:16}];
+
+  XLSX.utils.book_append_sheet(wb, ws, "Liquidacion");
+  XLSX.utils.book_append_sheet(wb, we, "Embajadores Detalle");
+  XLSX.utils.book_append_sheet(wb, wp, "Politica");
+
+  var sufijo = esMes ? "MesCompleto" : "Sem"+(semIdx+1);
+  XLSX.writeFile(wb, "Comisiones_Sep2026_"+sufijo+".xlsx");
+}
+
 
 </script>
 </body>
