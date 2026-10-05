@@ -2901,7 +2901,7 @@ var xAGO_SUP_BONO_SEM = 100; // si semana >100 ventas en total país
                                   '</div>' +
                                   '<div class="sheet" style="margin-top:14px;display:none;" id="com-sep-diario-sheet">' +
                   '<div class="sheet-hdr" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">' +
-                    '<span class="sheet-hdr-title">Liquidacion por dia/semana - Embajadores (escalon diario, vigente desde 10 sep)</span>' +
+                    '<span class="sheet-hdr-title">Liquidacion por dia/semana - Embajadores (escalon diario, vigente desde 10 sep)<br><span style="font-size:11px;font-weight:400;color:#7f6000;background:#fff2cc;padding:1px 6px;border-radius:3px;">Politica especial ICA y PIURA (16 al 30 sep): primeras 10 ventas de la casa a S/30, desde la venta 11 a S/50 (acumulado desde el 16-sep; incluye ventas del call)</span></span>' +
                     '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' +
                       '<button type="button" class="pill" onclick="aplicarRangoDiaSep(&quot;sem2&quot;)">Sem 2 (10-11 sep)</button>' +
                       '<button type="button" class="pill" onclick="aplicarRangoDiaSep(&quot;sem3&quot;)">Sem 3 (14-18 sep)</button>' +
@@ -2981,6 +2981,47 @@ var xAGO_SUP_BONO_SEM = 100; // si semana >100 ventas en total país
   var xSEP_CAMBIO_FECHA = "2026-09-10";
     var xSEP_ESCALON_DIARIO = [10,20,25,30];
   
+    var xSEP_POL_ESP = {sedes:["ICA","PIURA"], desde:"2026-09-16", hasta:"2026-09-30", tope:10, tarifa1:30, tarifa2:50};
+
+    function esSedePolEsp(sede){ return xSEP_POL_ESP.sedes.indexOf(sede)!==-1; }
+
+    var _polEspMemo={ref:null,len:-1,map:{}};
+    function getVentasPolEspSede(sede){
+          if(_polEspMemo.ref!==ALL||_polEspMemo.len!==ALL.length){ _polEspMemo={ref:ALL,len:ALL.length,map:{}}; }
+          if(_polEspMemo.map[sede]) return _polEspMemo.map[sede];
+          var out=[], pr=null;
+          ALL.forEach(function(r,idx){
+                  if(!esFirmado(r)||r["Estado de la Solicitud"]!=="Aprobado") return;
+                  if(r["Tienda Venta"]!==sede) return;
+                  var d=parseFecha(r["Fecha Venta"]); if(!d) return;
+                  var iso=toISO(d); if(iso<xSEP_POL_ESP.desde||iso>xSEP_POL_ESP.hasta) return;
+                  var vend=(r["Vendedor"]||"").trim(); if(!vend) return;
+                  if(vend.toUpperCase().indexOf("CALL")!==-1){ if(pr===null) pr=getEmbajadorPrincipalSede(sede); vend=pr; }
+                  var tm=String(r["Fecha Venta"]).match(/(\d{1,2}):(\d{2})/);
+                  out.push({iso:iso, min:tm?(+tm[1])*60+(+tm[2]):0, idx:idx, vend:vend});
+          });
+          out.sort(function(a,b){ return a.iso<b.iso?-1:a.iso>b.iso?1:((a.min-b.min)||(a.idx-b.idx)); });
+          _polEspMemo.map[sede]=out;
+          return out;
+    }
+
+    // Politica especial ICA/PIURA (16-30 sep): las primeras 10 ventas de la casa a S/30, desde la 11 a S/50 (acumulado desde el 16-sep)
+    function calcComisionPolEsp(sede, vend, fechaISO){
+          var lista=getVentasPolEspSede(sede), a=0, b=0, previas=0;
+          lista.forEach(function(v,i){
+                  if(v.iso<fechaISO) previas++;
+                  else if(v.iso===fechaISO && v.vend===vend){ if(i<xSEP_POL_ESP.tope) a++; else b++; }
+          });
+          return {com:a*xSEP_POL_ESP.tarifa1+b*xSEP_POL_ESP.tarifa2, n:a+b, a:a, b:b, previas:previas};
+    }
+
+    function comisionEmbDia(sede, vend, fechaISO, n){
+          if(esSedePolEsp(sede) && fechaISO>=xSEP_POL_ESP.desde && fechaISO<=xSEP_POL_ESP.hasta){
+                  return calcComisionPolEsp(sede, vend, fechaISO).com;
+          }
+          return calcComisionEscalonadaDia(n);
+    }
+
     function calcComisionEscalonadaDia(n){
           var total=0;
           for(var i=0;i<n;i++){ total += xSEP_ESCALON_DIARIO[Math.min(i,xSEP_ESCALON_DIARIO.length-1)]; }
@@ -3046,6 +3087,7 @@ var xAGO_SUP_BONO_SEM = 100; // si semana >100 ventas en total país
     }
   
     function calcComAsesorSedePeriodo(sede, desde, hasta){
+          var polTxt=(esSedePolEsp(sede)&&hasta>=xSEP_POL_ESP.desde&&desde<=xSEP_POL_ESP.hasta)?" · pol. 30/50 desde 16-sep":"";
           if(hasta<xSEP_CAMBIO_FECHA){
                   var v=getVentasSede(sede,desde,hasta);
                   var cal=calcTramosSeptiembre(v);
@@ -3055,18 +3097,18 @@ var xAGO_SUP_BONO_SEM = 100; // si semana >100 ventas en total país
                   var totalCom=0, totalV=0;
                   fechasEnRangoSep(desde,hasta).forEach(function(fi){
                             var vd=getVendedoresDiaSede(sede,fi);
-                            Object.keys(vd).forEach(function(vend){ totalV+=vd[vend]; totalCom+=calcComisionEscalonadaDia(vd[vend]); });
+                            Object.keys(vd).forEach(function(vend){ totalV+=vd[vend]; totalCom+=comisionEmbDia(sede,vend,fi,vd[vend]); });
                   });
-                  return {comision:totalCom, detalle:totalV+" vtas x escalon diario"};
+                  return {comision:totalCom, detalle:totalV+" vtas x escalon diario"+polTxt};
           }
           var vAntes=getVentasSede(sede,desde,"2026-09-09");
           var calAntes=calcTramosSeptiembre(vAntes);
           var totalComD=0, totalVd=0;
           fechasEnRangoSep(xSEP_CAMBIO_FECHA,hasta).forEach(function(fi){
                   var vd=getVendedoresDiaSede(sede,fi);
-                  Object.keys(vd).forEach(function(vend){ totalVd+=vd[vend]; totalComD+=calcComisionEscalonadaDia(vd[vend]); });
+                  Object.keys(vd).forEach(function(vend){ totalVd+=vd[vend]; totalComD+=comisionEmbDia(sede,vend,fi,vd[vend]); });
           });
-          return {comision:calAntes.comision+totalComD, detalle:calAntes.detalle+" + "+totalVd+" esc."};
+          return {comision:calAntes.comision+totalComD, detalle:calAntes.detalle+" + "+totalVd+" esc."+polTxt};
     }
   
 function calcLiquidacionEmbajadoresRango(desde, hasta){
@@ -3080,7 +3122,7 @@ function calcLiquidacionEmbajadoresRango(desde, hasta){
                   var pr=nCall>0?getEmbajadorPrincipalSede(sede):null;
                   Object.keys(vd).forEach(function(vend){
                             var n=vd[vend];
-                            var com=calcComisionEscalonadaDia(n);
+                            var com=comisionEmbDia(sede,vend,fi,n);
                             var sup=n*xSEP_SUP_VENTA;
                             var key=sede+"||"+vend;
                             if(!map[key]) map[key]={sede:sede, vend:vend, dias:0, ventas:0, comEmb:0, comSup:0, call:0};
@@ -4732,9 +4774,9 @@ function descargarComisionesExcelSeptiembre(semIdx, esMes){
 
   if(rangoHasta < xSEP_CAMBIO_FECHA){
     addCell(we,re,1,"El periodo seleccionado es anterior al cambio de tarifa (10-sep). Ver hoja Liquidacion — tramo por volumen.",ST.nota);
-    we["!ref"]="A1:H"+(re+1);
+    we["!ref"]="A1:I"+(re+1);
   } else {
-    var ehdrs = ["FECHA","DIA","SEDE","VENDEDOR","Ventas\ndel dia","Com. embajador\n(escalon diario)","Com. supervisor\n(ventas x S/"+xSEP_SUP_VENTA+")","TOTAL\ndia"];
+    var ehdrs = ["FECHA","DIA","SEDE","VENDEDOR","Ventas\ndel dia","Com. embajador\n(escalon diario)","Com. supervisor\n(ventas x S/"+xSEP_SUP_VENTA+")","TOTAL\ndia","Observación"];
     for(var eci=0;eci<ehdrs.length;eci++) addCell(we,re,eci+1,ehdrs[eci],ST.hdr);
     we["!rows"]=we["!rows"]||[]; we["!rows"][re-1]={hpt:30}; re++;
 
@@ -4762,9 +4804,14 @@ function descargarComisionesExcelSeptiembre(semIdx, esMes){
       filas.forEach(function(f){
         addCell(we,re,1,fi,ST.normal);
         addCell(we,re,2,fmtDiaLargo(fi),ST.normal);
+        var pe = (esSedePolEsp(f.sede) && fi>=xSEP_POL_ESP.desde && fi<=xSEP_POL_ESP.hasta) ? calcComisionPolEsp(f.sede,f.vend,fi) : null;
         addCell(we,re,3,f.sede,ST.sede);
         addCell(we,re,4,f.call>0?(f.vend+" (incl. "+f.call+" del call)"):f.vend,f.call>0?cs(false,"7F6000","FFF2CC","center"):ST.normal);
         addCell(we,re,5,f.n,ST.normal);
+        if(pe){
+          addCell(we,re,6,"="+xSEP_POL_ESP.tarifa1+"*"+pe.a+"+"+xSEP_POL_ESP.tarifa2+"*"+pe.b,ST.formula,'"S/ "#,##0');
+          addCell(we,re,9,"Pol. especial 30/50 (acum. casa antes del día: "+pe.previas+")  →  "+pe.a+" × S/"+xSEP_POL_ESP.tarifa1+" + "+pe.b+" × S/"+xSEP_POL_ESP.tarifa2,cs(false,"7F6000","FFF2CC","left"));
+        } else
         addCell(we,re,6,"=IF(E"+re+"=0,0,IF(E"+re+">=1,"+xSEP_ESCALON_DIARIO[0]+",0)+IF(E"+re+">=2,"+xSEP_ESCALON_DIARIO[1]+",0)+IF(E"+re+">=3,"+xSEP_ESCALON_DIARIO[2]+",0)+IF(E"+re+">3,"+xSEP_ESCALON_DIARIO[3]+"*(E"+re+"-3),0))",ST.formula,'"S/ "#,##0');
         addCell(we,re,7,"=E"+re+"*"+xSEP_SUP_VENTA,ST.formula,'"S/ "#,##0');
         addCell(we,re,8,"=F"+re+"+G"+re,cs(true,"000080",null,"center"),'"S/ "#,##0');
@@ -4818,11 +4865,11 @@ function descargarComisionesExcelSeptiembre(semIdx, esMes){
     }
 
     addCell(we,re,1,"Nota: solo se listan los días con ventas dentro del rango. La venta del call es venta del embajador de la casa (suma a su escalón diario y al supervisor, igual que cualquier otra); se asigna al embajador que más vende en esa sede en el mes.",ST.nota); re++;
-    addCell(we,re,1,"Nota: el escalón diario se reinicia cada día, por vendedor (no es acumulado del mes). El monto a reconocer al call center por cada venta se define aparte.",ST.nota); re++;
+    addCell(we,re,1,"Nota: el escalón diario se reinicia cada día, por vendedor (no es acumulado del mes). El monto a reconocer al call center por cada venta se define aparte. POLÍTICA ESPECIAL ICA y PIURA (16 al 30-sep): las primeras 10 ventas de la casa a S/"+xSEP_POL_ESP.tarifa1+" y desde la venta 11 a S/"+xSEP_POL_ESP.tarifa2+", acumuladas desde el 16-sep (reemplaza el escalón diario en esas sedes y fechas; el supervisor y los bonos siguen igual).",ST.nota); re++;
 
-    we["!ref"]="A1:H"+(re+2);
+    we["!ref"]="A1:I"+(re+2);
   }
-  we["!cols"]=[{wch:12},{wch:20},{wch:24},{wch:34},{wch:9},{wch:16},{wch:16},{wch:11}];
+  we["!cols"]=[{wch:12},{wch:20},{wch:24},{wch:34},{wch:9},{wch:16},{wch:16},{wch:11},{wch:62}];
 
   // ══ HOJA 3: Politica ══
   var wp = {};
@@ -4869,6 +4916,12 @@ function descargarComisionesExcelSeptiembre(semIdx, esMes){
     rp++;
   });
   rp++;
+
+  cp(rp,1,"POLÍTICA ESPECIAL — ICA y PIURA (16 al 30 de septiembre)",cs(true,"1F3864",null,"left")); rp++;
+  cp(rp,1,"Reemplaza el escalón diario en esas dos sedes y fechas. Se cuenta por sede (todo lo que vende la casa, incluido el call), acumulado desde el 16-sep. Supervisor (S/"+xSEP_SUP_VENTA+" por venta) y bonos siguen igual.",ST.nota); rp++;
+  ["Venta de la casa (acumulada desde 16-sep)","Pago por venta"].forEach(function(h,i){ cp(rp,i+1,h,ST.hdr); }); rp++;
+  cp(rp,1,"Ventas 1 a "+xSEP_POL_ESP.tope,cs(false,"000000","F2F2F2","center")); cp(rp,2,"S/ "+xSEP_POL_ESP.tarifa1,cs(false,"000000","F2F2F2","center")); rp++;
+  cp(rp,1,"Venta "+(xSEP_POL_ESP.tope+1)+" en adelante",cs(false,"000000",null,"center")); cp(rp,2,"S/ "+xSEP_POL_ESP.tarifa2,cs(false,"000000",null,"center")); rp+=2;
 
   cp(rp,1,"SEMANAS SEPTIEMBRE 2026",cs(true,"1F3864",null,"left")); rp++;
   ["Semana","Desde","Hasta"].forEach(function(h,i){ cp(rp,i+1,h,ST.hdr); }); rp++;
