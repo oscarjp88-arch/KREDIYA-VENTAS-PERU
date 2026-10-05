@@ -3001,6 +3001,20 @@ var xAGO_SUP_BONO_SEM = 100; // si semana >100 ventas en total país
           return map;
     }
   
+    function getCallDiaSede(sede, fechaISO){
+          var map={};
+          ALL.forEach(function(r){
+                  if(!esFirmado(r)||r["Estado de la Solicitud"]!=="Aprobado") return;
+                  if(r["Tienda Venta"]!==sede) return;
+                  var vend=(r["Vendedor"]||"").trim();
+                  if(!vend || vend.toUpperCase().indexOf("CALL")===-1) return;
+                  var d=parseFecha(r["Fecha Venta"]); if(!d) return;
+                  if(toISO(d)!==fechaISO) return;
+                  map[vend]=(map[vend]||0)+1;
+          });
+          return map;
+    }
+
     function fechasEnRangoSep(desde,hasta){
           var out=[];
           var d=new Date(desde+"T00:00:00"), fin=new Date(hasta+"T00:00:00");
@@ -3049,6 +3063,15 @@ function calcLiquidacionEmbajadoresRango(desde, hasta){
                             map[key].comEmb+=com;
                             map[key].comSup+=sup;
                   });
+                  var cd=getCallDiaSede(sede, fi);
+                  Object.keys(cd).forEach(function(vend){
+                            var nc=cd[vend];
+                            var keyC=sede+"||"+vend;
+                            if(!map[keyC]) map[keyC]={sede:sede, vend:vend, dias:0, ventas:0, comEmb:0, comSup:0, call:true};
+                            map[keyC].dias++;
+                            map[keyC].ventas+=nc;
+                            map[keyC].comSup+=nc*xSEP_SUP_VENTA;
+                  });
           });
     });
     return map;
@@ -3073,7 +3096,7 @@ function calcLiquidacionEmbajadoresRango(desde, hasta){
             var r=map[key];
             totV+=r.ventas; totEmb+=r.comEmb; totSup+=r.comSup;
             rows.push("<tr><td style=\"font-weight:500\">"+r.sede+"</td>"+
-                            "<td>"+r.vend+"</td>"+
+                            "<td>"+r.vend+(r.call?" <span style=\"font-size:10px;color:var(--grey2)\">(venta de la casa · no genera escalón)</span>":"")+"</td>"+
                             "<td style=\"text-align:center;font-family:var(--mono)\">"+r.dias+"</td>"+
                             "<td style=\"text-align:center;font-family:var(--mono);font-weight:700\">"+r.ventas+"</td>"+
                             "<td style=\"text-align:center;font-family:var(--mono)\">S/ "+r.comEmb+"</td>"+
@@ -4558,7 +4581,9 @@ function descargarComisionesExcelSeptiembre(semIdx, esMes){
       addCell(ws,r,2,meta_sem,st_norm);
       addCell(ws,r,3,ventas,st_norm);
       addCell(ws,r,4,"=IF(B"+r+"=0,\"N/A\",C"+r+"/B"+r+")",st_form,"0.0%");
-      addCell(ws,r,5,cal.detalle||"—",bg?cs(false,"000000","E2EFDA","left"):cs(false,"000000",null,"left"));
+      var callN=(sf.desde>=xSEP_CAMBIO_FECHA)?getVentasCallSede(sede,sf.desde,sf.hasta):0;
+      var detTxt=(cal.detalle||"—")+(callN>0?" + "+callN+" call (venta de la casa, sin escalón)":"");
+      addCell(ws,r,5,detTxt,bg?cs(false,"000000","E2EFDA","left"):cs(false,"000000",null,"left"));
       addCell(ws,r,6,cal.comision,st_norm,'"S/ "#,##0');
       addCell(ws,r,7,"=C"+r+"*"+xSEP_SUP_VENTA,st_form,'"S/ "#,##0');
       addCell(ws,r,8,bono,bono>0?ST.bold_ok:ST.bold_no,'"S/ "#,##0');
@@ -4704,20 +4729,31 @@ function descargarComisionesExcelSeptiembre(semIdx, esMes){
       sedes.forEach(function(sede){
         var vd = getVendedoresDiaSede(sede, fi);
         Object.keys(vd).forEach(function(vend){
-          filas.push({sede:sede, vend:vend, n:vd[vend]});
+          filas.push({sede:sede, vend:vend, n:vd[vend], call:false});
+        });
+        var cdd = getCallDiaSede(sede, fi);
+        Object.keys(cdd).forEach(function(vend){
+          filas.push({sede:sede, vend:vend, n:cdd[vend], call:true});
         });
       });
       if(!filas.length) return; // día sin ventas de embajadores: se omite, igual que el reporte de referencia
       hayDatos = true;
-      filas.sort(function(a,b){ return a.sede===b.sede ? (a.vend<b.vend?-1:1) : (a.sede<b.sede?-1:1); });
+      filas.sort(function(a,b){
+        if(a.sede!==b.sede) return a.sede<b.sede?-1:1;
+        if(a.call!==b.call) return a.call?1:-1;
+        return a.vend<b.vend?-1:1;
+      });
 
       var day_start = re;
       filas.forEach(function(f){
         addCell(we,re,1,fi,ST.normal);
         addCell(we,re,2,fmtDiaLargo(fi),ST.normal);
         addCell(we,re,3,f.sede,ST.sede);
-        addCell(we,re,4,f.vend,ST.normal);
+        addCell(we,re,4,f.call?(f.vend+" (venta de la casa)"):f.vend,f.call?cs(false,"7F6000","FFF2CC","center"):ST.normal);
         addCell(we,re,5,f.n,ST.normal);
+        if(f.call){
+          addCell(we,re,6,0,cs(false,"7F6000","FFF2CC","center"),'"S/ "#,##0');
+        } else
         addCell(we,re,6,"=IF(E"+re+"=0,0,IF(E"+re+">=1,"+xSEP_ESCALON_DIARIO[0]+",0)+IF(E"+re+">=2,"+xSEP_ESCALON_DIARIO[1]+",0)+IF(E"+re+">=3,"+xSEP_ESCALON_DIARIO[2]+",0)+IF(E"+re+">3,"+xSEP_ESCALON_DIARIO[3]+"*(E"+re+"-3),0))",ST.formula,'"S/ "#,##0');
         addCell(we,re,7,"=E"+re+"*"+xSEP_SUP_VENTA,ST.formula,'"S/ "#,##0');
         addCell(we,re,8,"=F"+re+"+G"+re,cs(true,"000080",null,"center"),'"S/ "#,##0');
@@ -4749,7 +4785,7 @@ function descargarComisionesExcelSeptiembre(semIdx, esMes){
       addCell(we,re,1,"Sin ventas de embajadores en este rango",ST.nota); re+=2;
     }
 
-    addCell(we,re,1,"Nota: solo se listan los días con ventas de embajadores dentro del rango. Ventas de \"Call [Sede] Center\" no aparecen aquí (no generan comisión individual de embajador).",ST.nota); re++;
+    addCell(we,re,1,"Nota: solo se listan los días con ventas dentro del rango. Las filas amarillas \"Call [Sede] Center\" son venta de la casa: cuentan para la sede (meta y comisión de supervisor S/"+xSEP_SUP_VENTA+" por venta) pero no generan escalón de embajador ni restan al embajador.",ST.nota); re++;
     addCell(we,re,1,"Nota: el escalón diario se reinicia cada día, por vendedor (no es acumulado del mes).",ST.nota); re++;
 
     we["!ref"]="A1:H"+(re+2);
