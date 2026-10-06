@@ -4679,11 +4679,9 @@ function descargarComisionesExcelSeptiembre(semIdx, esMes){
       {titulo:"SEMANA 2 — 7 al 9 de septiembre (política anterior, vigente hasta el miércoles 9)", desde:"2026-09-07", hasta:"2026-09-09"}
     ];
     var PER_DIA = [
-      {titulo:"SEMANA 2 (cierre) — 10 y 11 de septiembre", desde:"2026-09-10", hasta:"2026-09-11"},
-      {titulo:"SEMANA 3 — 14 al 18 de septiembre", desde:"2026-09-14", hasta:"2026-09-18"},
-      {titulo:"SEMANA 4 — 21 al 30 de septiembre", desde:"2026-09-21", hasta:"2026-09-30"}
+      {titulo:"DESDE EL 10 DE SEPTIEMBRE — LIQUIDACIÓN DIARIA (escalón diario)", desde:"2026-09-10", hasta:xSEP_SEM_FECHAS[nSems-1].hasta}
     ];
-    var NCOL_BLK = 9;
+   var NCOL_BLK = 9;
     var MONEY = '"S/ "#,##0';
 
     function isoDias(desde, hasta){
@@ -4750,7 +4748,7 @@ function descargarComisionesExcelSeptiembre(semIdx, esMes){
     // Bloque desde el 10-sep (escalon diario): una fila por vendedor con lo acumulado de los dias del periodo
     function bloqueDiario(per){
       filaTitulo(per.titulo);
-      addCell(ws,r,1,"Escalón diario por vendedor (1ra venta del día S/"+xSEP_ESCALON_DIARIO[0]+", 2da S/"+xSEP_ESCALON_DIARIO[1]+", 3ra S/"+xSEP_ESCALON_DIARIO[2]+", 4ta en adelante S/"+xSEP_ESCALON_DIARIO[3]+"; se reinicia cada día). El detalle día por día está en la hoja 'Liquidacion diaria'. ICA y PIURA: política 30/50 desde el 16-sep.",ST.nota); r++;
+      addCell(ws,r,1,"Escalón diario por vendedor (1ra venta del día S/"+xSEP_ESCALON_DIARIO[0]+", 2da S/"+xSEP_ESCALON_DIARIO[1]+", 3ra S/"+xSEP_ESCALON_DIARIO[2]+", 4ta en adelante S/"+xSEP_ESCALON_DIARIO[3]+"; se reinicia cada día). Desde el 10-sep NO hay liquidación semanal: se paga día a día. Este bloque suma los mismos días de la hoja 'Liquidacion diaria' (mismo total); el detalle día por día está en esa hoja. ICA y PIURA: política 30/50 desde el 16-sep.",ST.nota); r++;
       filaHdr(["SEDE","VENDEDOR","VENTAS","DÍAS CON\nVENTA","ESQUEMA","COM. EMBAJ.\n(suma de los días)","COM. SUPERV.\n(ventas × "+xSEP_SUP_VENTA+")","TOTAL","Observación"]);
       var ini=r;
       var mapa=calcLiquidacionEmbajadoresRango(per.desde,per.hasta);
@@ -4780,12 +4778,10 @@ function descargarComisionesExcelSeptiembre(semIdx, esMes){
     }
 
     PER_TRAMO.forEach(bloqueTramo);
-    filaTitulo("A PARTIR DEL 10 DE SEPTIEMBRE — LIQUIDACIÓN DIARIA (escalón diario), AGRUPADA POR SEMANA");
-    r++;
     PER_DIA.forEach(bloqueDiario);
 
     // Bonos semanales (meta semanal: la semana 2 se mide del 7 al 11)
-    filaTitulo("BONOS SEMANALES POR CUMPLIMIENTO");
+    filaTitulo("BONOS POR CUMPLIMIENTO DE META (se pagan aparte de las comisiones)");
     addCell(ws,r,1,"Bono embajador: S/"+xSEP_BONO_SEM_EMBAJADOR+" por semana cumplida + S/"+xSEP_BONO_4SEM_EXTRA+" extra si cumple las 4 semanas. Se mide ventas ÷ meta de la sede en cada semana (semana 2 = 7 al 11 sep).",ST.nota); r++;
     filaHdr(["SEDE","Sem 1\n(ventas/meta)","Sem 2 (7-11)\n(ventas/meta)","Sem 3\n(ventas/meta)","Sem 4\n(ventas/meta)","Semanas\ncumplidas","BONO\nEMBAJADOR","",""]);
     var ini_b=r;
@@ -4824,13 +4820,10 @@ function descargarComisionesExcelSeptiembre(semIdx, esMes){
 
     // Resumen del mes por sede
     filaTitulo("RESUMEN DEL MES POR SEDE");
-    var NCOL_RES = 11;
     var perRes=[
       {h:"Com. asesor\n1 al 4", d:"2026-09-01", a:"2026-09-04"},
       {h:"Com. asesor\n7 al 9", d:"2026-09-07", a:"2026-09-09"},
-      {h:"Com. asesor\n10 al 11", d:"2026-09-10", a:"2026-09-11"},
-      {h:"Com. asesor\n14 al 18", d:"2026-09-14", a:"2026-09-18"},
-      {h:"Com. asesor\n21 al 30", d:"2026-09-21", a:"2026-09-30"}
+      {h:"Com. asesor\ndesde 10-sep\n(diario)", d:"2026-09-10", a:xSEP_SEM_FECHAS[nSems-1].hasta}
     ];
     var hres=["SEDE"]; perRes.forEach(function(p){ hres.push(p.h); });
     hres.push("COM. ASESOR\nTOTAL","VENTAS\nDEL MES","COM. SUPERV.\n(ventas × "+xSEP_SUP_VENTA+")","BONO\nEMBAJADOR","TOTAL\nLIQUIDADO");
@@ -4843,32 +4836,32 @@ function descargarComisionesExcelSeptiembre(semIdx, esMes){
         addCell(ws,r,2+i,calcComAsesorSedePeriodo(sede,p.d,p.a).comision,ST.normal,MONEY);
         vMes+=getVentasSede(sede,p.d,p.a);
       });
-      addCell(ws,r,7,"=SUM(B"+r+":F"+r+")",ST.formula,MONEY);
-      addCell(ws,r,8,vMes,ST.normal);
-      addCell(ws,r,9,"=H"+r+"*"+xSEP_SUP_VENTA,ST.formula,MONEY);
-      addCell(ws,r,10,calcBonoSeptiembre(sede,true),ST.normal,MONEY);
-      addCell(ws,r,11,"=G"+r+"+I"+r+"+J"+r,cs(true,"000080",null,"center"),MONEY);
+      addCell(ws,r,5,"=SUM(B"+r+":D"+r+")",ST.formula,MONEY);
+      addCell(ws,r,6,vMes,ST.normal);
+      addCell(ws,r,7,"=F"+r+"*"+xSEP_SUP_VENTA,ST.formula,MONEY);
+      addCell(ws,r,8,calcBonoSeptiembre(sede,true),ST.normal,MONEY);
+      addCell(ws,r,9,"=E"+r+"+G"+r+"+H"+r,cs(true,"000080",null,"center"),MONEY);
       r++;
     });
     var fin_r=r-1;
-    for(var cr=1;cr<=11;cr++) addCell(ws,r,cr,"",ST.total);
+    for(var cr=1;cr<=9;cr++) addCell(ws,r,cr,"",ST.total);
     addCell(ws,r,1,"TOTAL PAÍS",ST.total);
-    for(var cc2=2;cc2<=11;cc2++){
+    for(var cc2=2;cc2<=9;cc2++){
       var Lr=colLetter(cc2);
-      addCell(ws,r,cc2,"=SUM("+Lr+ini_r+":"+Lr+fin_r+")",ST.total,cc2===8?"0":MONEY);
+      addCell(ws,r,cc2,"=SUM("+Lr+ini_r+":"+Lr+fin_r+")",ST.total,cc2===6?"0":MONEY);
     }
     ws["!rows"][r-1]={hpt:22}; r++;
     addCell(ws,r,1,"+ Bono supervisor país (cumplimiento semanal, se suma aparte, no por sede)",cs(true,"1F3864",null,"left"));
-    addCell(ws,r,11,bonoVentasTotal,cs(true,"375623",null,"center"),MONEY); r+=2;
+    addCell(ws,r,9,bonoVentasTotal,cs(true,"375623",null,"center"),MONEY); r+=2;
 
-    [ "📌 Semanas 1 y 2 (hasta el 9-sep): tarifa única por tramo de ventas de la sede. Desde el 10-sep: escalón diario por vendedor (ver hoja Politica y hoja Liquidacion diaria).",
+    [ "📌 Semanas 1 y 2 (hasta el 9-sep): tarifa única por tramo de ventas de la sede. Desde el 10-sep se liquida DIARIO (escalón diario por vendedor): no hay liquidación semanal desde esa fecha. Ver hoja Liquidacion diaria y hoja Politica.",
       "📌 Com. supervisor = ventas del mes × S/"+xSEP_SUP_VENTA+". No incluye premios de ranking ni Bonos Silver/Pensionados.",
       "📌 TOTAL LIQUIDADO por sede = Com. asesor total + Com. supervisor + Bono embajador. El bono supervisor país se suma aparte.",
       "📌 Ventas del call: son venta del embajador de la casa (suman a su comisión y al supervisor) y se identifican en la columna Observación."
     ].forEach(function(n){ addCell(ws,r,1,n,ST.nota); r++; });
 
-    ws["!ref"]="A1:K"+(r+1);
-    ws["!cols"]=[26,34,13,26,13,17,17,14,40,13,15].map(function(w){return{wch:w};});
+    ws["!ref"]="A1:I"+(r+1);
+    ws["!cols"]=[26,34,13,26,13,17,17,14,40].map(function(w){return{wch:w};});
   }
 
   // ══ HOJA 2: Liquidacion diaria (venta por día, tal cual se liquida, con sumatoria) ══
