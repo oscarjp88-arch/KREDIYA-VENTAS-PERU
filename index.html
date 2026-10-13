@@ -196,7 +196,7 @@ select.filter-sel:hover{border-color:var(--blue);}
 <div class="topbar">
   <img src="logo.png" alt="KrediYA Perú" class="topbar-logo">
   <div class="topbar-divider"></div>
-  <div class="topbar-title">Tablero Operativo <span>· Panel de Control Comercial · v2.3 (oct-2026: politica octubre — escalon diario + bono coordinador)</span></div>
+  <div class="topbar-title">Tablero Operativo <span>· Panel de Control Comercial · v2.4 (oct-2026: octubre en todas las pestañas — metas, sedes, ventas diarias + política comisiones)</span></div>
   <div style="display:flex;gap:8px;align-items:center;">
     <span class="badge-live">● EN VIVO</span>
     <input type="file" id="csv-file" accept=".csv" style="display:none" onchange="loadCSVFile(event)">
@@ -287,10 +287,10 @@ select.filter-sel:hover{border-color:var(--blue);}
         <option value="2026-04">Abril 2026</option>
         <option value="2026-05">Mayo 2026</option>
         <option value="2026-06">Junio 2026</option>
-                        <option value="2026-07" selected>Julio 2026</option>
-        <option value="2026-09">Sep 2026</option>
-        <option value="2026-08">Agosto 2026</option>
         <option value="2026-07">Julio 2026</option>
+        <option value="2026-08">Agosto 2026</option>
+        <option value="2026-09">Septiembre 2026</option>
+        <option value="2026-10" selected>Octubre 2026</option>
       </select>
     </div>
   </div>
@@ -724,7 +724,7 @@ var META_JUN = {
   'AREQUIPA':               {mes:40, dh:22},
 };
 
-var MES_METAS = '2026-06'; // mes activo por defecto
+var MES_METAS = '2026-10'; // mes activo por defecto (octubre 2026)
 
 // ═══════════════════════════════════════════════════════
 // ESTADO
@@ -820,7 +820,7 @@ function initData(rows,fname){
   var _mesesOrden=Object.keys(_mesesCSV).sort();
   if(_mesesOrden.length){
     var _mesReciente=_mesesOrden[_mesesOrden.length-1];
-    if(_mesReciente==='2026-04'||_mesReciente==='2026-05'||_mesReciente==='2026-06'||_mesReciente==='2026-07') MES_METAS=_mesReciente;
+    if(['2026-04','2026-05','2026-06','2026-07','2026-08','2026-09','2026-10'].indexOf(_mesReciente)>=0) MES_METAS=_mesReciente;
     var _sel=document.getElementById('metas-mes-sel');
     if(_sel) _sel.value=MES_METAS;
   }
@@ -982,7 +982,7 @@ var dataLabelsMetaVenta = {
 if(typeof Chart!=='undefined'&&Chart.register) Chart.register(dataLabelsMetaVenta);
 
 function renderChartDias(rows){
-    var xMETA_MES_MAP = {'2026-04':META_ABR,'2026-05':META_MAY,'2026-06':META_JUN,'2026-07':META_JUL,'2026-08':META_AGO,'2026-09':META_SEP};
+    var xMETA_MES_MAP = {'2026-04':META_ABR,'2026-05':META_MAY,'2026-06':META_JUN,'2026-07':META_JUL,'2026-08':META_AGO,'2026-09':META_SEP,'2026-10':META_OCT};
     var meses = Object.keys(xMETA_MES_MAP).sort();
     function metaTotalMes(mk){
           var obj=xMETA_MES_MAP[mk]; if(!obj) return 0;
@@ -1058,9 +1058,9 @@ function setMetasMes(mes){
 }
 
 function renderMetas(){
-    var META  = MES_METAS==='2026-04'?META_ABR  : MES_METAS==='2026-05'?META_MAY  : MES_METAS==='2026-07'?META_JUL : MES_METAS==='2026-08'?META_AGO : MES_METAS==='2026-09'?META_SEP : META_JUN;
-    var BDAYS = MES_METAS==='2026-04'?BDAYS_ABR : MES_METAS==='2026-05'?BDAYS_MAYO: MES_METAS==='2026-07'?BDAYS_JUL : MES_METAS==='2026-08'?BDAYS_AGO : MES_METAS==='2026-09'?BDAYS_SEP : BDAYS_JUN;
-    var mesLabelStr = MES_METAS==='2026-04'?'Abril 2026': MES_METAS==='2026-05'?'Mayo 2026': MES_METAS==='2026-07'?'Julio 2026':MES_METAS==='2026-08'?'Agosto 2026':MES_METAS==='2026-09'?'Septiembre 2026':'Junio 2026';
+    var META  = MES_METAS==='2026-10'?META_OCT : MES_METAS==='2026-04'?META_ABR  : MES_METAS==='2026-05'?META_MAY  : MES_METAS==='2026-07'?META_JUL : MES_METAS==='2026-08'?META_AGO : MES_METAS==='2026-09'?META_SEP : META_JUN;
+    var BDAYS = MES_METAS==='2026-10'?BDAYS_OCT : MES_METAS==='2026-04'?BDAYS_ABR : MES_METAS==='2026-05'?BDAYS_MAYO: MES_METAS==='2026-07'?BDAYS_JUL : MES_METAS==='2026-08'?BDAYS_AGO : MES_METAS==='2026-09'?BDAYS_SEP : BDAYS_JUN;
+    var mesLabelStr = MES_METAS==='2026-10'?'Octubre 2026': MES_METAS==='2026-04'?'Abril 2026': MES_METAS==='2026-05'?'Mayo 2026': MES_METAS==='2026-07'?'Julio 2026':MES_METAS==='2026-08'?'Agosto 2026':MES_METAS==='2026-09'?'Septiembre 2026':'Junio 2026';
   var isAbr = MES_METAS==='2026-04'; // para compatibilidad (abril = mes cerrado)
   var dhTotal=diasHabilesTotales(BDAYS);
   var dhHoy=isAbr?dhTotal:diasHabilesHastaHoy(BDAYS); // abril = fin de mes
@@ -1169,7 +1169,7 @@ function renderMetas(){
     '<td class="r" style="font-family:var(--mono);color:var(--blue);">'+mAcumTotFila.toFixed(1)+'</td>'+
     '<td class="r" style="font-family:var(--mono);font-weight:700;">'+totReal+'</td>'+
     '<td class="r" style="font-family:var(--mono);color:'+(gapTot>=0?'var(--green)':'var(--red)')+';font-weight:700;">'+(gapTot>0?'+':'')+gapTot.toFixed(1)+'</td>'+
-    '<td><div class="pg-cell"><div class="pg-track"><div class="pg-fill" style="width:'+Math.min(pctTotFila,100)+'%;background:'+(pctTotFila>=100?'var(--green)':pctTotFila>=80?'var(--amber)':'var(--red)')+';"></div></div><span class="pg-pct">'+(pctTotFila>=100?'var(--green)':pctTotFila>=80?'var(--amber)':'var(--red)')+'">'+pctTotFila+'%</span></div></td>'+
+    '<td><div class="pg-cell"><div class="pg-track"><div class="pg-fill" style="width:'+Math.min(pctTotFila,100)+'%;background:'+(pctTotFila>=100?'var(--green)':pctTotFila>=80?'var(--amber)':'var(--red)')+';"></div></div><span class="pg-pct" style="color:'+(pctTotFila>=100?'var(--green)':pctTotFila>=80?'var(--amber)':'var(--red)')+';">'+pctTotFila+'%</span></div></td>'+
     '<td class="r"><span style="font-family:var(--mono);font-size:11px;">'+proyTot+'</span></td>'+
     '<td></td>'+
   '</tr>');
@@ -1383,6 +1383,8 @@ function renderVDRanking(porDia){
   var metasMes = null, diasHab = 21;
   if(xVD_MES===xJUL_MES_KEY){ metasMes=xJUL_META_SEDE_TOTAL; diasHab=23; }
   else if(xVD_MES===xAGO_MES_KEY){ metasMes=xAGO_META_SEDE_TOTAL; diasHab=21; }
+  else if(xVD_MES==="2026-09"){ var _m9={}; Object.keys(META_SEP).forEach(function(k){_m9[k]=META_SEP[k].mes;}); metasMes=_m9; diasHab=BDAYS_SEP.length||21; }
+  else if(xVD_MES===xOCT_MES_KEY){ metasMes=xOCT_META_SEDE; diasHab=BDAYS_OCT.length; }
 
   var datosDia = porDia[xVD_DIA] || {__total:0};
   var filas = VD_SEDES_TODAS.map(function(sede){
@@ -3479,6 +3481,18 @@ function calcLiquidacionEmbajadoresRango(desde, hasta){
     "AREQUIPA":12, "ICA":12, "CUSCO":22
   };
   var xOCT_META_PAIS = 260;
+  // ── Metas vs Ventas (pestaña) — OCTUBRE 2026 ─────────────────
+  // Días hábiles = lunes a viernes del mes (22, base de la política). El 8-oct (feriado) NO se descuenta porque la política paga por día de venta.
+  var BDAYS_OCT = (function(){
+    var out=[], d=new Date(2026,9,1);
+    while(d.getMonth()===9){ var w=d.getDay(); if(w>=1&&w<=5) out.push(toISO(d)); d.setDate(d.getDate()+1); }
+    return out;
+  })();
+  var META_OCT = (function(){
+    var out={};
+    Object.keys(xOCT_META_SEDE).forEach(function(sede){ out[sede]={mes:xOCT_META_SEDE[sede], dh:BDAYS_OCT.length}; });
+    return out;
+  })();
   var xOCT_ESCALON_DIARIO = [10,20,25,30];
   var xOCT_SUP_VENTA = 4;
   // Bono mensual del coordinador: ventas mínimas país del mes (80% / 90% / 100% de 260). Se paga solo el nivel más alto.
@@ -4199,6 +4213,33 @@ function filtrarPorRangoAnt(){
   });
 }
 
+// Meta mensual de una sede para un mes: 1) Google Sheet de presupuesto (xMETAS_HIST) 2) metas fijas del dashboard (Metas vs Ventas)
+function xMetaMesSede(mk, sede){
+  if(xMETAS_HIST[mk] && xMETAS_HIST[mk][sede]) return xMETAS_HIST[mk][sede][4]||0;
+  var mp={'2026-04':typeof META_ABR!=='undefined'?META_ABR:null,'2026-05':typeof META_MAY!=='undefined'?META_MAY:null,'2026-06':typeof META_JUN!=='undefined'?META_JUN:null,
+          '2026-07':typeof META_JUL!=='undefined'?META_JUL:null,'2026-08':typeof META_AGO!=='undefined'?META_AGO:null,'2026-09':typeof META_SEP!=='undefined'?META_SEP:null,
+          '2026-10':typeof META_OCT!=='undefined'?META_OCT:null};
+  var o=mp[mk]; return (o && o[sede]) ? (o[sede].mes||0) : 0;
+}
+// Meta de la sede según la vista de la pestaña Sedes (mes actual, mes específico o semana)
+function xMetaSedeVista(sede, usarMetaMes, weekIdxSem){
+  var hoy=new Date(), per=xSEDE_PERIOD;
+  var mk=null;
+  if(per==="mes") mk=toMesKey(hoy);
+  else if(per.indexOf("messpec_")===0) mk=per.replace("messpec_","");
+  if(mk) return xMetaMesSede(mk, sede);
+  // Semanas: primero la meta semanal cargada (Sheet/hardcode); si no hay, prorratear la meta mensual por días hábiles de la semana
+  if(weekIdxSem>=0 && xMETAS_SEM[sede]) return xMETAS_SEM[sede][weekIdxSem]||0;
+  var lun=new Date(hoy); var dow=hoy.getDay(); lun.setDate(hoy.getDate()+(dow===0?-6:1-dow)); lun.setHours(0,0,0,0);
+  if(per==="semant") lun.setDate(lun.getDate()-7);
+  var mkS=toMesKey(lun);
+  if(mkS===xOCT_MES_KEY && !(xMETAS_HIST[mkS])){
+    var dias=0; for(var i=0;i<5;i++){ var x=new Date(lun); x.setDate(lun.getDate()+i); if(toMesKey(x)===mkS) dias++; }
+    return Math.round(xMetaMesSede(mkS,sede)*dias/BDAYS_OCT.length);
+  }
+  return 0;
+}
+
 function renderSedes(){
   if(!ALL||!ALL.length){
     document.getElementById("sedes-kpis").innerHTML=
@@ -4261,9 +4302,7 @@ function renderSedes(){
   });
 
   var sorted = sedes.map(function(s){
-    var meta = 0;
-    if(usarMetaMes && xMETAS_SEM[s]) meta = xMETAS_SEM[s][4]||0;
-    else if(weekIdxSem>=0 && xMETAS_SEM[s]) meta = xMETAS_SEM[s][weekIdxSem]||0;
+    var meta = xMetaSedeVista(s, usarMetaMes, weekIdxSem);
     var pct = meta>0 ? dataSedes[s].total/meta : 0;
     return {sede:s, d:dataSedes[s], meta:meta, pct:pct};
   }).sort(function(a,b){
@@ -4291,9 +4330,7 @@ function renderSedes(){
     }
 
     // Barra progreso vs meta semanal o mensual
-    var metaSede = 0;
-    if(usarMetaMes && xMETAS_SEM[sede]) metaSede = xMETAS_SEM[sede][4]||0;
-    else if(weekIdxSem>=0 && xMETAS_SEM[sede]) metaSede = xMETAS_SEM[sede][weekIdxSem]||0;
+    var metaSede = xMetaSedeVista(sede, usarMetaMes, weekIdxSem);
     var pctMeta = metaSede>0 ? Math.round(d.total/metaSede*100) : null;
     var progHTML;
     if(pctMeta!==null){
@@ -4336,11 +4373,10 @@ function renderSedes(){
   tfootHTML += "<td style=\"text-align:center;font-family:var(--mono);color:var(--blue)\">"+grandTotal+"</td><td colspan=\"2\"></td></tr>";
 
   // Fila META SEM. / META MES
-  if(weekIdxSem>=0 || usarMetaMes){
-    var metaLabel = usarMetaMes ? "META MES" : "META SEM.";
-    var metaTotal = Object.keys(xMETAS_SEM).reduce(function(sum,s){
-      return sum + ((usarMetaMes ? xMETAS_SEM[s][4] : xMETAS_SEM[s][weekIdxSem])||0);
-    },0);
+  var _esVistaMes = (xSEDE_PERIOD==="mes" || xSEDE_PERIOD.indexOf("messpec_")===0);
+  var metaTotal = sorted.reduce(function(sum,e){ return sum + (e.meta||0); },0);
+  if(metaTotal>0 && xSEDE_PERIOD!=="todo"){
+    var metaLabel = _esVistaMes ? "META MES" : "META SEM.";
     var pctGlobal = metaTotal>0 ? Math.round(grandTotal/metaTotal*100) : 0;
     var metaColor = pctGlobal>=100?"#34a853":pctGlobal>=80?"#e37400":"#c62828";
     tfootHTML += "<tr style=\"background:#f1f8e9;font-weight:700\">"+
