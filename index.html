@@ -196,7 +196,7 @@ select.filter-sel:hover{border-color:var(--blue);}
 <div class="topbar">
   <img src="logo.png" alt="KrediYA Perú" class="topbar-logo">
   <div class="topbar-divider"></div>
-  <div class="topbar-title">Tablero Operativo <span>· Panel de Control Comercial · v2.4 (oct-2026: octubre en todas las pestañas — metas, sedes, ventas diarias + política comisiones)</span></div>
+  <div class="topbar-title">Tablero Operativo <span>· Panel de Control Comercial · v2.5 (oct-2026: stock sin modelos en cero ni tránsito + octubre en todas las pestañas)</span></div>
   <div style="display:flex;gap:8px;align-items:center;">
     <span class="badge-live">● EN VIVO</span>
     <input type="file" id="csv-file" accept=".csv" style="display:none" onchange="loadCSVFile(event)">
@@ -4090,35 +4090,38 @@ var xSEDES_CFG2 = {"INDEPENDENCIA": "lima", "MIRAFLORES": "lima", "CERCADO DE LI
 // Las vistas de productos usan un solo catálogo para que formularios, inventario,
 // tránsito, compras y ventas por sede mantengan exactamente las mismas referencias.
 function renderStock(){
-  var st=xGS(),vd=xGV(),totRefs=xNuevoStock();
+  var st=xGS(),totRefs=xNuevoStock();
+  // Modelos visibles: solo los que tienen stock (>0) en al menos una sede. Si una tienda reporta stock de un modelo, aparece solo.
+  var totAll={};xREFS.forEach(function(r){totAll[r.key]=0;});
+  xSEDES.forEach(function(sd){var s0=st[sd];if(!s0)return;xREFS.forEach(function(r){totAll[r.key]+=(parseInt(s0[r.key])||0);});});
+  var REFS=xREFS.filter(function(r){return totAll[r.key]>0;});
   var tHoy=0,tDesp=0,nUrg=0,nOk=0;
-  var h1='<tr><th rowspan="2" style="min-width:180px">CASA / SEDE</th><th rowspan="2" style="text-align:center">Tipo</th><th rowspan="2" style="text-align:center">Últ. act.</th>';
-  var h2='<tr>';
-  xREFS.forEach(function(r){h1+='<th colspan="2" style="text-align:center;border-bottom:1px solid var(--border)">'+r.corto+'</th>';h2+='<th style="text-align:center;font-size:11px;color:var(--grey2)">Hoy</th><th style="text-align:center;font-size:11px;color:#2e7d32">🚚</th>';});
-  h1+='<th rowspan="2" style="text-align:center">Total Hoy</th><th rowspan="2" style="text-align:center;color:#2e7d32">Total + 🚚</th><th rowspan="2" style="text-align:center">Estado</th>';
-  xREFS.forEach(function(r){h1+='<th rowspan="2" style="text-align:center">Desp. '+r.corto+'</th>';});
-  h1+='<th rowspan="2" style="text-align:center">Plan despacho</th></tr>';h2+='</tr>';
-  document.getElementById('stock-thead').innerHTML=h1+h2;
+  var h1='<tr><th style="min-width:180px">CASA / SEDE</th><th style="text-align:center">Tipo</th><th style="text-align:center">Últ. act.</th>';
+  REFS.forEach(function(r){h1+='<th style="text-align:center">'+r.corto+'</th>';});
+  h1+='<th style="text-align:center">Total Hoy</th><th style="text-align:center">Estado</th>';
+  REFS.forEach(function(r){h1+='<th style="text-align:center">Desp. '+r.corto+'</th>';});
+  h1+='<th style="text-align:center">Plan despacho</th></tr>';
+  document.getElementById('stock-thead').innerHTML=h1;
 
   document.getElementById('stock-tbody').innerHTML=xSEDES.map(function(sd){
-    var s=st[sd]||xNuevoStock(),v=vd[sd]||xNuevoStock();
-    var hasData=Object.prototype.hasOwnProperty.call(st,sd),hoyTotal=xTotalRefs(s),tr=xTRANSITO.porSede[sd]||xNuevoStock(),trTotal=xTotalRefs(tr);
+    var s=st[sd]||xNuevoStock();
+    var hasData=Object.prototype.hasOwnProperty.call(st,sd),hoyTotal=0;
     var desp={},despTotal=0,refsEnCero=0;
-    xREFS.forEach(function(r){var n=parseInt(s[r.key])||0,min=(xMIN[sd]&&xMIN[sd][r.key])||0;desp[r.key]=hasData?Math.max(0,min-n):0;despTotal+=desp[r.key];if(min>0&&n===0)refsEnCero++;totRefs[r.key]+=n;});
+    REFS.forEach(function(r){var n=parseInt(s[r.key])||0,min=(xMIN[sd]&&xMIN[sd][r.key])||0;hoyTotal+=n;desp[r.key]=hasData?Math.max(0,min-n):0;despTotal+=desp[r.key];if(min>0&&n===0)refsEnCero++;totRefs[r.key]+=n;});
     tHoy+=hoyTotal;tDesp+=despTotal;
     var bg,bc;if(!hasData){bg='Sin datos';bc='nd';}else if(refsEnCero>=2){bg='Crítico';bc='crit';nUrg++;}else if(refsEnCero||despTotal){bg='Reponer';bc='warn';nUrg++;}else{bg='OK';bc='ok';nOk++;}
     var esLima=xSEDES_CFG[sd]==='lima',urg=!hasData?'Sin datos Sheets':despTotal===0?'Sin despacho':refsEnCero?'URGENTE · '+(esLima?'mismo día':'2 días'):'Programar · '+(esLima?'mismo día':'2 días');
     var fechaTs=s._fecha||0,diasAct=fechaTs?Math.floor((Date.now()-fechaTs)/86400000):null;
     var actTxt=fechaTs?diasAct+'d':'—',actCls=!fechaTs?'color:var(--grey2)':diasAct>3?'color:var(--red);font-weight:700':diasAct>1?'color:#f29900;font-weight:600':'color:#188038';
     var row='<tr><td style="font-weight:500;font-size:12px">'+sd+'</td><td style="text-align:center">'+(esLima?'<span class="tipo-lima">Lima</span>':'<span class="tipo-prov">Provincia</span>')+'</td><td style="text-align:center;font-family:var(--mono);font-size:11px;'+actCls+'" title="'+(fechaTs?new Date(fechaTs).toLocaleString('es-PE'):'nunca reportó')+'">'+actTxt+'</td>';
-    xREFS.forEach(function(r){var n=parseInt(s[r.key])||0,t=parseInt(tr[r.key])||0,esND=hasData&&s._nd&&s._nd[r.key],c=esND?'var(--grey2)':n<=3?'#d93025':n<=7?'#f29900':'#188038';row+='<td style="text-align:center;font-weight:700;font-family:var(--mono);color:'+c+'"'+(esND?' title="Sin dato en el último reporte de esta sede"':'')+'>'+(esND?'s/d':n)+'</td><td style="text-align:center;font-family:var(--mono);color:#2e7d32;font-weight:600">'+(t||'—')+'</td>';});
-    row+='<td style="text-align:center;font-weight:700;font-family:var(--mono)">'+hoyTotal+'</td><td style="text-align:center;font-weight:700;font-family:var(--mono);color:#2e7d32">'+(xTRANSITO.cargado?hoyTotal+trTotal:'—')+'</td><td style="text-align:center"><span class="sbadge '+bc+'">'+bg+'</span></td>';
-    xREFS.forEach(function(r){var n=parseInt(s[r.key])||0,min=(xMIN[sd]&&xMIN[sd][r.key])||0,d=desp[r.key];row+='<td class="desp '+(d?'warn':'ok')+'" title="Ideal: '+min+' uds">'+(!hasData?'—':d?'+'+d:'✅')+'</td>';});
+    REFS.forEach(function(r){var n=parseInt(s[r.key])||0,esND=hasData&&s._nd&&s._nd[r.key],c=esND?'var(--grey2)':n<=3?'#d93025':n<=7?'#f29900':'#188038';row+='<td style="text-align:center;font-weight:700;font-family:var(--mono);color:'+c+'"'+(esND?' title="Sin dato en el último reporte de esta sede"':'')+'>'+(esND?'s/d':n)+'</td>';});
+    row+='<td style="text-align:center;font-weight:700;font-family:var(--mono)">'+hoyTotal+'</td><td style="text-align:center"><span class="sbadge '+bc+'">'+bg+'</span></td>';
+    REFS.forEach(function(r){var min=(xMIN[sd]&&xMIN[sd][r.key])||0,d=desp[r.key];row+='<td class="desp '+(d?'warn':'ok')+'" title="Ideal: '+min+' uds">'+(!hasData?'—':d?'+'+d:'✅')+'</td>';});
     return row+'<td style="text-align:center"><span class="sbadge '+(despTotal?'warn':'ok')+'">'+urg+'</span></td></tr>';
   }).join('');
   var foot='<tr style="background:var(--sh);font-weight:700"><td colspan="3">TOTAL</td>';
-  xREFS.forEach(function(r){foot+='<td style="text-align:center;font-family:var(--mono);font-weight:700">'+totRefs[r.key]+'</td><td style="text-align:center;font-family:var(--mono);color:#2e7d32">'+(xTRANSITO.cargado?(xTRANSITO[r.key]||0):'—')+'</td>';});
-  foot+='<td style="text-align:center;color:var(--blue)">'+tHoy+'</td><td style="text-align:center;color:#2e7d32">'+(xTRANSITO.cargado?tHoy+xTRANSITO.total:'—')+'</td><td></td><td colspan="'+xREFS.length+'" style="text-align:center;color:var(--red)">Despacho total: '+tDesp+' uds</td><td></td></tr>';
+  REFS.forEach(function(r){foot+='<td style="text-align:center;font-family:var(--mono);font-weight:700">'+totRefs[r.key]+'</td>';});
+  foot+='<td style="text-align:center;color:var(--blue)">'+tHoy+'</td><td></td><td colspan="'+Math.max(REFS.length,1)+'" style="text-align:center;color:var(--red)">Despacho total: '+tDesp+' uds</td><td></td></tr>';
   document.getElementById('stock-tfoot').innerHTML=foot;
   document.getElementById('stock-kpis').innerHTML='<div class="kpi-card blue"><div class="kpi-label">Stock total hoy</div><div class="kpi-val">'+tHoy+'</div><div class="kpi-sub">todas las casas</div></div><div class="kpi-card red"><div class="kpi-label">Despacho sugerido</div><div class="kpi-val">'+tDesp+'</div><div class="kpi-sub">según mínimos configurados</div></div><div class="kpi-card '+(nUrg?'red':'green')+'"><div class="kpi-label">Casas urgentes</div><div class="kpi-val">'+nUrg+'</div></div><div class="kpi-card green"><div class="kpi-label">Casas OK</div><div class="kpi-val">'+nOk+'</div></div>';
 }
